@@ -1,0 +1,6 @@
+---
+title: "Verðbólgugreining"
+format:
+    dashboard:
+        logo: vr_logo.jpg
+---

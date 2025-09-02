@@ -1,0 +1,1046 @@
+# 1.0.0 SETUP -------------------------------------------------------------
+
+library(tidyverse)
+library(eurostat)
+library(quantmod)
+library(XML)
+library(httr)
+library(blsAPI)
+library(openxlsx)
+library(zoo)
+library(rvest)
+library(readxl)
+
+
+# 1.1.0 Functions ----
+fix_date <- function(data) {
+  data %>% 
+    mutate(date = make_date(str_sub(manudur, 1, 4), str_sub(manudur, 6, 7)))
+}
+
+# 1.2.0 Other ----
+
+date_from <- "2022-11-01"
+
+
+# 2.0.0 - DATA - ----------------------------------------------------------
+
+# 2.1.0 Verðbólga með og án húsnæðis+ -------------------------------------
+vnv_tbl <- read_csv2("https://px.hagstofa.is:443/pxis/sq/afdd1b6c-63e6-46fa-8dbd-257ffa5d0cc9") %>% 
+  janitor::clean_names()
+
+vnv_tbl <- vnv_tbl %>% 
+  fix_date() %>% 
+  select(date, visitala, visitala_neysluverds) %>% 
+  set_names("date", "flokkur", "visitala") %>% 
+  mutate(flokkur = ifelse(flokkur == "Vísitala neysluverðs", "Verðbólga", "Verðbólga án húsnæðis")) %>% 
+  group_by(flokkur) %>% 
+  mutate(verdbolga = visitala / lag(visitala, 12) - 1) %>% 
+  drop_na() %>% 
+  ungroup()
+
+
+vnv_fra_nov_tbl <- vnv_tbl %>% 
+  filter(date >= date_from) %>% 
+  group_by(flokkur) %>% 
+  mutate(voxtur = visitala / visitala[1] - 1) %>% 
+  ungroup()
+
+vnv_tbl <- vnv_tbl %>%
+  arrange(date) %>% 
+  group_by(flokkur) %>% 
+  mutate(milli_manada = visitala / lag(visitala) - 1) %>%
+  ungroup() %>% 
+  drop_na()
+
+valuebox_verdbolga <- vnv_tbl %>% 
+  filter(flokkur == "Verðbólga") %>% 
+  arrange(date) %>% 
+  mutate(
+    hradi = ((visitala / lag(visitala, 6))^(1/6))^12-1
+  ) %>% 
+  filter(date == max(date)) %>% 
+  select(verdbolga, milli_manada, hradi)
+
+
+
+
+# 2.2.0 Innlend og erlend verðbólga ---------------------------------------
+
+innlend_innflutt_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/0078e607-b594-47e8-baf4-4bb71c78fecf",
+) %>% 
+  set_names("date", "flokkur", "visitala", "weight")
+
+
+innlend_innflutt_tbl <- innlend_innflutt_tbl %>% 
+  mutate(
+    # Laga gildi
+    visitala = visitala / 10,
+    weight   = weight / 1000,
+    
+    # Bý til dagsetningu
+    date = make_date(year = str_sub(date, 1, 4), month = str_sub(date, 6, 7)),
+    
+    # Bý til nýja flokka
+    flokkur_2 = 
+      case_when(
+        str_detect(flokkur, "5|6|7|8|9")     ~ "Innflutt verðlag",
+        str_detect(flokkur, "Húsnæði")       ~ "Húsnæði",
+        str_detect(flokkur, "1|2|3|4|11|12") ~ "Innlent verðlag utan húsnæðis"
+      )
+  )
+
+
+innlend_innflutt_tbl <- innlend_innflutt_tbl %>% 
+  group_by(date, flokkur_2) %>% 
+  mutate(
+    new_weight = weight / sum(weight),
+    new_index  = new_weight * visitala
+  ) %>% 
+  summarise(index = sum(new_index)) %>% 
+  group_by(flokkur_2) %>% 
+  mutate(delta = index / lag(index, 12) - 1) %>% 
+  drop_na(delta) %>% 
+  ungroup()
+
+# Frá nóvember 2022
+innlend_innflutt_nov_tbl <- innlend_innflutt_tbl %>% 
+  filter(date >= date_from) %>% 
+  group_by(flokkur_2) %>% 
+  mutate(voxtur = index / index[1] - 1)
+
+
+# 2.3.0 Verðbólga eftir eðli og uppruna -----------------------------------
+
+edli_og_uppruna_raw_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/0403e9bc-5ac4-4623-8794-7c6b3bc29161",
+) %>% 
+  set_names("date", "flokkur", "value", "weight") %>% 
+  mutate(
+    value = value / 10,
+    weight = weight / 1000
+  ) %>% 
+  mutate(
+    date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
+  ) %>% 
+  drop_na(value)
+
+
+edli_og_uppruna_tbl <- edli_og_uppruna_raw_tbl %>% 
+  mutate(
+    flokkur =
+      case_when(
+        str_detect(flokkur, "Innlendar vörur") ~ "Innlendar vörur",
+        str_detect(flokkur, "Innfluttar")      ~ "Innfluttar vörur",
+        str_detect(flokkur, "Opinber")         ~ "Opinber þjónusta",
+        str_detect(flokkur, "Önnur þ")         ~ "Önnur þjónusta",
+        TRUE                                   ~ "Húsnæði"
+      )
+  ) %>% 
+  arrange(date, flokkur) %>% 
+  group_by(flokkur) %>% 
+  mutate(
+    delta = value / lag(value, 12) - 1,
+    weight = zoo::rollapply(weight, width = 12, FUN = mean, fill = NA, partial = FALSE, align = "right")
+  ) %>% 
+  ungroup() %>% 
+  drop_na(delta) %>% 
+  mutate(
+    hlutdeild = delta * weight
+  )
+
+
+# Bæti við verðbólgunni 
+edli_og_uppruna_tbl <- edli_og_uppruna_tbl %>% 
+  left_join(vnv_tbl %>% filter(flokkur == "Verðbólga") %>% select(-c(visitala, flokkur))) %>% 
+  drop_na()
+
+
+# Frá nóvember 2022
+edli_og_uppruna_nov_tbl <- edli_og_uppruna_tbl %>% 
+  filter(date >= date_from) %>% 
+  group_by(flokkur) %>% 
+  mutate(voxtur = value / value[1] - 1) %>% 
+  ungroup()
+
+
+# 2.4.0 Undirliggjandi verðbólga ------------------------------------------
+
+undirliggjandi_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/a70b5bba-ab47-4232-b0a0-61f2cda36aaa",
+  na = "."
+) %>% 
+  set_names("date", "Vísitala neysluverðs", "Kjarnavísitala 1", "Kjarnavísitala 2", "Kjarnavísitala 3", "Kjarnavísitala 4") %>% 
+  select(-`Kjarnavísitala 3`)
+
+
+undirliggjandi_tbl <- undirliggjandi_tbl %>% 
+  mutate(date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))) %>% 
+  pivot_longer(cols = -date) %>% 
+  arrange(name, date) %>% 
+  group_by(name) %>% 
+  mutate(value = value / lag(value, 12) - 1) %>% 
+  drop_na()
+
+
+# _ ----
+
+# 3.0.0 - WATERFALL - -----------------------------------------------------
+
+# Based on this: https://www.r-bloggers.com/2019/05/basic-waterfall-graphs-in-r/
+# https://rpubs.com/techanswers88/waterfall-chart-ggplot
+
+# 3.1.Ö Vísitölugildi ----
+undirflokkar_raw_tbl <- read_csv2("https://px.hagstofa.is:443/pxis/sq/23334db3-e8af-4dd6-bbf7-798d15fe4562", na = "..") %>% 
+  janitor::clean_names() %>% 
+  fix_date() %>% 
+  select(-manudur) %>% 
+  set_names("undirflokkur", "visitala", "date")
+
+
+# Bý til undirflokka án númers og vel þá undirflokka sem ég vil
+undirflokkar_tbl <- undirflokkar_raw_tbl %>% 
+  mutate(
+    visitala      = as.numeric(visitala),
+    numer_flokks  = parse_number(undirflokkur),
+    undirflokkur  = str_trim(str_remove_all(undirflokkur, "[:digit:]")),
+    nchar_undirfl = nchar(numer_flokks),
+    to_select     =       case_when(
+      nchar_undirfl == 2 | is.na(nchar_undirfl) ~ "select",
+      str_detect(undirflokkur, "Póstur og sími") ~ "select",
+      str_detect(undirflokkur, "Menntun") ~ "select",
+      TRUE ~ "remove"
+    )
+  ) %>% 
+  filter(to_select == "select") %>% 
+  select(-c(to_select, numer_flokks, nchar_undirfl))
+
+
+
+# 3.2.0 Vogir ----
+undirflokkar_vogir_raw_tbl <- read_csv2("https://px.hagstofa.is:443/pxis/sq/5724ce7f-53ed-4118-9ff9-eb2934e4af5c") %>% 
+  janitor::clean_names() %>%
+  separate(timi, c("manududr", "ar")) %>% 
+  mutate(date = make_date(year = ar, month = 3)) %>% 
+  drop_na(date) %>% 
+  select(date, undirvisitala, visitala_neysluverds) %>% 
+  set_names("date", "undirflokkur", "vog") %>% 
+  mutate(vog = as.numeric(vog),
+         vog = vog / 10000)
+
+
+undirflokkar_vogir_tbl <- undirflokkar_vogir_raw_tbl %>% 
+  mutate(
+    numer_flokks  = parse_number(undirflokkur),
+    undirflokkur  = str_trim(str_remove_all(undirflokkur, "[:digit:]")),
+    nchar_undirfl = nchar(numer_flokks),
+    to_select     = 
+      case_when(
+        nchar_undirfl == 2 | is.na(nchar_undirfl) ~ "select",
+        str_detect(undirflokkur, "Póstur og sími") ~ "select",
+        str_detect(undirflokkur, "Menntun") ~ "select",
+        TRUE ~ "remove"
+      )
+  ) %>% 
+  filter(to_select == "select") %>% 
+  select(-c(numer_flokks:to_select))
+
+
+# 3.3.0 Sameina ----
+undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>% 
+  left_join(undirflokkar_vogir_tbl) %>% 
+  group_by(undirflokkur) %>% 
+  fill(vog, .direction = "down") %>% 
+  drop_na(vog) %>%
+  ungroup()
+
+
+# 3.4.0 Úreikningar ----
+undirflokkar_og_vogir_tbl <- undirflokkar_og_vogir_tbl %>% 
+  group_by(undirflokkur) %>% 
+  mutate(verdbolga = visitala / lag(visitala, 12) - 1,
+         verdbolga_1m = visitala / lag(visitala) - 1) %>% 
+  drop_na() %>% 
+  ungroup() %>% 
+  mutate(ahrif = verdbolga * vog,
+         ahrif_1m = verdbolga_1m * vog)
+
+# Verð að splitta þeim upp og sameina aftur til að fá final verðbólgu neðst
+undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>% 
+  filter(date == max(date)) %>% 
+  select(undirflokkur, ahrif, ahrif_1m) %>% 
+  filter(!undirflokkur == "Vísitala neysluverðs") %>% 
+  arrange(desc(ahrif))
+
+
+# Frá nóvember 2022
+undirflokkar_nov_tbl <- undirflokkar_og_vogir_tbl %>% 
+  filter(date >= date_from) %>% 
+  group_by(undirflokkur) %>% 
+  mutate(haekkun = visitala / visitala[1] - 1,
+         ahrif = haekkun * vog) %>% 
+  filter(date == max(date)) %>% 
+  select(undirflokkur, ahrif)
+
+
+
+
+# 3.5.0 Stöplarit ---------------------------------------------------------
+
+undirflokkar_12m_tbl <- undirflokkar_tbl %>% 
+  arrange(undirflokkur, date) %>% 
+  group_by(undirflokkur) %>% 
+  mutate(
+    verdbolga = visitala / lag(visitala, 12) - 1
+  ) %>% 
+  filter(date == max(date)) %>% 
+  ungroup() %>% 
+  select(undirflokkur, verdbolga) %>% 
+  pivot_wider(names_from = undirflokkur, values_from = verdbolga) %>% 
+  pivot_longer(cols = - "Vísitala neysluverðs")
+
+
+undirflokkar_1m_tbl <- undirflokkar_tbl %>% 
+  arrange(undirflokkur, date) %>% 
+  group_by(undirflokkur) %>% 
+  mutate(
+    verdbolga = visitala / lag(visitala, 1) - 1
+  ) %>% 
+  filter(date == max(date)) %>% 
+  ungroup() %>% 
+  select(undirflokkur, verdbolga) %>% 
+  pivot_wider(names_from = undirflokkur, values_from = verdbolga) %>% 
+  pivot_longer(cols = - "Vísitala neysluverðs")
+
+
+
+# _ ----
+# 4.0.0 FROOP ----
+
+froop_flokkar_tbl <- readxl::read_excel(paste0(base_path, "/00_data/froop.xlsx")) %>% 
+  janitor::clean_names()
+
+vnv_vogir_tbl <- undirflokkar_raw_tbl %>% 
+  drop_na(visitala) %>% 
+  left_join(undirflokkar_vogir_raw_tbl) %>% 
+  group_by(undirflokkur) %>% 
+  fill(vog, .direction = "down") %>% 
+  drop_na(vog) %>% 
+  ungroup()
+
+
+# Bý til númer flokks
+froop_tbl <- vnv_vogir_tbl %>% 
+  # Númer flokka
+  mutate(
+    numer_flokks = parse_number(undirflokkur),
+    numer_flokks = 
+      case_when(
+        is.na(numer_flokks) ~ "0000",
+        nchar(numer_flokks) == 3 ~ paste0("0", numer_flokks),
+        nchar(numer_flokks) == 2 ~ paste0("00", numer_flokks),
+        nchar(numer_flokks) == 1 ~ paste0("000", numer_flokks),
+        TRUE ~ as.character(numer_flokks)
+      )
+  ) %>% 
+  filter(numer_flokks %in% froop_flokkar_tbl$froop) %>% 
+  # Vogir
+  group_by(date) %>% 
+  mutate(vog = vog / sum(vog)) %>% 
+  ungroup() %>% 
+  
+  # Froop vísitala
+  mutate(
+    visitala = as.numeric(visitala),
+    impact = visitala * vog
+  ) %>% 
+  group_by(date) %>% 
+  summarise(froop = sum(impact)) %>% 
+  mutate(infl = froop / lag(froop, 12) - 1) %>% 
+  drop_na() %>% 
+  select(date, infl, froop) %>% 
+  set_names("date", "froop", "froop_index")
+
+
+non_froop_tbl <- vnv_vogir_tbl %>% 
+  # Númer flokka
+  mutate(
+    numer_flokks = parse_number(undirflokkur),
+    numer_flokks = 
+      case_when(
+        is.na(numer_flokks) ~ "0000",
+        nchar(numer_flokks) == 3 ~ paste0("0", numer_flokks),
+        nchar(numer_flokks) == 2 ~ paste0("00", numer_flokks),
+        nchar(numer_flokks) == 1 ~ paste0("000", numer_flokks),
+        TRUE ~ as.character(numer_flokks)
+      )
+  ) %>% 
+  filter(!numer_flokks %in% froop_flokkar_tbl$froop) %>% 
+  # Vogir
+  group_by(date) %>% 
+  mutate(vog = vog / sum(vog)) %>% 
+  ungroup() %>% 
+  
+  # Froop vísitala
+  mutate(
+    visitala = as.numeric(visitala),
+    impact = visitala * vog
+  ) %>% 
+  group_by(date) %>% 
+  summarise(index = sum(impact)) %>% 
+  mutate(infl = index / lag(index, 12) - 1) %>% 
+  drop_na() %>% 
+  select(date, infl, index) %>% 
+  set_names("date", "non_froop", "non_froop_index")
+
+
+# 4.1.0 Skeiti við vnv ----
+froop_tbl <- froop_tbl %>% 
+  left_join(non_froop_tbl) %>% 
+  left_join(vnv_tbl %>% filter(flokkur == "Verðbólga") %>% select(date, verdbolga, visitala))
+
+
+# Frá nóv 2022
+froop_nov_tbl <- froop_tbl %>% 
+  filter(date >= date_from) %>% 
+  select(date, froop_index, non_froop_index, visitala) %>% 
+  set_names("date", "FROOP", "NON-FROOP", "VNV") %>% 
+  pivot_longer(cols = -date) %>% 
+  group_by(name) %>% 
+  mutate(voxtur = value / value[1] - 1) %>% 
+  ungroup() %>% 
+  select(-value)
+
+froop_tbl <- froop_tbl %>% select(-c(froop_index, non_froop_index, visitala))
+
+# _ ----
+# 5.0.0 EUROSTAT - HICP ----
+# search_eurostat("HICP")
+
+hicp_raw_tbl <- get_eurostat(
+  id = "prc_hicp_midx",
+  filters = list(
+    geo   = c("IS", "DK", "NO", "FI", "SE", "EU27_2020"),
+    coicop = c(
+      paste0("CP0", 0:9),
+      "CP10", "CP11", "CP12",
+      "TOT_X_NRG", "SERV", "GD", "FOOD"
+    ),
+    unit  = "I15",
+    freq  = "M"
+  ),
+  time_format = "date",
+  cache = FALSE
+) %>% 
+  as_tibble()
+
+
+if (class(unique(hicp_raw_tbl$time)) == "Date") {
+  hicp_tbl <- hicp_raw_tbl %>% 
+    select(-c(unit, freq)) %>% 
+    rename(
+      "date" = "time",
+      "flokkur" = "coicop",
+      "svaedi" = "geo",
+      "value" = "values"
+    )
+  
+} else {
+  hicp_tbl <- hicp_raw_tbl %>% 
+    mutate(date = ym(time)) %>% 
+    select(-c(time, unit, freq)) %>% 
+    rename(
+      "flokkur" = "coicop",
+      "svaedi" = "geo",
+      "value" = "values"
+    )
+  
+}
+
+# hicp_raw_tbl <- get_eurostat("prc_hicp_midx")
+# 
+# hicp_raw_tbl <- hicp_raw_tbl %>% 
+#   rename("time" = "TIME_PERIOD")
+
+# 5.1.0 Filter ----
+# TOT_X_NRG: Total index excluding energy (NRG)
+# SERV:      Service
+# GD:        Goods (overall index excluding service)
+# 
+
+# hicp_tbl <- hicp_raw_tbl %>% 
+#   filter(
+#     geo %in% c("IS", "DK", "NO", "FI", "SE", "EU27_2020"),
+#     coicop %in% c(paste0("CP0", 0:9), "CP10", "CP11", "CP12", "TOT_X_NRG", "SERV", "GD", "FOOD"),
+#     unit == "I15",
+#     freq == "M"
+#   ) %>% 
+#   select(-c(unit, freq)) %>% 
+#   set_names("flokkur", "svaedi", "date", "value")
+
+hicp_infl_tbl <- hicp_tbl %>% 
+  arrange(date, flokkur, svaedi) %>% 
+  group_by(flokkur, svaedi) %>% 
+  mutate(infl = value / lag(value, 12) - 1,
+         infl_3m = value / lag(value, 3) - 1) %>% 
+  drop_na() %>% 
+  ungroup()
+
+
+# Finn minnsta samnefnara í date
+max_date_hicp <- hicp_infl_tbl %>% 
+  filter(flokkur == "CP00") %>% 
+  group_by(svaedi) %>% 
+  filter(date == max(date)) %>%
+  ungroup() %>% 
+  count(date) %>% 
+  filter(n == max(n)) %>% 
+  pull(date)
+
+hicp_infl_tbl <- hicp_infl_tbl %>% 
+  filter(date <= max_date_hicp)
+
+
+# Frá nóvember 2022
+hicp_nov_tbl <- hicp_infl_tbl %>% 
+  filter(date >= date_from) %>% 
+  group_by(flokkur, svaedi) %>% 
+  mutate(voxtur = value / value[1] - 1) %>% 
+  ungroup()
+
+
+# Preparation for power bi
+land_tbl <- tibble(
+  svaedi = c("DK", "FI", "IS", "NO", "SE", "EU27_2020"),
+  country = c("Danmörk", "Finnland", "Ísland", "Noregur", "Svíþjóð", "EU")
+)
+
+hicp_pbi_tbl <- hicp_infl_tbl %>% 
+  filter(flokkur == "CP00") %>% 
+  left_join(land_tbl)
+
+
+# 5.2.0 By Coicip ----
+coicop_flokkar_tbl <- tibble(
+  coicop = paste0("CP", c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")),
+  flokkur = c("Matur og drykkjarvörur", "Áfengi og tóbak", "Föt og skór", "Húsnæði, hiti og rafmagn", "Húsgögn, heimilisbúnaður o.fl.", "Heilsa",
+              "Ferðir og flutningar", "Póstur og sími", "Tómstundir og menning", "Menntun", "Hótel og veitingastaðir", "Aðrar vörur og þjónusta")
+)
+
+coicop_inflation_tbl <- hicp_raw_tbl %>% 
+  filter(coicop %in% paste0("CP", c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"))) %>% 
+  filter(
+    geo %in% c("IS", "EU27_2020"),
+    unit == "I15",
+    freq == "M"
+  ) %>%
+  arrange(coicop, geo, time) %>% 
+  group_by(coicop, geo) %>% 
+  mutate(inflation = values / lag(values, 12) - 1) %>% 
+  left_join(coicop_flokkar_tbl) %>% 
+  rename("date" = "time")
+
+
+# HICP undirflokkar - power bi
+hicp_undirflokkar_tbl <- hicp_infl_tbl %>% 
+  filter(
+    flokkur %in% c("GD", "SERV", "TOT_X_NRG", "FOOD"),
+    date == max(date)
+  ) %>% 
+  mutate(
+    flokkur = 
+      case_when(
+        flokkur == "GD" ~ "Vörur",
+        flokkur == "SERV" ~ "Þjónusta",
+        flokkur == "FOOD" ~  "Matur",
+        TRUE ~ "Verðbólga án orkugjafa"
+      ),
+    flokkur = enc2utf8(flokkur)
+  ) %>% 
+  left_join(land_tbl)
+
+
+
+# HIPC valuebox
+hicp_valuebox_tbl <- hicp_pbi_tbl %>%
+  filter(date == max(date)) %>% 
+  select(country, infl) %>% 
+  pivot_wider(names_from = country, values_from = infl)
+
+
+
+
+
+# 6.2.0 Húsnæðisverð fyrir power pi ---------------------------------------
+hus_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/9bb1076c-b3ae-4781-96a4-38f83c7973eb"
+)
+
+hus_unnid_tbl <- hus_tbl %>% 
+  mutate(Undirvísitala = str_remove(Undirvísitala, "^\\d+\\s*")) %>% 
+  set_names("date", "lidur", "visitala") %>% 
+  mutate(
+    date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
+  ) %>% 
+  arrange(date, lidur) %>% 
+  group_by(lidur) %>% 
+  mutate(infl = visitala / lag(visitala, 12) - 1) %>% 
+  drop_na() %>% 
+  ungroup()
+
+# 6.3.0 Vextir ------------------------------------------------------------
+
+print("Sæki vexti af heimasíðu Seðlabankans")
+
+url <- "https://sedlabanki.is/library?itemid=93002694-2f52-4209-bf1c-48f2893845f7&type=xls"
+
+temp_file <- tempfile(fileext = ".xlsx")
+
+curl::curl_download(url, temp_file)
+
+vextir_tbl <- readxl::read_xls(temp_file, skip = 9) %>% 
+  select(5, 8) %>% 
+  set_names("Óverðtryggðir", "Verðtryggðir") %>% 
+  mutate(
+    Óverðtryggðir = Óverðtryggðir / 100,
+    Verðtryggðir = Verðtryggðir / 100
+  ) %>% 
+  drop_na()
+
+vextir_date <- seq.Date(from = as.Date("2003-01-01"), length.out = nrow(vextir_tbl),  by = "month")
+
+vextir_tbl <- vextir_tbl %>% 
+  mutate(date = vextir_date)
+
+
+# 6.3.1 Meginvextir ----
+print("Hleð inn meginvexti")
+
+meginvextir_tbl <- read_csv2(paste0(base_path, "/00_data/Meginvextir.csv")) %>% 
+  select(1, 4) %>% 
+  set_names("date", "Meginvextir")
+
+meginvextir_tbl <- meginvextir_tbl %>% 
+  mutate(date = make_date(str_sub(date, 7, 10), str_sub(date, 4, 5))) %>% 
+  group_by(date) %>% 
+  summarise(Meginvextir = mean(Meginvextir) / 100)
+
+
+vextir_tbl <- vextir_tbl %>% 
+  left_join(meginvextir_tbl) %>% 
+  drop_na()
+
+
+
+
+# # 6.4.0 Útlán -------------------------------------------------------------
+print("sæki upplýsingar um útlán af heimasíðu Seðlabankans")
+
+utlan_date_from <- floor_date(today(), "year") - years(3)
+
+
+# ===============================
+# For utlan_stada_tbl (Items 1, 3, 5)
+# ===============================
+
+# -- Bankakerfi Data from INN_Utlan_ --
+print("Les inn gögnin sem sótt voru af heimasíðu Seðlabankans um útlán")
+
+bankakerfi_tbl <- read_xlsx(paste0(base_path, "/00_data/Útlán_bankar.xlsx"), sheet = "IV") %>%
+  slice(14, 17) %>% 
+  select(-c(1, 2)) %>%
+  mutate(type = c("banki_vtr", "banki_ovtr")) %>% 
+  pivot_longer(cols = -type) %>% 
+  drop_na() %>% 
+  select(-name) %>% 
+  pivot_wider(names_from = type, values_from = value) %>% 
+  unnest(everything()) %>% 
+  mutate(date = seq.Date(from = as.Date("1997-12-01"), length.out = nrow(.), by = "month"))
+
+
+
+# -- Lifeyrissjodir Data from LIF_Utlan e geirum_ --
+# 
+lifeyrissjodir_tbl <- read_xlsx(paste0(base_path, "/00_data/Útlán_lifeyrir.xlsx")) %>%
+  slice(16, 19) %>%
+  select(-1) %>%
+  mutate(type = c("lif_vtr", "lif_ovtr")) %>%
+  pivot_longer(cols = -type) %>%
+  drop_na() %>%
+  select(-name) %>%
+  pivot_wider(names_from = type, values_from = value) %>%
+  unnest(everything()) %>%
+  mutate(across(everything(), as.numeric)) %>% 
+  mutate(date = seq.Date(from = as.Date("1997-01-01"), length.out = nrow(.), by = "month"))
+
+
+
+# # -- Lanasjodir-rikisins Data from LSJ_Utlan e geirum --
+lsj_tbl <- read_xlsx(paste0(base_path, "/00_data/Útlán_lanasjodir.xlsx")) %>%
+  slice(16, 19) %>%
+  select(-1) %>%
+  mutate(type = c("lanasjodir_vtr", "lanasjodir_ovtr")) %>%
+  pivot_longer(cols = -type) %>%
+  drop_na() %>%
+  select(-name) %>%
+  pivot_wider(names_from = type, values_from = value) %>%
+  unnest(everything()) %>%
+  mutate(across(everything(), as.numeric)) %>% 
+  mutate(date = seq.Date(from = as.Date("1992-03-01"), length.out = nrow(.), by = "month"))
+
+# -- Combine the three via left_join --
+utlan_stada_tbl <- bankakerfi_tbl %>%
+  left_join(lifeyrissjodir_tbl, by = "date") %>%
+  left_join(lsj_tbl, by = "date") %>%
+  drop_na() %>%
+  mutate(
+    "Verðtryggð" = (banki_vtr + lif_vtr + lanasjodir_vtr),
+    "Óverðtryggð" = c(banki_ovtr + lif_ovtr + lanasjodir_ovtr)
+  ) %>% 
+  select(-contains("_")) %>%
+  pivot_longer(cols = -date) %>%
+  group_by(date) %>%
+  mutate(share = value / sum(value)) %>%
+  filter(date >= utlan_date_from) %>% 
+  ungroup()
+
+
+
+# # ===============================
+# # For ny_utlan_tbl (Items 2 and 4)
+# # ===============================
+# 
+# # -- Bankakerfi Data from INN_Ny utlan_ --
+# banki_ny_utlan_ovtr_br <- read_excel_data(excel_urls[["INN_Ny"]], sheet = "I", range = "B81:TA81")
+# banki_ny_utlan_ovtr_fst <- read_excel_data(excel_urls[["INN_Ny"]], sheet = "I", range = "B82:TA82")
+# banki_ny_utlan_vtr_br <- read_excel_data(excel_urls[["INN_Ny"]], sheet = "I", range = "B119:TA119")
+# banki_ny_utlan_vtr_fst <- read_excel_data(excel_urls[["INN_Ny"]], sheet = "I", range = "B120:TA120")
+# 
+# bankakerfi_ny_tbl <- tibble(
+#   date = seq(ymd("2013-01-01"), by = "month", length.out = ncol(banki_ny_utlan_ovtr_br)),
+#   banki_ny_utlan_ovtr_br = as.numeric(banki_ny_utlan_ovtr_br),
+#   banki_ny_utlan_ovtr_fst = as.numeric(banki_ny_utlan_ovtr_fst),
+#   banki_ny_utlan_vtr_br = as.numeric(banki_ny_utlan_vtr_br),
+#   banki_ny_utlan_vtr_fst = as.numeric(banki_ny_utlan_vtr_fst)
+# )
+# 
+# # -- Lifeyrissjodir Data from LIF_Ny utlan_ --
+# lif_ny_utlan_vtr <- read_excel_data(excel_urls[["LIF_Ny"]], sheet = "Sheet1", range = "AX11:TA11")
+# lif_ny_utlan_ovtr <- read_excel_data(excel_urls[["LIF_Ny"]], sheet = "Sheet1", range = "AX12:TA12")
+# 
+# lifeyrissjodir_ny_tbl <- tibble(
+#   date = seq(ymd("2013-01-01"), by = "month", length.out = ncol(lif_ny_utlan_vtr)),
+#   lif_ny_utlan_vtr = as.numeric(lif_ny_utlan_vtr),
+#   lif_ny_utlan_ovtr = as.numeric(lif_ny_utlan_ovtr)
+# )
+# 
+# # -- Combine the two via left_join --
+# ny_utlan_tbl <- bankakerfi_ny_tbl %>%
+#   left_join(lifeyrissjodir_ny_tbl, by = "date") %>%
+#   drop_na()
+# 
+# ny_utlan_tbl <- ny_utlan_tbl %>%
+#   mutate(
+#     "Verðtryggð lán" = (banki_ny_utlan_vtr_br + banki_ny_utlan_vtr_fst + lif_ny_utlan_vtr),
+#     "Óverðtryggð lán" = (banki_ny_utlan_ovtr_br + banki_ny_utlan_ovtr_fst + lif_ny_utlan_ovtr)
+#   ) %>%
+#   select(-contains("_")) %>%
+#   pivot_longer(cols = -date) %>%
+#   filter(date >= utlan_date_from)
+
+
+
+# _ ----
+# 7.0.0 GENGI ----
+print("Sæki upplýsingar um gengi af heimasíðu Seðlabankans")
+
+get_si_gengi <- function(gjaldmidill) {
+  
+  currency_id <- switch(gjaldmidill,
+                        "eur" = 4064,
+                        "usd" = 4055,
+                        "visitala" = 4117)
+  
+  path_to_data <- paste0("http://www.sedlabanki.is/xmltimeseries/Default.aspx?DagsFra=2005-01-01&DagsTil=", today(), "T00:00:00&TimeSeriesID=", currency_id, "&Type=xml")
+  
+  doc <- GET(path_to_data)
+  
+  xml_1 <- xml2::read_xml(content(doc, "text"))
+  xml_2 <- xmlParse(xml_1)
+  
+  gengi_tbl <- xmlToDataFrame(nodes = getNodeSet(xml_2, "//Entry")) %>%
+    as_tibble() %>% 
+    set_names("date", "gengi")
+  
+  gengi_tbl %>% 
+    mutate(
+      date = as.Date(mdy_hms(date)),
+      gengi = as.numeric(gengi)
+    ) %>% 
+    set_names("date", gjaldmidill)
+  
+}
+
+# EUR: gjaldmidill = eur
+# USD: gjaldmidill = usd
+# gengisvíaitala: gjaldmidill = visitala
+
+gengi_tbl <- get_si_gengi("eur") %>% 
+  left_join(get_si_gengi("usd")) %>% 
+  left_join(get_si_gengi("visitala")) %>% 
+  set_names("date", "EUR", "USD", "Gengisvísitala") %>% 
+  pivot_longer(cols = -date) %>% 
+  mutate(date = floor_date(date, "month")) %>% 
+  group_by(date, name) %>% 
+  summarise(value = mean(value))
+
+
+# _ ----
+# 9.0.0 VERÐBÓLGUVÆNTINGAR -----------------------------------------------
+# "https://www.sedlabanki.is/library/Skraarsafn/Verdbolguvaentingar-/Verdbolguvaentingar_a_mismunandi_maelikvarda.xlsx"
+# 
+# 
+# verdbolguvaentingar <- "https://www.sedlabanki.is/hagtolur/verdbolguvaentingar-a-mismunandi-maelikvarda/" %>% 
+#   read_html() %>% 
+#   html_nodes("a") %>% 
+#   html_attr("href")
+# 
+# vaentingar_mismunandi_maelikvardar <- verdbolguvaentingar[str_detect(verdbolguvaentingar, "mismunandi_maelikvarda")] %>% unique()
+# vaentingar_markadsadilar           <- verdbolguvaentingar[str_detect(verdbolguvaentingar, "markadsadila")] %>% unique()
+# 
+# vaentingar_mismunandi_maelikvardar <- paste0("https://www.sedlabanki.is", vaentingar_mismunandi_maelikvardar)
+# vaentingar_markadsadilar           <- paste0("https://www.sedlabanki.is", vaentingar_markadsadilar)
+# 
+# 
+# # Download
+# temp_file_mism <- tempfile(fileext = ".xlsx")
+# GET(vaentingar_mismunandi_maelikvardar, write_disk(temp_file_mism, overwrite = TRUE))
+# 
+# temp_file_mark <- tempfile(fileext = ".xlsx")
+# GET(vaentingar_markadsadilar, write_disk(temp_file_mark, overwrite = TRUE))
+
+
+
+# 9.1.0 Skuldabréfamarkaðurinn --------------------------------------------
+print("Skuldabréfamarkaðurinn")
+
+combine_interpolate_bonds <- function(overdtryggd_tbl, verdtryggd_tbl, method = "linear") {
+  
+  # Create sequence of monthly maturities
+  date_seq <- seq(min(overdtryggd_tbl$maturity), max(overdtryggd_tbl$maturity), by = "month")
+  
+  # Define interpolation function based on chosen method
+  interpolate_yield <- function(maturity, yield, xout, method) {
+    if (method == "linear") {
+      return(approx(maturity, yield, xout = xout, method = "linear", rule = 2)$y)
+    } else if (method == "spline") {
+      return(spline(maturity, yield, xout = xout, method = "natural")$y)
+    } else {
+      stop("Invalid method. Choose either 'linear' or 'spline'.")
+    }
+  }
+  
+  # Apply interpolation
+  indexed_yield <- interpolate_yield(verdtryggd_tbl$maturity, verdtryggd_tbl$yield, date_seq, method)
+  non_indexed_yield <- interpolate_yield(overdtryggd_tbl$maturity, overdtryggd_tbl$yield, date_seq, method)
+  
+  # Create interpolated yield tables
+  indexed_tbl <- tibble(maturity = date_seq, yield = indexed_yield)
+  non_indexed_tbl <- tibble(maturity = date_seq, yield = non_indexed_yield)
+  
+  # Join datasets and calculate break-even inflation
+  combined_tbl <- inner_join(indexed_tbl, non_indexed_tbl, by = "maturity", suffix = c("_indexed", "_non_indexed")) %>%
+    mutate(break_even_inflation = (1 + yield_non_indexed) / (1 + yield_indexed) - 1) %>%
+    select(maturity, break_even_inflation)
+  
+  return(combined_tbl)
+}
+
+combine_interpolate_bonds_multiple_days <- function(overdtryggd, verdtryggd, method = "linear") {
+  
+  # Ensure we have valid dates
+  unique_dates <- unique(c(overdtryggd$date, verdtryggd$date))
+  
+  # Nest data by date
+  nested_data <- tibble(date = unique_dates) %>%
+    mutate(
+      overd_data = map(date, ~ filter(overdtryggd, date == .x) %>% drop_na()),
+      verd_data  = map(date, ~ filter(verdtryggd, date == .x) %>% drop_na())
+    )
+  
+  # Apply function to each nested date
+  results <- nested_data %>%
+    mutate(
+      interpolated = map2(overd_data, verd_data, ~ {
+        if (nrow(.x) == 0 || nrow(.y) == 0) return(NULL) # Handle missing cases
+        combine_interpolate_bonds(.x, .y, method = method)
+      })
+    ) %>%
+    unnest(interpolated) %>%
+    select(date, maturity, break_even_inflation)
+  
+  return(results)
+}
+
+
+# 9.1.1 Söguleg gögn ------------------------------------------------------
+
+# * RIKB ----
+rikb_files <- list.files(paste0(base_path, "/00_data/skuldabref/"), pattern = "rikb_")
+
+rikb_ls <- rikb_files %>% 
+  paste0(base_path, "/00_data/skuldabref/", .) %>% 
+  map(., .f = function(x) read_csv2(x))
+
+names(rikb_ls) <- rikb_files
+
+rikb_tbl <- rikb_ls %>% 
+  bind_rows(.id = "bref") %>% 
+  mutate(
+    maturity = str_remove(bref, "rikb_|"),
+    maturity = str_remove(maturity, ".csv"),
+    maturity = ymd(maturity),
+    date = dmy(DateTime)
+  ) %>% 
+  select(-DateTime) %>% 
+  set_names("bref", "yield", "maturity", "date") %>% 
+  mutate(
+    yield = yield / 100,
+    key   = "ovt"
+  )
+
+# Bý til smooth feril fyrir yield. Of mikið noise ef valinn er einn dagur
+rikb_tbl <- rikb_tbl %>% 
+  arrange(bref, date) %>% 
+  mutate(yield = rollapplyr(yield, width = 10, FUN = mean, partial = TRUE))
+
+
+
+# * RIKS ---- 
+riks_files <- list.files(paste0(base_path, "/00_data/skuldabref/"), pattern = "riks_")
+
+riks_ls <- riks_files %>% 
+  paste0(base_path, "/00_data/skuldabref/", .) %>% 
+  map(., .f = function(x) read_csv2(x))
+
+names(riks_ls) <- riks_files
+
+riks_tbl <- riks_ls %>% 
+  bind_rows(.id = "bref") %>% 
+  mutate(
+    maturity = str_remove(bref, "riks_|"),
+    maturity = str_remove(maturity, ".csv"),
+    maturity = ymd(maturity),
+    date = dmy(DateTime)
+  ) %>% 
+  select(-DateTime) %>% 
+  set_names("bref", "yield", "maturity", "date") %>% 
+  mutate(
+    yield = yield / 100,
+    key   = "vt"
+  )
+
+
+# Bý til smooth feril fyrir yield. Of mikið noise ef valinn er einn dagur
+riks_tbl <- riks_tbl %>% 
+  arrange(bref, date) %>% 
+  mutate(yield = rollapplyr(yield, width = 10, FUN = mean, partial = TRUE))
+
+
+# * Verðbólguálag ----
+
+combined_bonds_over_time <- combine_interpolate_bonds_multiple_days(
+  rikb_tbl %>% filter(date >= "2023-10-01"),
+  riks_tbl %>% filter(date >= "2023-10-01")
+)
+
+
+# Define the current month
+current_month <- floor_date(Sys.Date(), "month")
+
+# Filter for the last 3 months
+last_3_months_dates <- seq(from = current_month - months(3), 
+                           to = current_month - months(1), 
+                           by = "month")
+
+# Find the last date available in each of the past 3 months
+dates_vector <- tibble(date = last_3_months_dates) %>%
+  mutate(last_available_date = map(date, ~ {
+    last_date <- max(
+      filter(combined_bonds_over_time, floor_date(date, "month") == .x)$date, 
+      na.rm = TRUE
+    )
+    return(last_date)
+  })) %>%
+  unnest(last_available_date) %>% 
+  pull(last_available_date)
+
+
+combined_bonds_over_time <- combined_bonds_over_time %>% 
+  filter(date %in% c(today(), dates_vector))
+
+combined_bonds_over_time <- combined_bonds_over_time %>% 
+  mutate(index = as.numeric(as_factor(as.character(date))))
+
+
+# 9.2.0 Heimili, fyrirtæki og skuldabréfamarkaður -------------------------
+
+
+# # * Heimili: Hver telur þú að verðbólga verði næstu 12 mánuði?
+# heimili_tbl <- readxl::read_excel(temp_file_mism, sheet = 1, range = "A10:LM13") %>% 
+#   pivot_longer(cols = - ...1) %>% 
+#   filter(str_detect(...1, "average")) %>% 
+#   # select(-...1) %>% 
+#   drop_na(value) %>% 
+#   mutate(date = date(zoo::as.yearqtr(name))) %>% 
+#   select(date, value) %>% 
+#   mutate(value = value / 100) %>% 
+#   rename("Heimili" = "value")
+# 
+# # * Fyrirtæki: Hver telur þú að verðbólgan verði næstu 12 mánuði?
+# fyrirtaeki_tbl <- readxl::read_excel(temp_file_mism, sheet = 2, range = "A10:LM13") %>% 
+#   pivot_longer(cols = - ...1) %>% 
+#   filter(str_detect(...1, "average")) %>% 
+#   select(-...1) %>% 
+#   drop_na(value) %>% 
+#   mutate(date = date(zoo::as.yearqtr(name))) %>% 
+#   select(date, value) %>% 
+#   mutate(value = value / 100) %>% 
+#   rename("Fyrirtæki" = "value")
+# 
+# # * Verðbólguálag á skuldabréfamarkaði
+# break_even_tbl <- readxl::read_excel(temp_file_mism, sheet = 3, range = "A5:LM9") %>% 
+#   pivot_longer(cols = - ...1) %>% 
+#   drop_na() %>% 
+#   separate(...1, into = c("is", "en"), sep = "/") %>% 
+#   mutate(
+#     key = str_trim(is),
+#     date = date(zoo::as.yearqtr(name))
+#   ) %>% 
+#   mutate(value = value / 100) %>% 
+#   select(date, key, value)
+# 
+
+# 9.3.0 Markaðsaðilar ----
+
+# markadsadilar_tbl <- readxl::read_excel(temp_file_mark, sheet = "III-a", range = "A6:LM10") %>% 
+#   select_if(~any(!is.na(.))) %>% 
+#   drop_na() %>% 
+#   mutate(across(.cols = !...1, .fns = ~ as.numeric(.))) %>% 
+#   pivot_longer(cols = -...1) %>% 
+#   filter(str_detect(...1, "average")) %>% 
+#   mutate(date = date(zoo::as.yearqtr(name))) %>% 
+#   select(date, value) %>% 
+#   mutate(value = value / 100) %>% 
+#   rename("Markaðsaðilar" = "value")
+
+
+# Sameina
+# all_dates <- unique(c(heimili_tbl$date, fyrirtaeki_tbl$date, markadsadilar_tbl$date))
+# 
+# vaentingar_tbl <- tibble(date = all_dates) %>% 
+#   left_join(heimili_tbl) %>% 
+#   left_join(fyrirtaeki_tbl) %>% 
+#   left_join(markadsadilar_tbl)
+#drop_na()

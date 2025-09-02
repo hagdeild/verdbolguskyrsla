@@ -1,0 +1,12 @@
+# Quarto build output
+_site/
+
+# R session files
+.Rproj.user/
+.Rhistory
+.RData
+.Renviron
+
+# OS
+.DS_Store
+Thumbs.db
