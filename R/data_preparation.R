@@ -10,6 +10,7 @@ library(openxlsx)
 library(zoo)
 library(rvest)
 library(readxl)
+library(here)
 
 
 # 1.1.0 Functions ----
@@ -20,8 +21,8 @@ fix_date <- function(data) {
 
 # 1.2.0 Other ----
 
-date_from <- "2022-11-01"
-
+date_from <- floor_date(today() - years(5), "month")
+data_path <- here("data/verdbolguskyrsla_data.xlsx")
 
 # 2.0.0 - DATA - ----------------------------------------------------------
 
@@ -184,7 +185,6 @@ undirliggjandi_tbl <- undirliggjandi_tbl %>%
   drop_na()
 
 
-# _ ----
 
 # 3.0.0 - WATERFALL - -----------------------------------------------------
 
@@ -315,10 +315,10 @@ undirflokkar_1m_tbl <- undirflokkar_tbl %>%
 
 
 
-# _ ----
+
 # 4.0.0 FROOP ----
 
-froop_flokkar_tbl <- readxl::read_excel(paste0(base_path, "/00_data/froop.xlsx")) %>% 
+froop_flokkar_tbl <- read_excel(data_path, sheet = "froop") %>% 
   janitor::clean_names()
 
 vnv_vogir_tbl <- undirflokkar_raw_tbl %>% 
@@ -401,22 +401,7 @@ froop_tbl <- froop_tbl %>%
   left_join(vnv_tbl %>% filter(flokkur == "Verðbólga") %>% select(date, verdbolga, visitala))
 
 
-# Frá nóv 2022
-froop_nov_tbl <- froop_tbl %>% 
-  filter(date >= date_from) %>% 
-  select(date, froop_index, non_froop_index, visitala) %>% 
-  set_names("date", "FROOP", "NON-FROOP", "VNV") %>% 
-  pivot_longer(cols = -date) %>% 
-  group_by(name) %>% 
-  mutate(voxtur = value / value[1] - 1) %>% 
-  ungroup() %>% 
-  select(-value)
-
-froop_tbl <- froop_tbl %>% select(-c(froop_index, non_froop_index, visitala))
-
-# _ ----
 # 5.0.0 EUROSTAT - HICP ----
-# search_eurostat("HICP")
 
 hicp_raw_tbl <- get_eurostat(
   id = "prc_hicp_midx",
@@ -458,27 +443,6 @@ if (class(unique(hicp_raw_tbl$time)) == "Date") {
   
 }
 
-# hicp_raw_tbl <- get_eurostat("prc_hicp_midx")
-# 
-# hicp_raw_tbl <- hicp_raw_tbl %>% 
-#   rename("time" = "TIME_PERIOD")
-
-# 5.1.0 Filter ----
-# TOT_X_NRG: Total index excluding energy (NRG)
-# SERV:      Service
-# GD:        Goods (overall index excluding service)
-# 
-
-# hicp_tbl <- hicp_raw_tbl %>% 
-#   filter(
-#     geo %in% c("IS", "DK", "NO", "FI", "SE", "EU27_2020"),
-#     coicop %in% c(paste0("CP0", 0:9), "CP10", "CP11", "CP12", "TOT_X_NRG", "SERV", "GD", "FOOD"),
-#     unit == "I15",
-#     freq == "M"
-#   ) %>% 
-#   select(-c(unit, freq)) %>% 
-#   set_names("flokkur", "svaedi", "date", "value")
-
 hicp_infl_tbl <- hicp_tbl %>% 
   arrange(date, flokkur, svaedi) %>% 
   group_by(flokkur, svaedi) %>% 
@@ -500,14 +464,6 @@ max_date_hicp <- hicp_infl_tbl %>%
 
 hicp_infl_tbl <- hicp_infl_tbl %>% 
   filter(date <= max_date_hicp)
-
-
-# Frá nóvember 2022
-hicp_nov_tbl <- hicp_infl_tbl %>% 
-  filter(date >= date_from) %>% 
-  group_by(flokkur, svaedi) %>% 
-  mutate(voxtur = value / value[1] - 1) %>% 
-  ungroup()
 
 
 # Preparation for power bi
@@ -570,8 +526,6 @@ hicp_valuebox_tbl <- hicp_pbi_tbl %>%
 
 
 
-
-
 # 6.2.0 Húsnæðisverð fyrir power pi ---------------------------------------
 hus_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/9bb1076c-b3ae-4781-96a4-38f83c7973eb"
@@ -617,7 +571,7 @@ vextir_tbl <- vextir_tbl %>%
 # 6.3.1 Meginvextir ----
 print("Hleð inn meginvexti")
 
-meginvextir_tbl <- read_csv2(paste0(base_path, "/00_data/Meginvextir.csv")) %>% 
+meginvextir_tbl <- read_excel(data_path, sheet = "meginvextir") %>% 
   select(1, 4) %>% 
   set_names("date", "Meginvextir")
 
@@ -632,23 +586,11 @@ vextir_tbl <- vextir_tbl %>%
   drop_na()
 
 
-
-
 # # 6.4.0 Útlán -------------------------------------------------------------
-print("sæki upplýsingar um útlán af heimasíðu Seðlabankans")
 
-utlan_date_from <- floor_date(today(), "year") - years(3)
-
-
-# ===============================
-# For utlan_stada_tbl (Items 1, 3, 5)
-# ===============================
-
-# -- Bankakerfi Data from INN_Utlan_ --
-print("Les inn gögnin sem sótt voru af heimasíðu Seðlabankans um útlán")
-
-bankakerfi_tbl <- read_xlsx(paste0(base_path, "/00_data/Útlán_bankar.xlsx"), sheet = "IV") %>%
-  slice(14, 17) %>% 
+# Innlánsstofnanir - Útlánastabbi
+bankakerfi_tbl <- read_xlsx(data_path, "bank_stabbi") %>%
+  slice(7, 10) %>% 
   select(-c(1, 2)) %>%
   mutate(type = c("banki_vtr", "banki_ovtr")) %>% 
   pivot_longer(cols = -type) %>% 
@@ -656,7 +598,8 @@ bankakerfi_tbl <- read_xlsx(paste0(base_path, "/00_data/Útlán_bankar.xlsx"), s
   select(-name) %>% 
   pivot_wider(names_from = type, values_from = value) %>% 
   unnest(everything()) %>% 
-  mutate(date = seq.Date(from = as.Date("1997-12-01"), length.out = nrow(.), by = "month"))
+  mutate(date = seq.Date(from = as.Date("1997-12-01"), length.out = nrow(.), by = "month")) |> 
+  pivot_longer(cols = -date)
 
 
 
@@ -1044,3 +987,44 @@ combined_bonds_over_time <- combined_bonds_over_time %>%
 #   left_join(fyrirtaeki_tbl) %>% 
 #   left_join(markadsadilar_tbl)
 #drop_na()
+
+
+# 10.0.0 Vista ----
+
+list(
+  # Verðbólga
+  pbi_inflation_verdbolga = vnv_tbl,
+  pbi_inflation_verdbolga_valuebox = valuebox_verdbolga,
+  
+  # Undirliggjandi
+  pbi_inflation_undirliggjandi = undirliggjandi_tbl,
+  pbi_inflation_uppruni = edli_og_uppruna_tbl,
+  pbi_inflation_froop = froop_tbl,
+  
+  # Framlag undirliða
+  pbi_inflation_waterfall = undirflokkar_latest_tbl,
+  phi_inflation_undirflokkar = undirflokkar_12m_tbl,
+  phi_inflation_undirflokkar_1m = undirflokkar_1m_tbl,
+  
+  # HICP
+  pbi_inflation_hicp = hicp_pbi_tbl,
+  pbi_inflation_hicp_undirflokkar = hicp_undirflokkar_tbl,
+  pbi_inflation_hicp_valuebox = hicp_valuebox_tbl,
+  
+  # Húsnæðisverð
+  pbi_inflation_husnaedisverd = hus_unnid_tbl,
+  pbi_inflation_husnaaedisvextir = vextir_tbl,
+  
+  # Útlán
+  pbi_inflation_utlanastabbi = utlan_stada_tbl,
+  # pbi_inflation_utlan_ny = ny_utlan_tbl,   # commented out in your code
+  
+  # Gengi og væntingar
+  # pbi_inflation_skuldabref = combined_bonds_over_time,   # commented out
+  # pbi_inflation_vaentingar = vaentingar_tbl,             # commented out
+  # pbi_inflation_vaentingar_skuldabrefamarkadur = break_even_tbl,  # commented out
+  pbi_inflation_gengi = gengi_tbl
+) |> 
+
+  write_rds("data/final_data.rds")
+
