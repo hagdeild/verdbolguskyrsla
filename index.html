@@ -1,1 +1,769 @@
-init
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Verðbólgugreining</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script src="site_libs/quarto-dashboard/quarto-dashboard.js"></script>
+<script src="site_libs/quarto-dashboard/stickythead.js"></script>
+<script src="site_libs/quarto-dashboard/datatables.min.js" kdttablesentinel="true"></script>
+<script src="site_libs/quarto-dashboard/pdfmake.min.js" kdttablesentinel="true"></script>
+<script src="site_libs/quarto-dashboard/vfs_fonts.js" kdttablesentinel="true"></script>
+<script src="site_libs/quarto-dashboard/web-components.js" type="module"></script>
+<script src="site_libs/quarto-dashboard/components.js"></script>
+<link href="site_libs/quarto-dashboard/datatables.min.css" rel="stylesheet" kdttablesentinel="true">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+<link href="site_libs/htmltools-fill-0.5.8.1/fill.css" rel="stylesheet">
+<script src="site_libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
+<script src="site_libs/plotly-binding-4.11.0/plotly.js"></script>
+<script src="site_libs/typedarray-0.1/typedarray.min.js"></script>
+<script src="site_libs/jquery-3.5.1/jquery.min.js"></script>
+<link href="site_libs/crosstalk-1.2.2/css/crosstalk.min.css" rel="stylesheet">
+<script src="site_libs/crosstalk-1.2.2/js/crosstalk.min.js"></script>
+<link href="site_libs/plotly-htmlwidgets-css-2.11.1/plotly-htmlwidgets.css" rel="stylesheet">
+<script src="site_libs/plotly-main-2.11.1/plotly-latest.min.js"></script>
+
+
+<link rel="stylesheet" href="styles.css">
+</head>
+
+<body class="quarto-dashboard dashboard-fill fullcontent">
+
+<header id="quarto-dashboard-header">
+<nav class="navbar navbar-expand-md slim" data-bs-theme="dark">
+  <div class="navbar-container container-fluid">
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#dashboard-collapse" aria-controls="dashboard-collapse" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>    
+
+
+    <div class="navbar-brand-container">       
+
+      <div class="navbar-title">
+        <div class="navbar-title-text"><a href="#">Verðbólgugreining</a></div>
+        
+        
+      </div>
+    </div>
+<div id="dashboard-collapse" class="navbar-collapse collapse"><ul class="navbar-nav navbar-nav-scroll me-auto" role="tablist"><li class="nav-item" role="presentation"><a id="tab-verðbólga" class="nav-link active" data-bs-toggle="tab" role="tab" data-bs-target="#verðbólga" data-scrolling="false" href="#verðbólga" aria-controls="verðbólga" aria-selected="true"><span class="nav-link-text">Verðbólga</span></a></li><li class="nav-item" role="presentation"><a id="tab-undirliggjandi-verðbólga" class="nav-link" data-bs-toggle="tab" role="tab" data-bs-target="#undirliggjandi-verðbólga" data-scrolling="false" href="#undirliggjandi-verðbólga" aria-controls="undirliggjandi-verðbólga" aria-selected="false"><span class="nav-link-text">Undirliggjandi verðbólga</span></a></li><li class="nav-item" role="presentation"><a id="tab-framlag-undirliða-seinustu-12-mánuði" class="nav-link" data-bs-toggle="tab" role="tab" data-bs-target="#framlag-undirliða-seinustu-12-mánuði" data-scrolling="false" href="#framlag-undirliða-seinustu-12-mánuði" aria-controls="framlag-undirliða-seinustu-12-mánuði" aria-selected="false"><span class="nav-link-text">Framlag undirliða seinustu 12 mánuði</span></a></li><li class="nav-item" role="presentation"><a id="tab-framlag-undirliða-seinasta-mánuð" class="nav-link" data-bs-toggle="tab" role="tab" data-bs-target="#framlag-undirliða-seinasta-mánuð" data-scrolling="false" href="#framlag-undirliða-seinasta-mánuð" aria-controls="framlag-undirliða-seinasta-mánuð" aria-selected="false"><span class="nav-link-text">Framlag undirliða seinasta mánuð</span></a></li><li class="nav-item" role="presentation"><a id="tab-undirflokkar" class="nav-link" data-bs-toggle="tab" role="tab" data-bs-target="#undirflokkar" data-scrolling="false" href="#undirflokkar" aria-controls="undirflokkar" aria-selected="false"><span class="nav-link-text">Undirflokkar</span></a></li></ul></div></div>
+</nav>
+</header>
+<div id="quarto-search-results"></div>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-layout-custom quarto-dashboard-content bslib-gap-spacing html-fill-container bslib-page-fill quarto-dashboard-pages">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+<!-- main -->
+
+<div class="bslib-grid-item html-fill-item tab-content bslib-grid" data-layout="fill" style="display: grid; grid-template-rows: minmax(3em, 1fr); grid-auto-columns: minmax(0, 1fr);">
+<div id="verðbólga" class="dashboard-page tab-pane show active html-fill-item html-fill-container" data-orientation="rows" aria-labelledby="tab-verðbólga">
+<div class="html-fill-item html-fill-container bslib-grid" style="display: grid; grid-template-rows: minmax(3em, max-content) minmax(3em, 1fr); grid-auto-columns: minmax(0, 1fr);">
+<div class="html-fill-item html-fill-container bslib-grid" style="display: grid; grid-template-columns: minmax(3em, 1fr) minmax(3em, 1fr) minmax(3em, 1fr);
+grid-auto-rows: minmax(0, 1fr);">
+<div class="card valuebox cell html-fill-item html-fill-container bslib-card bslib-value-box bg-success showcase-left-center" data-bslib-card-init="" data-require-bs-caller="card()">
+<div class="card-body html-fill-item html-fill-container">
+<div data-icon="arrow-down" class="html-fill-item html-fill-container value-box-grid">
+<div class="value-box-showcase html-fill-item html-fill-container">
+
+<i class="bi bi-arrow-down"></i></div>
+<div class="value-box-area">
+<p class="value-box-title">
+Verðbólga
+</p>
+<p class="value-box-value">
+3.8%
+</p>
+</div>
+</div>
+</div>
+<script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div><div class="card valuebox cell html-fill-item html-fill-container bslib-card bslib-value-box bg-success showcase-left-center" data-bslib-card-init="" data-require-bs-caller="card()">
+<div class="card-body html-fill-item html-fill-container">
+<div data-icon="arrow-down" class="html-fill-item html-fill-container value-box-grid">
+<div class="value-box-showcase html-fill-item html-fill-container">
+
+<i class="bi bi-arrow-down"></i></div>
+<div class="value-box-area">
+<p class="value-box-title">
+Verðbólga milli mánaða
+</p>
+<p class="value-box-value">
+-0.15%
+</p>
+</div>
+</div>
+</div>
+<script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div><div class="card valuebox cell html-fill-item html-fill-container bslib-card bslib-value-box bg-success showcase-left-center" data-bslib-card-init="" data-require-bs-caller="card()">
+<div class="card-body html-fill-item html-fill-container">
+<div data-icon="arrow-down" class="html-fill-item html-fill-container value-box-grid">
+<div class="value-box-showcase html-fill-item html-fill-container">
+
+<i class="bi bi-arrow-down"></i></div>
+<div class="value-box-area">
+<p class="value-box-title">
+Tólf mánaða verðbólga m.v. seinustu sex mánuði
+</p>
+<p class="value-box-value">
+4.0%
+</p>
+</div>
+</div>
+</div>
+<script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div>
+</div>
+<div class="html-fill-item html-fill-container bslib-grid" style="display: grid; grid-template-columns: minmax(3em, 1fr) minmax(3em, 1fr);
+grid-auto-rows: minmax(0, 1fr);">
+<div class="card cell html-fill-item html-fill-container bslib-card" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
+<div class="card-body html-fill-item html-fill-container">
+<div class="cell-output-display html-fill-item html-fill-container">
+<div class="plotly html-widget html-fill-item html-fill-container" id="htmlwidget-168bf3d7d466587d3c1d" style="width:100%;height:406px;"></div>
+<script type="application/json" data-for="htmlwidget-168bf3d7d466587d3c1d">{"x":{"data":[{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.035069075451647169,0.035789919525624825,0.034898477157360386,0.035918022395943439,0.042997020008514353,0.040708711242353868,0.04335016835016825,0.045654450261780166,0.044365757133930428,0.042513479883865557,0.042658935597432279,0.042671614100185495,0.043531827515400412,0.045185033735432478,0.048436541998773786,0.05098919029165816,0.056938775510203987,0.061815970814754762,0.066559096409842589,0.072301221710394659,0.075987235739928272,0.088323055500298286,0.09930486593843102,0.097469355476472952,0.093270365997638827,0.09409233176838816,0.093372319688109107,0.09567242383077823,0.099440046340992572,0.10192784882611194,0.098146747352496178,0.098804632050803143,0.094717330861909144,0.088649241454944239,0.07642276422764227,0.076923076923076872,0.079733621310295266,0.079027355623100259,0.08004991977179543,0.077399929153382896,0.066561292588689813,0.065996882037069104,0.068193559497158551,0.060173380928097986,0.062140196410430004,0.058260577568838068,0.062772742531050696,0.060220809635329609,0.05400900150025012,0.050704225352112609,0.047705513370749353,0.047509452572743749,0.046435040342499567,0.042086447838804109,0.03772368208931165,0.041686708353374957,0.037780966044954623,0.041567507536093951,0.040113708149084104,0.037551278005679922],"text":["date: 2020-09-01<br />verdbolga: 0.03506908<br />flokkur: Verðbólga","date: 2020-10-01<br />verdbolga: 0.03578992<br />flokkur: Verðbólga","date: 2020-11-01<br />verdbolga: 0.03489848<br />flokkur: Verðbólga","date: 2020-12-01<br />verdbolga: 0.03591802<br />flokkur: Verðbólga","date: 2021-01-01<br />verdbolga: 0.04299702<br />flokkur: Verðbólga","date: 2021-02-01<br />verdbolga: 0.04070871<br />flokkur: Verðbólga","date: 2021-03-01<br />verdbolga: 0.04335017<br />flokkur: Verðbólga","date: 2021-04-01<br />verdbolga: 0.04565445<br />flokkur: Verðbólga","date: 2021-05-01<br />verdbolga: 0.04436576<br />flokkur: Verðbólga","date: 2021-06-01<br />verdbolga: 0.04251348<br />flokkur: Verðbólga","date: 2021-07-01<br />verdbolga: 0.04265894<br />flokkur: Verðbólga","date: 2021-08-01<br />verdbolga: 0.04267161<br />flokkur: Verðbólga","date: 2021-09-01<br />verdbolga: 0.04353183<br />flokkur: Verðbólga","date: 2021-10-01<br />verdbolga: 0.04518503<br />flokkur: Verðbólga","date: 2021-11-01<br />verdbolga: 0.04843654<br />flokkur: Verðbólga","date: 2021-12-01<br />verdbolga: 0.05098919<br />flokkur: Verðbólga","date: 2022-01-01<br />verdbolga: 0.05693878<br />flokkur: Verðbólga","date: 2022-02-01<br />verdbolga: 0.06181597<br />flokkur: Verðbólga","date: 2022-03-01<br />verdbolga: 0.06655910<br />flokkur: Verðbólga","date: 2022-04-01<br />verdbolga: 0.07230122<br />flokkur: Verðbólga","date: 2022-05-01<br />verdbolga: 0.07598724<br />flokkur: Verðbólga","date: 2022-06-01<br />verdbolga: 0.08832306<br />flokkur: Verðbólga","date: 2022-07-01<br />verdbolga: 0.09930487<br />flokkur: Verðbólga","date: 2022-08-01<br />verdbolga: 0.09746936<br />flokkur: Verðbólga","date: 2022-09-01<br />verdbolga: 0.09327037<br />flokkur: Verðbólga","date: 2022-10-01<br />verdbolga: 0.09409233<br />flokkur: Verðbólga","date: 2022-11-01<br />verdbolga: 0.09337232<br />flokkur: Verðbólga","date: 2022-12-01<br />verdbolga: 0.09567242<br />flokkur: Verðbólga","date: 2023-01-01<br />verdbolga: 0.09944005<br />flokkur: Verðbólga","date: 2023-02-01<br />verdbolga: 0.10192785<br />flokkur: Verðbólga","date: 2023-03-01<br />verdbolga: 0.09814675<br />flokkur: Verðbólga","date: 2023-04-01<br />verdbolga: 0.09880463<br />flokkur: Verðbólga","date: 2023-05-01<br />verdbolga: 0.09471733<br />flokkur: Verðbólga","date: 2023-06-01<br />verdbolga: 0.08864924<br />flokkur: Verðbólga","date: 2023-07-01<br />verdbolga: 0.07642276<br />flokkur: Verðbólga","date: 2023-08-01<br />verdbolga: 0.07692308<br />flokkur: Verðbólga","date: 2023-09-01<br />verdbolga: 0.07973362<br />flokkur: Verðbólga","date: 2023-10-01<br />verdbolga: 0.07902736<br />flokkur: Verðbólga","date: 2023-11-01<br />verdbolga: 0.08004992<br />flokkur: Verðbólga","date: 2023-12-01<br />verdbolga: 0.07739993<br />flokkur: Verðbólga","date: 2024-01-01<br />verdbolga: 0.06656129<br />flokkur: Verðbólga","date: 2024-02-01<br />verdbolga: 0.06599688<br />flokkur: Verðbólga","date: 2024-03-01<br />verdbolga: 0.06819356<br />flokkur: Verðbólga","date: 2024-04-01<br />verdbolga: 0.06017338<br />flokkur: Verðbólga","date: 2024-05-01<br />verdbolga: 0.06214020<br />flokkur: Verðbólga","date: 2024-06-01<br />verdbolga: 0.05826058<br />flokkur: Verðbólga","date: 2024-07-01<br />verdbolga: 0.06277274<br />flokkur: Verðbólga","date: 2024-08-01<br />verdbolga: 0.06022081<br />flokkur: Verðbólga","date: 2024-09-01<br />verdbolga: 0.05400900<br />flokkur: Verðbólga","date: 2024-10-01<br />verdbolga: 0.05070423<br />flokkur: Verðbólga","date: 2024-11-01<br />verdbolga: 0.04770551<br />flokkur: Verðbólga","date: 2024-12-01<br />verdbolga: 0.04750945<br />flokkur: Verðbólga","date: 2025-01-01<br />verdbolga: 0.04643504<br />flokkur: Verðbólga","date: 2025-02-01<br />verdbolga: 0.04208645<br />flokkur: Verðbólga","date: 2025-03-01<br />verdbolga: 0.03772368<br />flokkur: Verðbólga","date: 2025-04-01<br />verdbolga: 0.04168671<br />flokkur: Verðbólga","date: 2025-05-01<br />verdbolga: 0.03778097<br />flokkur: Verðbólga","date: 2025-06-01<br />verdbolga: 0.04156751<br />flokkur: Verðbólga","date: 2025-07-01<br />verdbolga: 0.04011371<br />flokkur: Verðbólga","date: 2025-08-01<br />verdbolga: 0.03755128<br />flokkur: Verðbólga"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(0,48,92,1)","dash":"solid"},"hoveron":"points","name":"Verðbólga","legendgroup":"Verðbólga","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.038557213930348277,0.040704889550756906,0.041697691734921882,0.040346534653465271,0.046941323345817798,0.045016077170418001,0.048430936496169918,0.046437346437346427,0.039698002922552433,0.03586140053307485,0.033623609095307261,0.032988201300264919,0.029461077844311401,0.029811590746482208,0.030497974743864731,0.032833690221270473,0.036966372525637947,0.042130177514792866,0.046193730850813131,0.052594505752524112,0.054579526821269653,0.06456140350877182,0.075122864498010866,0.071328671328671378,0.070265239646347233,0.072255673923112607,0.071213872832369907,0.07532826537664139,0.083026678932842657,0.088803088803088848,0.085604865960801968,0.086549185813071583,0.083518436250555217,0.079103493737640029,0.07117979973878974,0.075935596170583208,0.076956521739130368,0.073002159827213919,0.071875674508957488,0.066623821765209978,0.052028031429178112,0.04714226115978315,0.046690184685619363,0.0385957708889344,0.042435424354243523,0.039706780696395771,0.042267831741515938,0.035591506572295151,0.028058134840532878,0.028180354267310692,0.026580749093838119,0.027716408917453306,0.029874848607186033,0.027091633466135523,0.025376685170499513,0.031824471239375374,0.026745329400196693,0.031727379553466495,0.030415285630727151,0.028119507908611618],"text":["date: 2020-09-01<br />verdbolga: 0.03855721<br />flokkur: Verðbólga án húsnæðis","date: 2020-10-01<br />verdbolga: 0.04070489<br />flokkur: Verðbólga án húsnæðis","date: 2020-11-01<br />verdbolga: 0.04169769<br />flokkur: Verðbólga án húsnæðis","date: 2020-12-01<br />verdbolga: 0.04034653<br />flokkur: Verðbólga án húsnæðis","date: 2021-01-01<br />verdbolga: 0.04694132<br />flokkur: Verðbólga án húsnæðis","date: 2021-02-01<br />verdbolga: 0.04501608<br />flokkur: Verðbólga án húsnæðis","date: 2021-03-01<br />verdbolga: 0.04843094<br />flokkur: Verðbólga án húsnæðis","date: 2021-04-01<br />verdbolga: 0.04643735<br />flokkur: Verðbólga án húsnæðis","date: 2021-05-01<br />verdbolga: 0.03969800<br />flokkur: Verðbólga án húsnæðis","date: 2021-06-01<br />verdbolga: 0.03586140<br />flokkur: Verðbólga án húsnæðis","date: 2021-07-01<br />verdbolga: 0.03362361<br />flokkur: Verðbólga án húsnæðis","date: 2021-08-01<br />verdbolga: 0.03298820<br />flokkur: Verðbólga án húsnæðis","date: 2021-09-01<br />verdbolga: 0.02946108<br />flokkur: Verðbólga án húsnæðis","date: 2021-10-01<br />verdbolga: 0.02981159<br />flokkur: Verðbólga án húsnæðis","date: 2021-11-01<br />verdbolga: 0.03049797<br />flokkur: Verðbólga án húsnæðis","date: 2021-12-01<br />verdbolga: 0.03283369<br />flokkur: Verðbólga án húsnæðis","date: 2022-01-01<br />verdbolga: 0.03696637<br />flokkur: Verðbólga án húsnæðis","date: 2022-02-01<br />verdbolga: 0.04213018<br />flokkur: Verðbólga án húsnæðis","date: 2022-03-01<br />verdbolga: 0.04619373<br />flokkur: Verðbólga án húsnæðis","date: 2022-04-01<br />verdbolga: 0.05259451<br />flokkur: Verðbólga án húsnæðis","date: 2022-05-01<br />verdbolga: 0.05457953<br />flokkur: Verðbólga án húsnæðis","date: 2022-06-01<br />verdbolga: 0.06456140<br />flokkur: Verðbólga án húsnæðis","date: 2022-07-01<br />verdbolga: 0.07512286<br />flokkur: Verðbólga án húsnæðis","date: 2022-08-01<br />verdbolga: 0.07132867<br />flokkur: Verðbólga án húsnæðis","date: 2022-09-01<br />verdbolga: 0.07026524<br />flokkur: Verðbólga án húsnæðis","date: 2022-10-01<br />verdbolga: 0.07225567<br />flokkur: Verðbólga án húsnæðis","date: 2022-11-01<br />verdbolga: 0.07121387<br />flokkur: Verðbólga án húsnæðis","date: 2022-12-01<br />verdbolga: 0.07532827<br />flokkur: Verðbólga án húsnæðis","date: 2023-01-01<br />verdbolga: 0.08302668<br />flokkur: Verðbólga án húsnæðis","date: 2023-02-01<br />verdbolga: 0.08880309<br />flokkur: Verðbólga án húsnæðis","date: 2023-03-01<br />verdbolga: 0.08560487<br />flokkur: Verðbólga án húsnæðis","date: 2023-04-01<br />verdbolga: 0.08654919<br />flokkur: Verðbólga án húsnæðis","date: 2023-05-01<br />verdbolga: 0.08351844<br />flokkur: Verðbólga án húsnæðis","date: 2023-06-01<br />verdbolga: 0.07910349<br />flokkur: Verðbólga án húsnæðis","date: 2023-07-01<br />verdbolga: 0.07117980<br />flokkur: Verðbólga án húsnæðis","date: 2023-08-01<br />verdbolga: 0.07593560<br />flokkur: Verðbólga án húsnæðis","date: 2023-09-01<br />verdbolga: 0.07695652<br />flokkur: Verðbólga án húsnæðis","date: 2023-10-01<br />verdbolga: 0.07300216<br />flokkur: Verðbólga án húsnæðis","date: 2023-11-01<br />verdbolga: 0.07187567<br />flokkur: Verðbólga án húsnæðis","date: 2023-12-01<br />verdbolga: 0.06662382<br />flokkur: Verðbólga án húsnæðis","date: 2024-01-01<br />verdbolga: 0.05202803<br />flokkur: Verðbólga án húsnæðis","date: 2024-02-01<br />verdbolga: 0.04714226<br />flokkur: Verðbólga án húsnæðis","date: 2024-03-01<br />verdbolga: 0.04669018<br />flokkur: Verðbólga án húsnæðis","date: 2024-04-01<br />verdbolga: 0.03859577<br />flokkur: Verðbólga án húsnæðis","date: 2024-05-01<br />verdbolga: 0.04243542<br />flokkur: Verðbólga án húsnæðis","date: 2024-06-01<br />verdbolga: 0.03970678<br />flokkur: Verðbólga án húsnæðis","date: 2024-07-01<br />verdbolga: 0.04226783<br />flokkur: Verðbólga án húsnæðis","date: 2024-08-01<br />verdbolga: 0.03559151<br />flokkur: Verðbólga án húsnæðis","date: 2024-09-01<br />verdbolga: 0.02805813<br />flokkur: Verðbólga án húsnæðis","date: 2024-10-01<br />verdbolga: 0.02818035<br />flokkur: Verðbólga án húsnæðis","date: 2024-11-01<br />verdbolga: 0.02658075<br />flokkur: Verðbólga án húsnæðis","date: 2024-12-01<br />verdbolga: 0.02771641<br />flokkur: Verðbólga án húsnæðis","date: 2025-01-01<br />verdbolga: 0.02987485<br />flokkur: Verðbólga án húsnæðis","date: 2025-02-01<br />verdbolga: 0.02709163<br />flokkur: Verðbólga án húsnæðis","date: 2025-03-01<br />verdbolga: 0.02537669<br />flokkur: Verðbólga án húsnæðis","date: 2025-04-01<br />verdbolga: 0.03182447<br />flokkur: Verðbólga án húsnæðis","date: 2025-05-01<br />verdbolga: 0.02674533<br />flokkur: Verðbólga án húsnæðis","date: 2025-06-01<br />verdbolga: 0.03172738<br />flokkur: Verðbólga án húsnæðis","date: 2025-07-01<br />verdbolga: 0.03041529<br />flokkur: Verðbólga án húsnæðis","date: 2025-08-01<br />verdbolga: 0.02811951<br />flokkur: Verðbólga án húsnæðis"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(2,143,188,1)","dash":"solid"},"hoveron":"points","name":"Verðbólga án húsnæðis","legendgroup":"Verðbólga án húsnæðis","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":45.223744292237441,"r":7.3059360730593621,"b":27.031963470319642,"l":28.493150684931518},"font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"title":{"text":"Verðbólga","font":{"color":"rgba(0,0,0,1)","family":"","size":17.534246575342465},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[18416.25,20390.75],"tickmode":"array","ticktext":["2021","2022","2023","2024","2025"],"tickvals":[18628,18993,19358,19723,20089],"categoryorder":"array","categoryarray":["2021","2022","2023","2024","2025"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.021549126987718891,0.10575540700889256],"tickmode":"array","ticktext":["4%","6%","8%","10%"],"tickvals":[0.040000000000000001,0.059999999999999998,0.079999999999999988,0.10000000000000001],"categoryorder":"array","categoryarray":["4%","6%","8%","10%"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.689497716894984},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"x","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","layer":"below","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":true,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.68949771689498},"title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"orientation":"h","y":-0.20000000000000001,"x":0.5,"xanchor":"center"},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"228d188cdf20":{"x":{},"y":{},"colour":{},"type":"scatter"}},"cur_data":"228d188cdf20","visdat":{"228d188cdf20":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<bslib-tooltip placement="auto" bsoptions="[]" data-require-bs-version="5" data-require-bs-caller="tooltip()">
+    <template>Expand</template>
+    <span class="bslib-full-screen-enter badge rounded-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" style="height:1em;width:1em;" aria-hidden="true" role="img"><path d="M20 5C20 4.4 19.6 4 19 4H13C12.4 4 12 3.6 12 3C12 2.4 12.4 2 13 2H21C21.6 2 22 2.4 22 3V11C22 11.6 21.6 12 21 12C20.4 12 20 11.6 20 11V5ZM4 19C4 19.6 4.4 20 5 20H11C11.6 20 12 20.4 12 21C12 21.6 11.6 22 11 22H3C2.4 22 2 21.6 2 21V13C2 12.4 2.4 12 3 12C3.6 12 4 12.4 4 13V19Z"></path></svg>
+    </span>
+</bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div><div class="card cell html-fill-item html-fill-container bslib-card" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
+<div class="card-body html-fill-item html-fill-container">
+<div class="cell-output-display html-fill-item html-fill-container">
+<div class="plotly html-widget html-fill-item html-fill-container" id="htmlwidget-adb5ff3c24ccf9a28a28" style="width:100%;height:406px;"></div>
+<script type="application/json" data-for="htmlwidget-adb5ff3c24ccf9a28a28">{"x":{"data":[{"orientation":"v","width":[25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709,25.19999999999709],"base":[-0.0016439256945586234,0,0,0,0,0,0,0,-0.0023666771852319801,0,0,0,-0.0026679221594475555,0,0,0,0,0,0,-0.0015183723048891595],"x":[19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.0016439256945586234,0.013337724353696734,0.007962300942476519,0.005481218765113649,0.0057720057720058726,0.0047824007651842138,0.0046009836585751973,0.00094756790903338661,0.0023666771852319801,0.0028467499604618585,0.00094622299321867054,0.003938868756893088,0.0026679221594475555,0.0091266719118803241,0.0037423982535473854,0.0093211123194034684,0.002000923503155283,0.0084485407066052787,0.0031987814166032358,0.0015183723048891595],"text":["date: 2024-01-01<br />milli_manada: -0.0016439257","date: 2024-02-01<br />milli_manada:  0.0133377244","date: 2024-03-01<br />milli_manada:  0.0079623009","date: 2024-04-01<br />milli_manada:  0.0054812188","date: 2024-05-01<br />milli_manada:  0.0057720058","date: 2024-06-01<br />milli_manada:  0.0047824008","date: 2024-07-01<br />milli_manada:  0.0046009837","date: 2024-08-01<br />milli_manada:  0.0009475679","date: 2024-09-01<br />milli_manada: -0.0023666772","date: 2024-10-01<br />milli_manada:  0.0028467500","date: 2024-11-01<br />milli_manada:  0.0009462230","date: 2024-12-01<br />milli_manada:  0.0039388688","date: 2025-01-01<br />milli_manada: -0.0026679222","date: 2025-02-01<br />milli_manada:  0.0091266719","date: 2025-03-01<br />milli_manada:  0.0037423983","date: 2025-04-01<br />milli_manada:  0.0093211123","date: 2025-05-01<br />milli_manada:  0.0020009235","date: 2025-06-01<br />milli_manada:  0.0084485407","date: 2025-07-01<br />milli_manada:  0.0031987814","date: 2025-08-01<br />milli_manada: -0.0015183723"],"type":"bar","textposition":"none","marker":{"autocolorscale":false,"color":"rgba(0,48,92,1)","line":{"width":1.8897637795275593,"color":"transparent"}},"showlegend":false,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":45.223744292237441,"r":7.3059360730593621,"b":27.031963470319642,"l":34.33789954337901},"font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"title":{"text":"Verðbólga milli mánaða","font":{"color":"rgba(0,0,0,1)","family":"","size":17.534246575342465},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[19680.240000000002,20343.759999999998],"tickmode":"array","ticktext":["2024-01","2024-07","2025-01","2025-07"],"tickvals":[19723,19905,20089,20270],"categoryorder":"array","categoryarray":["2024-01","2024-07","2025-01","2025-07"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-0.0034682044851047701,0.014138006679353948],"tickmode":"array","ticktext":["0.0%","0.5%","1.0%"],"tickvals":[0,0.005000000000000001,0.0099999999999999985],"categoryorder":"array","categoryarray":["0.0%","0.5%","1.0%"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.689497716894984},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"x","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","layer":"below","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":false,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.68949771689498}},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"228d2ea1f489":{"x":{},"y":{},"type":"bar"}},"cur_data":"228d2ea1f489","visdat":{"228d2ea1f489":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<bslib-tooltip placement="auto" bsoptions="[]" data-require-bs-version="5" data-require-bs-caller="tooltip()">
+    <template>Expand</template>
+    <span class="bslib-full-screen-enter badge rounded-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" style="height:1em;width:1em;" aria-hidden="true" role="img"><path d="M20 5C20 4.4 19.6 4 19 4H13C12.4 4 12 3.6 12 3C12 2.4 12.4 2 13 2H21C21.6 2 22 2.4 22 3V11C22 11.6 21.6 12 21 12C20.4 12 20 11.6 20 11V5ZM4 19C4 19.6 4.4 20 5 20H11C11.6 20 12 20.4 12 21C12 21.6 11.6 22 11 22H3C2.4 22 2 21.6 2 21V13C2 12.4 2.4 12 3 12C3.6 12 4 12.4 4 13V19Z"></path></svg>
+    </span>
+</bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div>
+</div>
+</div>
+</div>
+<div id="undirliggjandi-verðbólga" class="dashboard-page tab-pane grid-skip html-fill-item html-fill-container" data-orientation="rows" aria-labelledby="tab-undirliggjandi-verðbólga">
+<div class="html-fill-item html-fill-container bslib-grid" style="display: grid; grid-template-rows: minmax(3em, 1fr) minmax(3em, 1fr); grid-auto-columns: minmax(0, 1fr);">
+<div class="html-fill-item html-fill-container bslib-grid" style="display: grid; grid-template-columns: minmax(3em, 1fr) minmax(3em, 1fr);
+grid-auto-rows: minmax(0, 1fr);">
+<div class="card cell html-fill-item html-fill-container bslib-card" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
+<div class="card-body html-fill-item html-fill-container">
+<div class="cell-output-display html-fill-item html-fill-container">
+<div class="plotly html-widget html-fill-item html-fill-container" id="htmlwidget-5b15e692eb88a7777969" style="width:100%;height:406px;"></div>
+<script type="application/json" data-for="htmlwidget-5b15e692eb88a7777969">{"x":{"data":[{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.035649546827794643,0.036122817579771205,0.036079374624173211,0.036614645858343398,0.044848484848484915,0.040167865707434025,0.041243275552899084,0.042211652794292398,0.041346721795629149,0.041200706297822354,0.04237786933490284,0.042790152403282544,0.04200700116686118,0.042998256827425863,0.044689495066744023,0.047481181239143133,0.053944315545243704,0.058789625360230469,0.061997703788748471,0.067313177410154079,0.068633011911514386,0.076314301865460621,0.089215132693393651,0.088813940415964021,0.086226203807390878,0.085793871866295168,0.085555555555555607,0.088446655610834757,0.091359383599339594,0.094719651605879251,0.094054054054053982,0.096739711384286498,0.093949044585987185,0.092962184873949472,0.078797304302747451,0.077955601445534262,0.079381443298969012,0.079527963057978379,0.081371545547594737,0.078212290502793325,0.067574382249117493,0.068125310790651428,0.070158102766798347,0.062378167641325533,0.064046579330422126,0.060067275348390181,0.064392119173474205,0.062739463601532597,0.057306590257879764,0.054182509505703358,0.051585423568386135,0.050871408384361771,0.048653755314123748,0.043296089385474801,0.038781163434903121,0.042201834862385379,0.037847697218422294,0.041251133272892204,0.041083521444695181,0.037854889589905349],"text":["date: 2020-09-01<br />value: 0.03564955<br />name: Kjarnavísitala 1","date: 2020-10-01<br />value: 0.03612282<br />name: Kjarnavísitala 1","date: 2020-11-01<br />value: 0.03607937<br />name: Kjarnavísitala 1","date: 2020-12-01<br />value: 0.03661465<br />name: Kjarnavísitala 1","date: 2021-01-01<br />value: 0.04484848<br />name: Kjarnavísitala 1","date: 2021-02-01<br />value: 0.04016787<br />name: Kjarnavísitala 1","date: 2021-03-01<br />value: 0.04124328<br />name: Kjarnavísitala 1","date: 2021-04-01<br />value: 0.04221165<br />name: Kjarnavísitala 1","date: 2021-05-01<br />value: 0.04134672<br />name: Kjarnavísitala 1","date: 2021-06-01<br />value: 0.04120071<br />name: Kjarnavísitala 1","date: 2021-07-01<br />value: 0.04237787<br />name: Kjarnavísitala 1","date: 2021-08-01<br />value: 0.04279015<br />name: Kjarnavísitala 1","date: 2021-09-01<br />value: 0.04200700<br />name: Kjarnavísitala 1","date: 2021-10-01<br />value: 0.04299826<br />name: Kjarnavísitala 1","date: 2021-11-01<br />value: 0.04468950<br />name: Kjarnavísitala 1","date: 2021-12-01<br />value: 0.04748118<br />name: Kjarnavísitala 1","date: 2022-01-01<br />value: 0.05394432<br />name: Kjarnavísitala 1","date: 2022-02-01<br />value: 0.05878963<br />name: Kjarnavísitala 1","date: 2022-03-01<br />value: 0.06199770<br />name: Kjarnavísitala 1","date: 2022-04-01<br />value: 0.06731318<br />name: Kjarnavísitala 1","date: 2022-05-01<br />value: 0.06863301<br />name: Kjarnavísitala 1","date: 2022-06-01<br />value: 0.07631430<br />name: Kjarnavísitala 1","date: 2022-07-01<br />value: 0.08921513<br />name: Kjarnavísitala 1","date: 2022-08-01<br />value: 0.08881394<br />name: Kjarnavísitala 1","date: 2022-09-01<br />value: 0.08622620<br />name: Kjarnavísitala 1","date: 2022-10-01<br />value: 0.08579387<br />name: Kjarnavísitala 1","date: 2022-11-01<br />value: 0.08555556<br />name: Kjarnavísitala 1","date: 2022-12-01<br />value: 0.08844666<br />name: Kjarnavísitala 1","date: 2023-01-01<br />value: 0.09135938<br />name: Kjarnavísitala 1","date: 2023-02-01<br />value: 0.09471965<br />name: Kjarnavísitala 1","date: 2023-03-01<br />value: 0.09405405<br />name: Kjarnavísitala 1","date: 2023-04-01<br />value: 0.09673971<br />name: Kjarnavísitala 1","date: 2023-05-01<br />value: 0.09394904<br />name: Kjarnavísitala 1","date: 2023-06-01<br />value: 0.09296218<br />name: Kjarnavísitala 1","date: 2023-07-01<br />value: 0.07879730<br />name: Kjarnavísitala 1","date: 2023-08-01<br />value: 0.07795560<br />name: Kjarnavísitala 1","date: 2023-09-01<br />value: 0.07938144<br />name: Kjarnavísitala 1","date: 2023-10-01<br />value: 0.07952796<br />name: Kjarnavísitala 1","date: 2023-11-01<br />value: 0.08137155<br />name: Kjarnavísitala 1","date: 2023-12-01<br />value: 0.07821229<br />name: Kjarnavísitala 1","date: 2024-01-01<br />value: 0.06757438<br />name: Kjarnavísitala 1","date: 2024-02-01<br />value: 0.06812531<br />name: Kjarnavísitala 1","date: 2024-03-01<br />value: 0.07015810<br />name: Kjarnavísitala 1","date: 2024-04-01<br />value: 0.06237817<br />name: Kjarnavísitala 1","date: 2024-05-01<br />value: 0.06404658<br />name: Kjarnavísitala 1","date: 2024-06-01<br />value: 0.06006728<br />name: Kjarnavísitala 1","date: 2024-07-01<br />value: 0.06439212<br />name: Kjarnavísitala 1","date: 2024-08-01<br />value: 0.06273946<br />name: Kjarnavísitala 1","date: 2024-09-01<br />value: 0.05730659<br />name: Kjarnavísitala 1","date: 2024-10-01<br />value: 0.05418251<br />name: Kjarnavísitala 1","date: 2024-11-01<br />value: 0.05158542<br />name: Kjarnavísitala 1","date: 2024-12-01<br />value: 0.05087141<br />name: Kjarnavísitala 1","date: 2025-01-01<br />value: 0.04865376<br />name: Kjarnavísitala 1","date: 2025-02-01<br />value: 0.04329609<br />name: Kjarnavísitala 1","date: 2025-03-01<br />value: 0.03878116<br />name: Kjarnavísitala 1","date: 2025-04-01<br />value: 0.04220183<br />name: Kjarnavísitala 1","date: 2025-05-01<br />value: 0.03784770<br />name: Kjarnavísitala 1","date: 2025-06-01<br />value: 0.04125113<br />name: Kjarnavísitala 1","date: 2025-07-01<br />value: 0.04108352<br />name: Kjarnavísitala 1","date: 2025-08-01<br />value: 0.03785489<br />name: Kjarnavísitala 1"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(0,48,92,1)","dash":"solid"},"hoveron":"points","name":"Kjarnavísitala 1","legendgroup":"Kjarnavísitala 1","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.037644201578627801,0.037484885126964906,0.037439613526569993,0.038577456298975354,0.046979865771812124,0.042194092827004148,0.042642642642642725,0.043582089552238745,0.042704626334519658,0.042528056704075556,0.043118724158298871,0.04350382128159902,0.042715038033938058,0.043706293706293753,0.045983701979045444,0.048171793383633199,0.054778554778554867,0.059572006940427968,0.063364055299539146,0.069221967963386755,0.070534698521046657,0.078753541076487243,0.092298980747451909,0.09183098591549288,0.088664421997755261,0.088218872138470239,0.087367835281023876,0.091362126245847275,0.092817679558011124,0.096615720524017457,0.096424702058504952,0.098983413590155056,0.096705632306057332,0.09506302521008414,0.080352514256091245,0.078431372549019551,0.079381443298969012,0.080041046690610518,0.081883316274309115,0.078132927447996048,0.06825075834175931,0.065704330512692977,0.068181818181818121,0.059396299902628957,0.061046511627907085,0.057074340527577982,0.061900191938579763,0.06124401913875599,0.05635148042024829,0.053206650831354008,0.050141911069063294,0.049411764705882266,0.048272598201609007,0.044371788883699192,0.03885291396854762,0.043198529411764719,0.038356164383561708,0.042196007259528212,0.042024401265250866,0.037421100090171411],"text":["date: 2020-09-01<br />value: 0.03764420<br />name: Kjarnavísitala 2","date: 2020-10-01<br />value: 0.03748489<br />name: Kjarnavísitala 2","date: 2020-11-01<br />value: 0.03743961<br />name: Kjarnavísitala 2","date: 2020-12-01<br />value: 0.03857746<br />name: Kjarnavísitala 2","date: 2021-01-01<br />value: 0.04697987<br />name: Kjarnavísitala 2","date: 2021-02-01<br />value: 0.04219409<br />name: Kjarnavísitala 2","date: 2021-03-01<br />value: 0.04264264<br />name: Kjarnavísitala 2","date: 2021-04-01<br />value: 0.04358209<br />name: Kjarnavísitala 2","date: 2021-05-01<br />value: 0.04270463<br />name: Kjarnavísitala 2","date: 2021-06-01<br />value: 0.04252806<br />name: Kjarnavísitala 2","date: 2021-07-01<br />value: 0.04311872<br />name: Kjarnavísitala 2","date: 2021-08-01<br />value: 0.04350382<br />name: Kjarnavísitala 2","date: 2021-09-01<br />value: 0.04271504<br />name: Kjarnavísitala 2","date: 2021-10-01<br />value: 0.04370629<br />name: Kjarnavísitala 2","date: 2021-11-01<br />value: 0.04598370<br />name: Kjarnavísitala 2","date: 2021-12-01<br />value: 0.04817179<br />name: Kjarnavísitala 2","date: 2022-01-01<br />value: 0.05477855<br />name: Kjarnavísitala 2","date: 2022-02-01<br />value: 0.05957201<br />name: Kjarnavísitala 2","date: 2022-03-01<br />value: 0.06336406<br />name: Kjarnavísitala 2","date: 2022-04-01<br />value: 0.06922197<br />name: Kjarnavísitala 2","date: 2022-05-01<br />value: 0.07053470<br />name: Kjarnavísitala 2","date: 2022-06-01<br />value: 0.07875354<br />name: Kjarnavísitala 2","date: 2022-07-01<br />value: 0.09229898<br />name: Kjarnavísitala 2","date: 2022-08-01<br />value: 0.09183099<br />name: Kjarnavísitala 2","date: 2022-09-01<br />value: 0.08866442<br />name: Kjarnavísitala 2","date: 2022-10-01<br />value: 0.08821887<br />name: Kjarnavísitala 2","date: 2022-11-01<br />value: 0.08736784<br />name: Kjarnavísitala 2","date: 2022-12-01<br />value: 0.09136213<br />name: Kjarnavísitala 2","date: 2023-01-01<br />value: 0.09281768<br />name: Kjarnavísitala 2","date: 2023-02-01<br />value: 0.09661572<br />name: Kjarnavísitala 2","date: 2023-03-01<br />value: 0.09642470<br />name: Kjarnavísitala 2","date: 2023-04-01<br />value: 0.09898341<br />name: Kjarnavísitala 2","date: 2023-05-01<br />value: 0.09670563<br />name: Kjarnavísitala 2","date: 2023-06-01<br />value: 0.09506303<br />name: Kjarnavísitala 2","date: 2023-07-01<br />value: 0.08035251<br />name: Kjarnavísitala 2","date: 2023-08-01<br />value: 0.07843137<br />name: Kjarnavísitala 2","date: 2023-09-01<br />value: 0.07938144<br />name: Kjarnavísitala 2","date: 2023-10-01<br />value: 0.08004105<br />name: Kjarnavísitala 2","date: 2023-11-01<br />value: 0.08188332<br />name: Kjarnavísitala 2","date: 2023-12-01<br />value: 0.07813293<br />name: Kjarnavísitala 2","date: 2024-01-01<br />value: 0.06825076<br />name: Kjarnavísitala 2","date: 2024-02-01<br />value: 0.06570433<br />name: Kjarnavísitala 2","date: 2024-03-01<br />value: 0.06818182<br />name: Kjarnavísitala 2","date: 2024-04-01<br />value: 0.05939630<br />name: Kjarnavísitala 2","date: 2024-05-01<br />value: 0.06104651<br />name: Kjarnavísitala 2","date: 2024-06-01<br />value: 0.05707434<br />name: Kjarnavísitala 2","date: 2024-07-01<br />value: 0.06190019<br />name: Kjarnavísitala 2","date: 2024-08-01<br />value: 0.06124402<br />name: Kjarnavísitala 2","date: 2024-09-01<br />value: 0.05635148<br />name: Kjarnavísitala 2","date: 2024-10-01<br />value: 0.05320665<br />name: Kjarnavísitala 2","date: 2024-11-01<br />value: 0.05014191<br />name: Kjarnavísitala 2","date: 2024-12-01<br />value: 0.04941176<br />name: Kjarnavísitala 2","date: 2025-01-01<br />value: 0.04827260<br />name: Kjarnavísitala 2","date: 2025-02-01<br />value: 0.04437179<br />name: Kjarnavísitala 2","date: 2025-03-01<br />value: 0.03885291<br />name: Kjarnavísitala 2","date: 2025-04-01<br />value: 0.04319853<br />name: Kjarnavísitala 2","date: 2025-05-01<br />value: 0.03835616<br />name: Kjarnavísitala 2","date: 2025-06-01<br />value: 0.04219601<br />name: Kjarnavísitala 2","date: 2025-07-01<br />value: 0.04202440<br />name: Kjarnavísitala 2","date: 2025-08-01<br />value: 0.03742110<br />name: Kjarnavísitala 2"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(2,143,188,1)","dash":"solid"},"hoveron":"points","name":"Kjarnavísitala 2","legendgroup":"Kjarnavísitala 2","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.039621016365202433,0.041237113402061931,0.043852106620808184,0.042844901456726703,0.050347222222222321,0.046272493573264795,0.047008547008547064,0.042444821731748794,0.036134453781512699,0.035175879396984966,0.032635983263598289,0.032499999999999973,0.027340513670256916,0.025577557755775526,0.025535420098846684,0.0279375513557929,0.032231404958677601,0.03521703521703512,0.036734693877551017,0.043159609120521081,0.041362530413625365,0.045307443365695699,0.056726094003241467,0.056497175141242861,0.056451612903225756,0.057924376508447395,0.056224899598393607,0.062350119904076795,0.067253803042433891,0.075949367088607556,0.078740157480315043,0.08274785323965661,0.08255451713395634,0.084365325077399467,0.075920245398773067,0.077158135981665321,0.076335877862595325,0.073003802281368824,0.071482889733840205,0.064710308502633485,0.051012753188297122,0.045588235294117707,0.044525547445255498,0.035328046142754088,0.040287769784172589,0.037830121341898559,0.040627227369921526,0.035460992907801359,0.02907801418439715,0.031183557760453562,0.031937544357700576,0.03180212014134276,0.033547466095646072,0.030239099859352914,0.027952480782669431,0.034818941504178191,0.028354080221300038,0.033700137551581744,0.034246575342465668,0.02945205479452051],"text":["date: 2020-09-01<br />value: 0.03962102<br />name: Kjarnavísitala 4","date: 2020-10-01<br />value: 0.04123711<br />name: Kjarnavísitala 4","date: 2020-11-01<br />value: 0.04385211<br />name: Kjarnavísitala 4","date: 2020-12-01<br />value: 0.04284490<br />name: Kjarnavísitala 4","date: 2021-01-01<br />value: 0.05034722<br />name: Kjarnavísitala 4","date: 2021-02-01<br />value: 0.04627249<br />name: Kjarnavísitala 4","date: 2021-03-01<br />value: 0.04700855<br />name: Kjarnavísitala 4","date: 2021-04-01<br />value: 0.04244482<br />name: Kjarnavísitala 4","date: 2021-05-01<br />value: 0.03613445<br />name: Kjarnavísitala 4","date: 2021-06-01<br />value: 0.03517588<br />name: Kjarnavísitala 4","date: 2021-07-01<br />value: 0.03263598<br />name: Kjarnavísitala 4","date: 2021-08-01<br />value: 0.03250000<br />name: Kjarnavísitala 4","date: 2021-09-01<br />value: 0.02734051<br />name: Kjarnavísitala 4","date: 2021-10-01<br />value: 0.02557756<br />name: Kjarnavísitala 4","date: 2021-11-01<br />value: 0.02553542<br />name: Kjarnavísitala 4","date: 2021-12-01<br />value: 0.02793755<br />name: Kjarnavísitala 4","date: 2022-01-01<br />value: 0.03223140<br />name: Kjarnavísitala 4","date: 2022-02-01<br />value: 0.03521704<br />name: Kjarnavísitala 4","date: 2022-03-01<br />value: 0.03673469<br />name: Kjarnavísitala 4","date: 2022-04-01<br />value: 0.04315961<br />name: Kjarnavísitala 4","date: 2022-05-01<br />value: 0.04136253<br />name: Kjarnavísitala 4","date: 2022-06-01<br />value: 0.04530744<br />name: Kjarnavísitala 4","date: 2022-07-01<br />value: 0.05672609<br />name: Kjarnavísitala 4","date: 2022-08-01<br />value: 0.05649718<br />name: Kjarnavísitala 4","date: 2022-09-01<br />value: 0.05645161<br />name: Kjarnavísitala 4","date: 2022-10-01<br />value: 0.05792438<br />name: Kjarnavísitala 4","date: 2022-11-01<br />value: 0.05622490<br />name: Kjarnavísitala 4","date: 2022-12-01<br />value: 0.06235012<br />name: Kjarnavísitala 4","date: 2023-01-01<br />value: 0.06725380<br />name: Kjarnavísitala 4","date: 2023-02-01<br />value: 0.07594937<br />name: Kjarnavísitala 4","date: 2023-03-01<br />value: 0.07874016<br />name: Kjarnavísitala 4","date: 2023-04-01<br />value: 0.08274785<br />name: Kjarnavísitala 4","date: 2023-05-01<br />value: 0.08255452<br />name: Kjarnavísitala 4","date: 2023-06-01<br />value: 0.08436533<br />name: Kjarnavísitala 4","date: 2023-07-01<br />value: 0.07592025<br />name: Kjarnavísitala 4","date: 2023-08-01<br />value: 0.07715814<br />name: Kjarnavísitala 4","date: 2023-09-01<br />value: 0.07633588<br />name: Kjarnavísitala 4","date: 2023-10-01<br />value: 0.07300380<br />name: Kjarnavísitala 4","date: 2023-11-01<br />value: 0.07148289<br />name: Kjarnavísitala 4","date: 2023-12-01<br />value: 0.06471031<br />name: Kjarnavísitala 4","date: 2024-01-01<br />value: 0.05101275<br />name: Kjarnavísitala 4","date: 2024-02-01<br />value: 0.04558824<br />name: Kjarnavísitala 4","date: 2024-03-01<br />value: 0.04452555<br />name: Kjarnavísitala 4","date: 2024-04-01<br />value: 0.03532805<br />name: Kjarnavísitala 4","date: 2024-05-01<br />value: 0.04028777<br />name: Kjarnavísitala 4","date: 2024-06-01<br />value: 0.03783012<br />name: Kjarnavísitala 4","date: 2024-07-01<br />value: 0.04062723<br />name: Kjarnavísitala 4","date: 2024-08-01<br />value: 0.03546099<br />name: Kjarnavísitala 4","date: 2024-09-01<br />value: 0.02907801<br />name: Kjarnavísitala 4","date: 2024-10-01<br />value: 0.03118356<br />name: Kjarnavísitala 4","date: 2024-11-01<br />value: 0.03193754<br />name: Kjarnavísitala 4","date: 2024-12-01<br />value: 0.03180212<br />name: Kjarnavísitala 4","date: 2025-01-01<br />value: 0.03354747<br />name: Kjarnavísitala 4","date: 2025-02-01<br />value: 0.03023910<br />name: Kjarnavísitala 4","date: 2025-03-01<br />value: 0.02795248<br />name: Kjarnavísitala 4","date: 2025-04-01<br />value: 0.03481894<br />name: Kjarnavísitala 4","date: 2025-05-01<br />value: 0.02835408<br />name: Kjarnavísitala 4","date: 2025-06-01<br />value: 0.03370014<br />name: Kjarnavísitala 4","date: 2025-07-01<br />value: 0.03424658<br />name: Kjarnavísitala 4","date: 2025-08-01<br />value: 0.02945205<br />name: Kjarnavísitala 4"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(238,194,21,1)","dash":"solid"},"hoveron":"points","name":"Kjarnavísitala 4","legendgroup":"Kjarnavísitala 4","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.035414165666266539,0.035885167464114742,0.035244922341696627,0.035799522673030992,0.043269230769230838,0.040500297796307372,0.043374925727866831,0.045535186280307505,0.044705882352941151,0.042740046838407597,0.042690058479532222,0.043073341094295614,0.043478260869565188,0.045612009237875339,0.048470859780727071,0.051267281105990881,0.056451612903225756,0.06239267315397834,0.066628701594533046,0.072398190045248834,0.076013513513513598,0.088152723189219628,0.099270891755468327,0.097098214285714191,0.093333333333333268,0.093870789618994976,0.093010456796918106,0.095890410958904049,0.099781897491821203,0.1018318965517242,0.098238120662039519,0.099156118143459926,0.094714809000523204,0.088235294117646967,0.076530612244897878,0.076805696846388605,0.079776422764227695,0.078748107016658242,0.080563947633434108,0.077499999999999902,0.066435299950421411,0.066014669926650393,0.068060281964025249,0.059980806142034604,0.062141491395793391,0.058795637743006113,0.063033175355450277,0.060462919225318768,0.053647058823529381,0.051006083294337756,0.047530288909599205,0.047331786542923471,0.046490004649000438,0.041743119266055118,0.037778789258079204,0.041647804436396596,0.037803780378037777,0.041200179131213543,0.040124832813196676,0.037416481069042273],"text":["date: 2020-09-01<br />value: 0.03541417<br />name: Vísitala neysluverðs","date: 2020-10-01<br />value: 0.03588517<br />name: Vísitala neysluverðs","date: 2020-11-01<br />value: 0.03524492<br />name: Vísitala neysluverðs","date: 2020-12-01<br />value: 0.03579952<br />name: Vísitala neysluverðs","date: 2021-01-01<br />value: 0.04326923<br />name: Vísitala neysluverðs","date: 2021-02-01<br />value: 0.04050030<br />name: Vísitala neysluverðs","date: 2021-03-01<br />value: 0.04337493<br />name: Vísitala neysluverðs","date: 2021-04-01<br />value: 0.04553519<br />name: Vísitala neysluverðs","date: 2021-05-01<br />value: 0.04470588<br />name: Vísitala neysluverðs","date: 2021-06-01<br />value: 0.04274005<br />name: Vísitala neysluverðs","date: 2021-07-01<br />value: 0.04269006<br />name: Vísitala neysluverðs","date: 2021-08-01<br />value: 0.04307334<br />name: Vísitala neysluverðs","date: 2021-09-01<br />value: 0.04347826<br />name: Vísitala neysluverðs","date: 2021-10-01<br />value: 0.04561201<br />name: Vísitala neysluverðs","date: 2021-11-01<br />value: 0.04847086<br />name: Vísitala neysluverðs","date: 2021-12-01<br />value: 0.05126728<br />name: Vísitala neysluverðs","date: 2022-01-01<br />value: 0.05645161<br />name: Vísitala neysluverðs","date: 2022-02-01<br />value: 0.06239267<br />name: Vísitala neysluverðs","date: 2022-03-01<br />value: 0.06662870<br />name: Vísitala neysluverðs","date: 2022-04-01<br />value: 0.07239819<br />name: Vísitala neysluverðs","date: 2022-05-01<br />value: 0.07601351<br />name: Vísitala neysluverðs","date: 2022-06-01<br />value: 0.08815272<br />name: Vísitala neysluverðs","date: 2022-07-01<br />value: 0.09927089<br />name: Vísitala neysluverðs","date: 2022-08-01<br />value: 0.09709821<br />name: Vísitala neysluverðs","date: 2022-09-01<br />value: 0.09333333<br />name: Vísitala neysluverðs","date: 2022-10-01<br />value: 0.09387079<br />name: Vísitala neysluverðs","date: 2022-11-01<br />value: 0.09301046<br />name: Vísitala neysluverðs","date: 2022-12-01<br />value: 0.09589041<br />name: Vísitala neysluverðs","date: 2023-01-01<br />value: 0.09978190<br />name: Vísitala neysluverðs","date: 2023-02-01<br />value: 0.10183190<br />name: Vísitala neysluverðs","date: 2023-03-01<br />value: 0.09823812<br />name: Vísitala neysluverðs","date: 2023-04-01<br />value: 0.09915612<br />name: Vísitala neysluverðs","date: 2023-05-01<br />value: 0.09471481<br />name: Vísitala neysluverðs","date: 2023-06-01<br />value: 0.08823529<br />name: Vísitala neysluverðs","date: 2023-07-01<br />value: 0.07653061<br />name: Vísitala neysluverðs","date: 2023-08-01<br />value: 0.07680570<br />name: Vísitala neysluverðs","date: 2023-09-01<br />value: 0.07977642<br />name: Vísitala neysluverðs","date: 2023-10-01<br />value: 0.07874811<br />name: Vísitala neysluverðs","date: 2023-11-01<br />value: 0.08056395<br />name: Vísitala neysluverðs","date: 2023-12-01<br />value: 0.07750000<br />name: Vísitala neysluverðs","date: 2024-01-01<br />value: 0.06643530<br />name: Vísitala neysluverðs","date: 2024-02-01<br />value: 0.06601467<br />name: Vísitala neysluverðs","date: 2024-03-01<br />value: 0.06806028<br />name: Vísitala neysluverðs","date: 2024-04-01<br />value: 0.05998081<br />name: Vísitala neysluverðs","date: 2024-05-01<br />value: 0.06214149<br />name: Vísitala neysluverðs","date: 2024-06-01<br />value: 0.05879564<br />name: Vísitala neysluverðs","date: 2024-07-01<br />value: 0.06303318<br />name: Vísitala neysluverðs","date: 2024-08-01<br />value: 0.06046292<br />name: Vísitala neysluverðs","date: 2024-09-01<br />value: 0.05364706<br />name: Vísitala neysluverðs","date: 2024-10-01<br />value: 0.05100608<br />name: Vísitala neysluverðs","date: 2024-11-01<br />value: 0.04753029<br />name: Vísitala neysluverðs","date: 2024-12-01<br />value: 0.04733179<br />name: Vísitala neysluverðs","date: 2025-01-01<br />value: 0.04649000<br />name: Vísitala neysluverðs","date: 2025-02-01<br />value: 0.04174312<br />name: Vísitala neysluverðs","date: 2025-03-01<br />value: 0.03777879<br />name: Vísitala neysluverðs","date: 2025-04-01<br />value: 0.04164780<br />name: Vísitala neysluverðs","date: 2025-05-01<br />value: 0.03780378<br />name: Vísitala neysluverðs","date: 2025-06-01<br />value: 0.04120018<br />name: Vísitala neysluverðs","date: 2025-07-01<br />value: 0.04012483<br />name: Vísitala neysluverðs","date: 2025-08-01<br />value: 0.03741648<br />name: Vísitala neysluverðs"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(214,69,80,1)","dash":"solid"},"hoveron":"points","name":"Vísitala neysluverðs","legendgroup":"Vísitala neysluverðs","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":45.223744292237441,"r":7.3059360730593621,"b":27.031963470319642,"l":28.493150684931518},"font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"title":{"text":"Undirliggjandi verðbólga","font":{"color":"rgba(0,0,0,1)","family":"","size":17.534246575342465},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[18416.25,20390.75],"tickmode":"array","ticktext":["2021","2022","2023","2024","2025"],"tickvals":[18628,18993,19358,19723,20089],"categoryorder":"array","categoryarray":["2021","2022","2023","2024","2025"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.021720596276202809,0.10564672037436808],"tickmode":"array","ticktext":["4%","6%","8%","10%"],"tickvals":[0.040000000000000001,0.059999999999999998,0.080000000000000002,0.10000000000000001],"categoryorder":"array","categoryarray":["4%","6%","8%","10%"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.689497716894984},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"x","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","layer":"below","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":true,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.68949771689498},"title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"orientation":"h","y":-0.20000000000000001,"x":0.5,"xanchor":"center"},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"228d7cda717c":{"x":{},"y":{},"colour":{},"type":"scatter"}},"cur_data":"228d7cda717c","visdat":{"228d7cda717c":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<bslib-tooltip placement="auto" bsoptions="[]" data-require-bs-version="5" data-require-bs-caller="tooltip()">
+    <template>Expand</template>
+    <span class="bslib-full-screen-enter badge rounded-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" style="height:1em;width:1em;" aria-hidden="true" role="img"><path d="M20 5C20 4.4 19.6 4 19 4H13C12.4 4 12 3.6 12 3C12 2.4 12.4 2 13 2H21C21.6 2 22 2.4 22 3V11C22 11.6 21.6 12 21 12C20.4 12 20 11.6 20 11V5ZM4 19C4 19.6 4.4 20 5 20H11C11.6 20 12 20.4 12 21C12 21.6 11.6 22 11 22H3C2.4 22 2 21.6 2 21V13C2 12.4 2.4 12 3 12C3.6 12 4 12.4 4 13V19Z"></path></svg>
+    </span>
+</bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div><div class="card cell html-fill-item html-fill-container bslib-card" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
+<div class="card-body html-fill-item html-fill-container">
+<div class="cell-output-display html-fill-item html-fill-container">
+<div class="plotly html-widget html-fill-item html-fill-container" id="htmlwidget-810b211b14b125a9d2b1" style="width:100%;height:406px;"></div>
+<script type="application/json" data-for="htmlwidget-810b211b14b125a9d2b1">{"x":{"data":[{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.030086788813886267,0.025792892625143393,0.018416555914182453,0.026511539195117395,0.036297292106779233,0.027392048696975424,0.027368818422045971,0.044615963855421548,0.060989425981873069,0.064370412196499194,0.071697403086187439,0.074503931111943089,0.090245272420894862,0.0964797913950457,0.10831469052945564,0.10999628390932714,0.12101556708673078,0.13182743936308072,0.1416498254638987,0.14254820688412329,0.15038263036127431,0.17170645446507526,0.18788410886742746,0.18867595818815319,0.17379357719388633,0.16986580601324941,0.16904962153069802,0.16856377636424513,0.15936518432798796,0.15000817929003762,0.14032829095590604,0.1424290220820188,0.13428217821782185,0.12300030184123156,0.094604582409460569,0.083687527480580393,0.091294806144842644,0.10164077246987069,0.11151079136690645,0.11645896003437906,0.12106088692428352,0.12645803698435265,0.13858312164832043,0.13060886373049851,0.12493180578286944,0.11691976884827304,0.12869682646860214,0.14024885041925894,0.13835634803592978,0.12218268090154205,0.11339805825242721,0.10918655375930197,0.097049096921902667,0.094203813612830034,0.079821517104610828,0.074490169739894974,0.07516973811833183,0.074479605342317345,0.072385738214884032,0.068675127505633871],"text":["date: 2020-09-01<br />delta: 0.030086789<br />flokkur: Húsnæði","date: 2020-10-01<br />delta: 0.025792893<br />flokkur: Húsnæði","date: 2020-11-01<br />delta: 0.018416556<br />flokkur: Húsnæði","date: 2020-12-01<br />delta: 0.026511539<br />flokkur: Húsnæði","date: 2021-01-01<br />delta: 0.036297292<br />flokkur: Húsnæði","date: 2021-02-01<br />delta: 0.027392049<br />flokkur: Húsnæði","date: 2021-03-01<br />delta: 0.027368818<br />flokkur: Húsnæði","date: 2021-04-01<br />delta: 0.044615964<br />flokkur: Húsnæði","date: 2021-05-01<br />delta: 0.060989426<br />flokkur: Húsnæði","date: 2021-06-01<br />delta: 0.064370412<br />flokkur: Húsnæði","date: 2021-07-01<br />delta: 0.071697403<br />flokkur: Húsnæði","date: 2021-08-01<br />delta: 0.074503931<br />flokkur: Húsnæði","date: 2021-09-01<br />delta: 0.090245272<br />flokkur: Húsnæði","date: 2021-10-01<br />delta: 0.096479791<br />flokkur: Húsnæði","date: 2021-11-01<br />delta: 0.108314691<br />flokkur: Húsnæði","date: 2021-12-01<br />delta: 0.109996284<br />flokkur: Húsnæði","date: 2022-01-01<br />delta: 0.121015567<br />flokkur: Húsnæði","date: 2022-02-01<br />delta: 0.131827439<br />flokkur: Húsnæði","date: 2022-03-01<br />delta: 0.141649825<br />flokkur: Húsnæði","date: 2022-04-01<br />delta: 0.142548207<br />flokkur: Húsnæði","date: 2022-05-01<br />delta: 0.150382630<br />flokkur: Húsnæði","date: 2022-06-01<br />delta: 0.171706454<br />flokkur: Húsnæði","date: 2022-07-01<br />delta: 0.187884109<br />flokkur: Húsnæði","date: 2022-08-01<br />delta: 0.188675958<br />flokkur: Húsnæði","date: 2022-09-01<br />delta: 0.173793577<br />flokkur: Húsnæði","date: 2022-10-01<br />delta: 0.169865806<br />flokkur: Húsnæði","date: 2022-11-01<br />delta: 0.169049622<br />flokkur: Húsnæði","date: 2022-12-01<br />delta: 0.168563776<br />flokkur: Húsnæði","date: 2023-01-01<br />delta: 0.159365184<br />flokkur: Húsnæði","date: 2023-02-01<br />delta: 0.150008179<br />flokkur: Húsnæði","date: 2023-03-01<br />delta: 0.140328291<br />flokkur: Húsnæði","date: 2023-04-01<br />delta: 0.142429022<br />flokkur: Húsnæði","date: 2023-05-01<br />delta: 0.134282178<br />flokkur: Húsnæði","date: 2023-06-01<br />delta: 0.123000302<br />flokkur: Húsnæði","date: 2023-07-01<br />delta: 0.094604582<br />flokkur: Húsnæði","date: 2023-08-01<br />delta: 0.083687527<br />flokkur: Húsnæði","date: 2023-09-01<br />delta: 0.091294806<br />flokkur: Húsnæði","date: 2023-10-01<br />delta: 0.101640772<br />flokkur: Húsnæði","date: 2023-11-01<br />delta: 0.111510791<br />flokkur: Húsnæði","date: 2023-12-01<br />delta: 0.116458960<br />flokkur: Húsnæði","date: 2024-01-01<br />delta: 0.121060887<br />flokkur: Húsnæði","date: 2024-02-01<br />delta: 0.126458037<br />flokkur: Húsnæði","date: 2024-03-01<br />delta: 0.138583122<br />flokkur: Húsnæði","date: 2024-04-01<br />delta: 0.130608864<br />flokkur: Húsnæði","date: 2024-05-01<br />delta: 0.124931806<br />flokkur: Húsnæði","date: 2024-06-01<br />delta: 0.116919769<br />flokkur: Húsnæði","date: 2024-07-01<br />delta: 0.128696826<br />flokkur: Húsnæði","date: 2024-08-01<br />delta: 0.140248850<br />flokkur: Húsnæði","date: 2024-09-01<br />delta: 0.138356348<br />flokkur: Húsnæði","date: 2024-10-01<br />delta: 0.122182681<br />flokkur: Húsnæði","date: 2024-11-01<br />delta: 0.113398058<br />flokkur: Húsnæði","date: 2024-12-01<br />delta: 0.109186554<br />flokkur: Húsnæði","date: 2025-01-01<br />delta: 0.097049097<br />flokkur: Húsnæði","date: 2025-02-01<br />delta: 0.094203814<br />flokkur: Húsnæði","date: 2025-03-01<br />delta: 0.079821517<br />flokkur: Húsnæði","date: 2025-04-01<br />delta: 0.074490170<br />flokkur: Húsnæði","date: 2025-05-01<br />delta: 0.075169738<br />flokkur: Húsnæði","date: 2025-06-01<br />delta: 0.074479605<br />flokkur: Húsnæði","date: 2025-07-01<br />delta: 0.072385738<br />flokkur: Húsnæði","date: 2025-08-01<br />delta: 0.068675128<br />flokkur: Húsnæði"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(0,48,92,1)","dash":"solid"},"hoveron":"points","name":"Húsnæði","legendgroup":"Húsnæði","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.052887209929843415,0.058158319870759367,0.0558239398819107,0.054603854389721596,0.069627192982456121,0.067604110329908096,0.070543887991384002,0.06306787814003223,0.047945205479452024,0.039707419017763756,0.035602094240837712,0.033783783783783772,0.02665299846232716,0.029516539440203715,0.031520081342145456,0.02893401015228414,0.027678113787801051,0.041033434650455947,0.046277665995975825,0.047762694821518403,0.054298642533936459,0.070351758793969932,0.065722952477249796,0.064353946706887877,0.06689965052421365,0.065743944636678098,0.063085263676687875,0.067587567834237916,0.082793017456359141,0.086618004866180209,0.075961538461538414,0.078214971209213058,0.072007629947544283,0.0568075117370892,0.055977229601517964,0.0599905526688711,0.058961160505381471,0.053339517625231814,0.055632823365785899,0.051756007393715331,0.030861354214647641,0.024630541871921263,0.024128686327077542,0.016911437472185264,0.022241992882562345,0.017325633051976874,0.020215633423180668,0.012923351158645291,0.013256738842244875,0.010127697049757911,0.0087834870443566082,0.010105448154657415,0.020554066130473503,0.012674825174824988,0.0095986038394415552,0.015754923413566768,0.0078328981723236879,0.013973799126637543,0.011008366358432387,0.0092388913330399003],"text":["date: 2020-09-01<br />delta: 0.052887210<br />flokkur: Innfluttar vörur","date: 2020-10-01<br />delta: 0.058158320<br />flokkur: Innfluttar vörur","date: 2020-11-01<br />delta: 0.055823940<br />flokkur: Innfluttar vörur","date: 2020-12-01<br />delta: 0.054603854<br />flokkur: Innfluttar vörur","date: 2021-01-01<br />delta: 0.069627193<br />flokkur: Innfluttar vörur","date: 2021-02-01<br />delta: 0.067604110<br />flokkur: Innfluttar vörur","date: 2021-03-01<br />delta: 0.070543888<br />flokkur: Innfluttar vörur","date: 2021-04-01<br />delta: 0.063067878<br />flokkur: Innfluttar vörur","date: 2021-05-01<br />delta: 0.047945205<br />flokkur: Innfluttar vörur","date: 2021-06-01<br />delta: 0.039707419<br />flokkur: Innfluttar vörur","date: 2021-07-01<br />delta: 0.035602094<br />flokkur: Innfluttar vörur","date: 2021-08-01<br />delta: 0.033783784<br />flokkur: Innfluttar vörur","date: 2021-09-01<br />delta: 0.026652998<br />flokkur: Innfluttar vörur","date: 2021-10-01<br />delta: 0.029516539<br />flokkur: Innfluttar vörur","date: 2021-11-01<br />delta: 0.031520081<br />flokkur: Innfluttar vörur","date: 2021-12-01<br />delta: 0.028934010<br />flokkur: Innfluttar vörur","date: 2022-01-01<br />delta: 0.027678114<br />flokkur: Innfluttar vörur","date: 2022-02-01<br />delta: 0.041033435<br />flokkur: Innfluttar vörur","date: 2022-03-01<br />delta: 0.046277666<br />flokkur: Innfluttar vörur","date: 2022-04-01<br />delta: 0.047762695<br />flokkur: Innfluttar vörur","date: 2022-05-01<br />delta: 0.054298643<br />flokkur: Innfluttar vörur","date: 2022-06-01<br />delta: 0.070351759<br />flokkur: Innfluttar vörur","date: 2022-07-01<br />delta: 0.065722952<br />flokkur: Innfluttar vörur","date: 2022-08-01<br />delta: 0.064353947<br />flokkur: Innfluttar vörur","date: 2022-09-01<br />delta: 0.066899651<br />flokkur: Innfluttar vörur","date: 2022-10-01<br />delta: 0.065743945<br />flokkur: Innfluttar vörur","date: 2022-11-01<br />delta: 0.063085264<br />flokkur: Innfluttar vörur","date: 2022-12-01<br />delta: 0.067587568<br />flokkur: Innfluttar vörur","date: 2023-01-01<br />delta: 0.082793017<br />flokkur: Innfluttar vörur","date: 2023-02-01<br />delta: 0.086618005<br />flokkur: Innfluttar vörur","date: 2023-03-01<br />delta: 0.075961538<br />flokkur: Innfluttar vörur","date: 2023-04-01<br />delta: 0.078214971<br />flokkur: Innfluttar vörur","date: 2023-05-01<br />delta: 0.072007630<br />flokkur: Innfluttar vörur","date: 2023-06-01<br />delta: 0.056807512<br />flokkur: Innfluttar vörur","date: 2023-07-01<br />delta: 0.055977230<br />flokkur: Innfluttar vörur","date: 2023-08-01<br />delta: 0.059990553<br />flokkur: Innfluttar vörur","date: 2023-09-01<br />delta: 0.058961161<br />flokkur: Innfluttar vörur","date: 2023-10-01<br />delta: 0.053339518<br />flokkur: Innfluttar vörur","date: 2023-11-01<br />delta: 0.055632823<br />flokkur: Innfluttar vörur","date: 2023-12-01<br />delta: 0.051756007<br />flokkur: Innfluttar vörur","date: 2024-01-01<br />delta: 0.030861354<br />flokkur: Innfluttar vörur","date: 2024-02-01<br />delta: 0.024630542<br />flokkur: Innfluttar vörur","date: 2024-03-01<br />delta: 0.024128686<br />flokkur: Innfluttar vörur","date: 2024-04-01<br />delta: 0.016911437<br />flokkur: Innfluttar vörur","date: 2024-05-01<br />delta: 0.022241993<br />flokkur: Innfluttar vörur","date: 2024-06-01<br />delta: 0.017325633<br />flokkur: Innfluttar vörur","date: 2024-07-01<br />delta: 0.020215633<br />flokkur: Innfluttar vörur","date: 2024-08-01<br />delta: 0.012923351<br />flokkur: Innfluttar vörur","date: 2024-09-01<br />delta: 0.013256739<br />flokkur: Innfluttar vörur","date: 2024-10-01<br />delta: 0.010127697<br />flokkur: Innfluttar vörur","date: 2024-11-01<br />delta: 0.008783487<br />flokkur: Innfluttar vörur","date: 2024-12-01<br />delta: 0.010105448<br />flokkur: Innfluttar vörur","date: 2025-01-01<br />delta: 0.020554066<br />flokkur: Innfluttar vörur","date: 2025-02-01<br />delta: 0.012674825<br />flokkur: Innfluttar vörur","date: 2025-03-01<br />delta: 0.009598604<br />flokkur: Innfluttar vörur","date: 2025-04-01<br />delta: 0.015754923<br />flokkur: Innfluttar vörur","date: 2025-05-01<br />delta: 0.007832898<br />flokkur: Innfluttar vörur","date: 2025-06-01<br />delta: 0.013973799<br />flokkur: Innfluttar vörur","date: 2025-07-01<br />delta: 0.011008366<br />flokkur: Innfluttar vörur","date: 2025-08-01<br />delta: 0.009238891<br />flokkur: Innfluttar vörur"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(2,143,188,1)","dash":"solid"},"hoveron":"points","name":"Innfluttar vörur","legendgroup":"Innfluttar vörur","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.05260942760942755,0.05711885762284763,0.055018899622007567,0.059368421052631515,0.055509181969950028,0.052369077306733125,0.048841059602648951,0.053278688524590168,0.044183218483988762,0.035469568722289235,0.02886928628708918,0.027955271565495154,0.03118752499000399,0.029002781088597551,0.031847133757961776,0.043720190779014345,0.050612890470541627,0.058451816745655583,0.064325177584846127,0.063813229571984431,0.071428571428571397,0.082133125729856093,0.087295401402961659,0.089355089355089401,0.091508336564559922,0.10270270270270276,0.10956790123456805,0.10167555217060165,0.11065111027474606,0.11940298507462677,0.12050426399703373,0.12253108997805406,0.11739130434782608,0.11546762589928061,0.11469534050179209,0.11483594864479341,0.11296625222024881,0.10819327731092421,0.1011821974965228,0.098167991704113389,0.082344967807522762,0.070999999999999952,0.066512243547319772,0.052785923753665864,0.05220492866407267,0.050951306030312615,0.055627009646302294,0.048304542546385054,0.040536227258218815,0.035703001579778793,0.036311967161351433,0.037771482530689404,0.040075140889167304,0.046062869592281341,0.050263729444616878,0.054781801299907062,0.058243451463790397,0.059220619822031306,0.050868108437404747,0.054623130912420104],"text":["date: 2020-09-01<br />delta: 0.052609428<br />flokkur: Innlendar vörur","date: 2020-10-01<br />delta: 0.057118858<br />flokkur: Innlendar vörur","date: 2020-11-01<br />delta: 0.055018900<br />flokkur: Innlendar vörur","date: 2020-12-01<br />delta: 0.059368421<br />flokkur: Innlendar vörur","date: 2021-01-01<br />delta: 0.055509182<br />flokkur: Innlendar vörur","date: 2021-02-01<br />delta: 0.052369077<br />flokkur: Innlendar vörur","date: 2021-03-01<br />delta: 0.048841060<br />flokkur: Innlendar vörur","date: 2021-04-01<br />delta: 0.053278689<br />flokkur: Innlendar vörur","date: 2021-05-01<br />delta: 0.044183218<br />flokkur: Innlendar vörur","date: 2021-06-01<br />delta: 0.035469569<br />flokkur: Innlendar vörur","date: 2021-07-01<br />delta: 0.028869286<br />flokkur: Innlendar vörur","date: 2021-08-01<br />delta: 0.027955272<br />flokkur: Innlendar vörur","date: 2021-09-01<br />delta: 0.031187525<br />flokkur: Innlendar vörur","date: 2021-10-01<br />delta: 0.029002781<br />flokkur: Innlendar vörur","date: 2021-11-01<br />delta: 0.031847134<br />flokkur: Innlendar vörur","date: 2021-12-01<br />delta: 0.043720191<br />flokkur: Innlendar vörur","date: 2022-01-01<br />delta: 0.050612890<br />flokkur: Innlendar vörur","date: 2022-02-01<br />delta: 0.058451817<br />flokkur: Innlendar vörur","date: 2022-03-01<br />delta: 0.064325178<br />flokkur: Innlendar vörur","date: 2022-04-01<br />delta: 0.063813230<br />flokkur: Innlendar vörur","date: 2022-05-01<br />delta: 0.071428571<br />flokkur: Innlendar vörur","date: 2022-06-01<br />delta: 0.082133126<br />flokkur: Innlendar vörur","date: 2022-07-01<br />delta: 0.087295401<br />flokkur: Innlendar vörur","date: 2022-08-01<br />delta: 0.089355089<br />flokkur: Innlendar vörur","date: 2022-09-01<br />delta: 0.091508337<br />flokkur: Innlendar vörur","date: 2022-10-01<br />delta: 0.102702703<br />flokkur: Innlendar vörur","date: 2022-11-01<br />delta: 0.109567901<br />flokkur: Innlendar vörur","date: 2022-12-01<br />delta: 0.101675552<br />flokkur: Innlendar vörur","date: 2023-01-01<br />delta: 0.110651110<br />flokkur: Innlendar vörur","date: 2023-02-01<br />delta: 0.119402985<br />flokkur: Innlendar vörur","date: 2023-03-01<br />delta: 0.120504264<br />flokkur: Innlendar vörur","date: 2023-04-01<br />delta: 0.122531090<br />flokkur: Innlendar vörur","date: 2023-05-01<br />delta: 0.117391304<br />flokkur: Innlendar vörur","date: 2023-06-01<br />delta: 0.115467626<br />flokkur: Innlendar vörur","date: 2023-07-01<br />delta: 0.114695341<br />flokkur: Innlendar vörur","date: 2023-08-01<br />delta: 0.114835949<br />flokkur: Innlendar vörur","date: 2023-09-01<br />delta: 0.112966252<br />flokkur: Innlendar vörur","date: 2023-10-01<br />delta: 0.108193277<br />flokkur: Innlendar vörur","date: 2023-11-01<br />delta: 0.101182197<br />flokkur: Innlendar vörur","date: 2023-12-01<br />delta: 0.098167992<br />flokkur: Innlendar vörur","date: 2024-01-01<br />delta: 0.082344968<br />flokkur: Innlendar vörur","date: 2024-02-01<br />delta: 0.071000000<br />flokkur: Innlendar vörur","date: 2024-03-01<br />delta: 0.066512244<br />flokkur: Innlendar vörur","date: 2024-04-01<br />delta: 0.052785924<br />flokkur: Innlendar vörur","date: 2024-05-01<br />delta: 0.052204929<br />flokkur: Innlendar vörur","date: 2024-06-01<br />delta: 0.050951306<br />flokkur: Innlendar vörur","date: 2024-07-01<br />delta: 0.055627010<br />flokkur: Innlendar vörur","date: 2024-08-01<br />delta: 0.048304543<br />flokkur: Innlendar vörur","date: 2024-09-01<br />delta: 0.040536227<br />flokkur: Innlendar vörur","date: 2024-10-01<br />delta: 0.035703002<br />flokkur: Innlendar vörur","date: 2024-11-01<br />delta: 0.036311967<br />flokkur: Innlendar vörur","date: 2024-12-01<br />delta: 0.037771483<br />flokkur: Innlendar vörur","date: 2025-01-01<br />delta: 0.040075141<br />flokkur: Innlendar vörur","date: 2025-02-01<br />delta: 0.046062870<br />flokkur: Innlendar vörur","date: 2025-03-01<br />delta: 0.050263729<br />flokkur: Innlendar vörur","date: 2025-04-01<br />delta: 0.054781801<br />flokkur: Innlendar vörur","date: 2025-05-01<br />delta: 0.058243451<br />flokkur: Innlendar vörur","date: 2025-06-01<br />delta: 0.059220620<br />flokkur: Innlendar vörur","date: 2025-07-01<br />delta: 0.050868108<br />flokkur: Innlendar vörur","date: 2025-08-01<br />delta: 0.054623131<br />flokkur: Innlendar vörur"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(238,194,21,1)","dash":"solid"},"hoveron":"points","name":"Innlendar vörur","legendgroup":"Innlendar vörur","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.010522360015031706,0.0071214392803597981,0.014694800301431998,0.010101010101010166,0.01161919040479753,0.013372956909361244,0.023925233644859656,0.024244684819097362,0.03099327856609424,0.037327360955580424,0.04047530634979557,0.040029651593773252,0.038304202305689872,0.037216226274655817,0.034905310063126471,0.040740740740740744,0.049277510188958873,0.037390029325513163,0.036509675063892022,0.057538237436270734,0.049981890619340552,0.05109751709247945,0.084939329050678136,0.077690662865288473,0.065902578796561695,0.066379619662719769,0.063150340868317167,0.072241992882562389,0.065324858757062065,0.075618374558303891,0.083127861923212532,0.080578512396694446,0.083822007588823855,0.093803491954809859,0.068421052631578938,0.072420634920635107,0.079301075268817023,0.078398384925975728,0.073236584542693217,0.063391968138068355,0.05866755054690076,0.056176084099868628,0.057886178861788595,0.048757170172084141,0.05378739656269893,0.053208137715180071,0.056650246305418595,0.05365402405180375,0.034869240348692321,0.043681747269890714,0.041194968553459166,0.04182272159800271,0.034126487163431474,0.034214618973561484,0.030433446049800139,0.040717107262230323,0.032920567804288758,0.039821693907875044,0.044289044289044233,0.034533216271583234],"text":["date: 2020-09-01<br />delta: 0.010522360<br />flokkur: Önnur þjónusta","date: 2020-10-01<br />delta: 0.007121439<br />flokkur: Önnur þjónusta","date: 2020-11-01<br />delta: 0.014694800<br />flokkur: Önnur þjónusta","date: 2020-12-01<br />delta: 0.010101010<br />flokkur: Önnur þjónusta","date: 2021-01-01<br />delta: 0.011619190<br />flokkur: Önnur þjónusta","date: 2021-02-01<br />delta: 0.013372957<br />flokkur: Önnur þjónusta","date: 2021-03-01<br />delta: 0.023925234<br />flokkur: Önnur þjónusta","date: 2021-04-01<br />delta: 0.024244685<br />flokkur: Önnur þjónusta","date: 2021-05-01<br />delta: 0.030993279<br />flokkur: Önnur þjónusta","date: 2021-06-01<br />delta: 0.037327361<br />flokkur: Önnur þjónusta","date: 2021-07-01<br />delta: 0.040475306<br />flokkur: Önnur þjónusta","date: 2021-08-01<br />delta: 0.040029652<br />flokkur: Önnur þjónusta","date: 2021-09-01<br />delta: 0.038304202<br />flokkur: Önnur þjónusta","date: 2021-10-01<br />delta: 0.037216226<br />flokkur: Önnur þjónusta","date: 2021-11-01<br />delta: 0.034905310<br />flokkur: Önnur þjónusta","date: 2021-12-01<br />delta: 0.040740741<br />flokkur: Önnur þjónusta","date: 2022-01-01<br />delta: 0.049277510<br />flokkur: Önnur þjónusta","date: 2022-02-01<br />delta: 0.037390029<br />flokkur: Önnur þjónusta","date: 2022-03-01<br />delta: 0.036509675<br />flokkur: Önnur þjónusta","date: 2022-04-01<br />delta: 0.057538237<br />flokkur: Önnur þjónusta","date: 2022-05-01<br />delta: 0.049981891<br />flokkur: Önnur þjónusta","date: 2022-06-01<br />delta: 0.051097517<br />flokkur: Önnur þjónusta","date: 2022-07-01<br />delta: 0.084939329<br />flokkur: Önnur þjónusta","date: 2022-08-01<br />delta: 0.077690663<br />flokkur: Önnur þjónusta","date: 2022-09-01<br />delta: 0.065902579<br />flokkur: Önnur þjónusta","date: 2022-10-01<br />delta: 0.066379620<br />flokkur: Önnur þjónusta","date: 2022-11-01<br />delta: 0.063150341<br />flokkur: Önnur þjónusta","date: 2022-12-01<br />delta: 0.072241993<br />flokkur: Önnur þjónusta","date: 2023-01-01<br />delta: 0.065324859<br />flokkur: Önnur þjónusta","date: 2023-02-01<br />delta: 0.075618375<br />flokkur: Önnur þjónusta","date: 2023-03-01<br />delta: 0.083127862<br />flokkur: Önnur þjónusta","date: 2023-04-01<br />delta: 0.080578512<br />flokkur: Önnur þjónusta","date: 2023-05-01<br />delta: 0.083822008<br />flokkur: Önnur þjónusta","date: 2023-06-01<br />delta: 0.093803492<br />flokkur: Önnur þjónusta","date: 2023-07-01<br />delta: 0.068421053<br />flokkur: Önnur þjónusta","date: 2023-08-01<br />delta: 0.072420635<br />flokkur: Önnur þjónusta","date: 2023-09-01<br />delta: 0.079301075<br />flokkur: Önnur þjónusta","date: 2023-10-01<br />delta: 0.078398385<br />flokkur: Önnur þjónusta","date: 2023-11-01<br />delta: 0.073236585<br />flokkur: Önnur þjónusta","date: 2023-12-01<br />delta: 0.063391968<br />flokkur: Önnur þjónusta","date: 2024-01-01<br />delta: 0.058667551<br />flokkur: Önnur þjónusta","date: 2024-02-01<br />delta: 0.056176084<br />flokkur: Önnur þjónusta","date: 2024-03-01<br />delta: 0.057886179<br />flokkur: Önnur þjónusta","date: 2024-04-01<br />delta: 0.048757170<br />flokkur: Önnur þjónusta","date: 2024-05-01<br />delta: 0.053787397<br />flokkur: Önnur þjónusta","date: 2024-06-01<br />delta: 0.053208138<br />flokkur: Önnur þjónusta","date: 2024-07-01<br />delta: 0.056650246<br />flokkur: Önnur þjónusta","date: 2024-08-01<br />delta: 0.053654024<br />flokkur: Önnur þjónusta","date: 2024-09-01<br />delta: 0.034869240<br />flokkur: Önnur þjónusta","date: 2024-10-01<br />delta: 0.043681747<br />flokkur: Önnur þjónusta","date: 2024-11-01<br />delta: 0.041194969<br />flokkur: Önnur þjónusta","date: 2024-12-01<br />delta: 0.041822722<br />flokkur: Önnur þjónusta","date: 2025-01-01<br />delta: 0.034126487<br />flokkur: Önnur þjónusta","date: 2025-02-01<br />delta: 0.034214619<br />flokkur: Önnur þjónusta","date: 2025-03-01<br />delta: 0.030433446<br />flokkur: Önnur þjónusta","date: 2025-04-01<br />delta: 0.040717107<br />flokkur: Önnur þjónusta","date: 2025-05-01<br />delta: 0.032920568<br />flokkur: Önnur þjónusta","date: 2025-06-01<br />delta: 0.039821694<br />flokkur: Önnur þjónusta","date: 2025-07-01<br />delta: 0.044289044<br />flokkur: Önnur þjónusta","date: 2025-08-01<br />delta: 0.034533216<br />flokkur: Önnur þjónusta"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(214,69,80,1)","dash":"solid"},"hoveron":"points","name":"Önnur þjónusta","legendgroup":"Önnur þjónusta","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.015891032917139558,0.015891032917139558,0.016628873771730834,0.016622591613147053,0.024299065420560817,0.025411061285500525,0.025411061285500525,0.025784753363228718,0.0257751214045574,0.026905829596412412,0.03099327856609424,0.032089552238806052,0.032774674115456204,0.034264432029795122,0.034200743494423813,0.034188034188034067,0.048175182481751788,0.047740524781341165,0.04919825072886308,0.050273224043715814,0.052075746540422241,0.055676855895196553,0.059398768562115123,0.057122198120028722,0.062747926433465384,0.065898451566438698,0.064701653486700206,0.06503772906934957,0.075208913649025044,0.073391304347826258,0.071899965265717514,0.070759625390218517,0.069574247144340795,0.065149948293691695,0.068376068376068355,0.077291381668946668,0.078045469969460379,0.075337837837837984,0.080351114112086508,0.081309041835357698,0.06023316062176165,0.087815942968243466,0.089112119248217825,0.091026886945254404,0.091909385113268627,0.09352750809061483,0.08543999999999996,0.076190476190476142,0.068932955618508096,0.065975494816211011,0.063437500000000036,0.061466458658346212,0.056505803298717128,0.033958891867739149,0.03421600714073203,0.032660332541567749,0.032305868405453575,0.031370227878070533,0.033608490566037874,0.039823008849557473],"text":["date: 2020-09-01<br />delta: 0.015891033<br />flokkur: Opinber þjónusta","date: 2020-10-01<br />delta: 0.015891033<br />flokkur: Opinber þjónusta","date: 2020-11-01<br />delta: 0.016628874<br />flokkur: Opinber þjónusta","date: 2020-12-01<br />delta: 0.016622592<br />flokkur: Opinber þjónusta","date: 2021-01-01<br />delta: 0.024299065<br />flokkur: Opinber þjónusta","date: 2021-02-01<br />delta: 0.025411061<br />flokkur: Opinber þjónusta","date: 2021-03-01<br />delta: 0.025411061<br />flokkur: Opinber þjónusta","date: 2021-04-01<br />delta: 0.025784753<br />flokkur: Opinber þjónusta","date: 2021-05-01<br />delta: 0.025775121<br />flokkur: Opinber þjónusta","date: 2021-06-01<br />delta: 0.026905830<br />flokkur: Opinber þjónusta","date: 2021-07-01<br />delta: 0.030993279<br />flokkur: Opinber þjónusta","date: 2021-08-01<br />delta: 0.032089552<br />flokkur: Opinber þjónusta","date: 2021-09-01<br />delta: 0.032774674<br />flokkur: Opinber þjónusta","date: 2021-10-01<br />delta: 0.034264432<br />flokkur: Opinber þjónusta","date: 2021-11-01<br />delta: 0.034200743<br />flokkur: Opinber þjónusta","date: 2021-12-01<br />delta: 0.034188034<br />flokkur: Opinber þjónusta","date: 2022-01-01<br />delta: 0.048175182<br />flokkur: Opinber þjónusta","date: 2022-02-01<br />delta: 0.047740525<br />flokkur: Opinber þjónusta","date: 2022-03-01<br />delta: 0.049198251<br />flokkur: Opinber þjónusta","date: 2022-04-01<br />delta: 0.050273224<br />flokkur: Opinber þjónusta","date: 2022-05-01<br />delta: 0.052075747<br />flokkur: Opinber þjónusta","date: 2022-06-01<br />delta: 0.055676856<br />flokkur: Opinber þjónusta","date: 2022-07-01<br />delta: 0.059398769<br />flokkur: Opinber þjónusta","date: 2022-08-01<br />delta: 0.057122198<br />flokkur: Opinber þjónusta","date: 2022-09-01<br />delta: 0.062747926<br />flokkur: Opinber þjónusta","date: 2022-10-01<br />delta: 0.065898452<br />flokkur: Opinber þjónusta","date: 2022-11-01<br />delta: 0.064701653<br />flokkur: Opinber þjónusta","date: 2022-12-01<br />delta: 0.065037729<br />flokkur: Opinber þjónusta","date: 2023-01-01<br />delta: 0.075208914<br />flokkur: Opinber þjónusta","date: 2023-02-01<br />delta: 0.073391304<br />flokkur: Opinber þjónusta","date: 2023-03-01<br />delta: 0.071899965<br />flokkur: Opinber þjónusta","date: 2023-04-01<br />delta: 0.070759625<br />flokkur: Opinber þjónusta","date: 2023-05-01<br />delta: 0.069574247<br />flokkur: Opinber þjónusta","date: 2023-06-01<br />delta: 0.065149948<br />flokkur: Opinber þjónusta","date: 2023-07-01<br />delta: 0.068376068<br />flokkur: Opinber þjónusta","date: 2023-08-01<br />delta: 0.077291382<br />flokkur: Opinber þjónusta","date: 2023-09-01<br />delta: 0.078045470<br />flokkur: Opinber þjónusta","date: 2023-10-01<br />delta: 0.075337838<br />flokkur: Opinber þjónusta","date: 2023-11-01<br />delta: 0.080351114<br />flokkur: Opinber þjónusta","date: 2023-12-01<br />delta: 0.081309042<br />flokkur: Opinber þjónusta","date: 2024-01-01<br />delta: 0.060233161<br />flokkur: Opinber þjónusta","date: 2024-02-01<br />delta: 0.087815943<br />flokkur: Opinber þjónusta","date: 2024-03-01<br />delta: 0.089112119<br />flokkur: Opinber þjónusta","date: 2024-04-01<br />delta: 0.091026887<br />flokkur: Opinber þjónusta","date: 2024-05-01<br />delta: 0.091909385<br />flokkur: Opinber þjónusta","date: 2024-06-01<br />delta: 0.093527508<br />flokkur: Opinber þjónusta","date: 2024-07-01<br />delta: 0.085440000<br />flokkur: Opinber þjónusta","date: 2024-08-01<br />delta: 0.076190476<br />flokkur: Opinber þjónusta","date: 2024-09-01<br />delta: 0.068932956<br />flokkur: Opinber þjónusta","date: 2024-10-01<br />delta: 0.065975495<br />flokkur: Opinber þjónusta","date: 2024-11-01<br />delta: 0.063437500<br />flokkur: Opinber þjónusta","date: 2024-12-01<br />delta: 0.061466459<br />flokkur: Opinber þjónusta","date: 2025-01-01<br />delta: 0.056505803<br />flokkur: Opinber þjónusta","date: 2025-02-01<br />delta: 0.033958892<br />flokkur: Opinber þjónusta","date: 2025-03-01<br />delta: 0.034216007<br />flokkur: Opinber þjónusta","date: 2025-04-01<br />delta: 0.032660333<br />flokkur: Opinber þjónusta","date: 2025-05-01<br />delta: 0.032305868<br />flokkur: Opinber þjónusta","date: 2025-06-01<br />delta: 0.031370228<br />flokkur: Opinber þjónusta","date: 2025-07-01<br />delta: 0.033608491<br />flokkur: Opinber þjónusta","date: 2025-08-01<br />delta: 0.039823009<br />flokkur: Opinber þjónusta"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(79,185,79,1)","dash":"solid"},"hoveron":"points","name":"Opinber þjónusta","legendgroup":"Opinber þjónusta","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":45.223744292237441,"r":7.3059360730593621,"b":27.031963470319642,"l":28.493150684931518},"font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"title":{"text":"Verðbólga eftir uppruna","font":{"color":"rgba(0,0,0,1)","family":"","size":17.534246575342465},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[18416.25,20390.75],"tickmode":"array","ticktext":["2021","2022","2023","2024","2025"],"tickvals":[18628,18993,19358,19723,20089],"categoryorder":"array","categoryarray":["2021","2022","2023","2024","2025"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[-0.0019562866650298712,0.19775368413354286],"tickmode":"array","ticktext":["0%","5%","10%","15%"],"tickvals":[0,0.050000000000000003,0.10000000000000001,0.15000000000000002],"categoryorder":"array","categoryarray":["0%","5%","10%","15%"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.689497716894984},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"x","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","layer":"below","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":true,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.68949771689498},"title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"orientation":"h","y":-0.20000000000000001,"x":0.5,"xanchor":"center"},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"228d605d9678":{"x":{},"y":{},"colour":{},"type":"scatter"}},"cur_data":"228d605d9678","visdat":{"228d605d9678":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<bslib-tooltip placement="auto" bsoptions="[]" data-require-bs-version="5" data-require-bs-caller="tooltip()">
+    <template>Expand</template>
+    <span class="bslib-full-screen-enter badge rounded-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" style="height:1em;width:1em;" aria-hidden="true" role="img"><path d="M20 5C20 4.4 19.6 4 19 4H13C12.4 4 12 3.6 12 3C12 2.4 12.4 2 13 2H21C21.6 2 22 2.4 22 3V11C22 11.6 21.6 12 21 12C20.4 12 20 11.6 20 11V5ZM4 19C4 19.6 4.4 20 5 20H11C11.6 20 12 20.4 12 21C12 21.6 11.6 22 11 22H3C2.4 22 2 21.6 2 21V13C2 12.4 2.4 12 3 12C3.6 12 4 12.4 4 13V19Z"></path></svg>
+    </span>
+</bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div>
+</div>
+<div class="html-fill-item html-fill-container bslib-grid" style="display: grid; grid-template-columns: minmax(3em, 1fr) minmax(3em, 1fr);
+grid-auto-rows: minmax(0, 1fr);">
+<div class="card html-fill-item html-fill-container bslib-card" data-fill="false" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
+<div class="card-body html-fill-item html-fill-container">
+<div class="callout callout-style-default callout-note callout-titled">
+<div class="callout-header d-flex align-content-center html-fill-item html-fill-container">
+<div class="callout-icon-container html-fill-item html-fill-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill html-fill-item html-fill-container">
+Liðir undirliggjandi verðbólgu
+</div>
+</div>
+<div class="callout-body-container callout-body html-fill-item html-fill-container">
+<ul>
+<li><strong>Kjarna­vísitala 1</strong>: VNV án búvöru, grænmetis, ávaxta og bensíns<br>
+</li>
+<li><strong>Kjarna­vísitala 2</strong>: Kjarna­vísitala 1 án opinberrar þjónustu<br>
+</li>
+<li><strong>Kjarna­vísitala 3</strong>: Kjarna­vísitala 2 án áhrifa vaxtabreytinga á húsnæðisliði <em>(ekki reiknuð lengur)</em><br>
+</li>
+<li><strong>Kjarna­vísitala 4</strong>: Kjarna­vísitala 2 án reiknaðrar húsaleigu</li>
+</ul>
+</div>
+</div>
+</div>
+<bslib-tooltip placement="auto" bsoptions="[]" data-require-bs-version="5" data-require-bs-caller="tooltip()">
+    <template>Expand</template>
+    <span class="bslib-full-screen-enter badge rounded-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" style="height:1em;width:1em;" aria-hidden="true" role="img"><path d="M20 5C20 4.4 19.6 4 19 4H13C12.4 4 12 3.6 12 3C12 2.4 12.4 2 13 2H21C21.6 2 22 2.4 22 3V11C22 11.6 21.6 12 21 12C20.4 12 20 11.6 20 11V5ZM4 19C4 19.6 4.4 20 5 20H11C11.6 20 12 20.4 12 21C12 21.6 11.6 22 11 22H3C2.4 22 2 21.6 2 21V13C2 12.4 2.4 12 3 12C3.6 12 4 12.4 4 13V19Z"></path></svg>
+    </span>
+</bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div><div class="card cell html-fill-item html-fill-container bslib-card" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
+<div class="card-body html-fill-item html-fill-container">
+<div class="cell-output-display html-fill-item html-fill-container">
+<div class="plotly html-widget html-fill-item html-fill-container" id="htmlwidget-c510f36c39e1ec1e8c1d" style="width:100%;height:406px;"></div>
+<script type="application/json" data-for="htmlwidget-c510f36c39e1ec1e8c1d">{"x":{"data":[{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.034878860539947265,0.037204693436964975,0.035910891386177868,0.034530796905987371,0.037329699704321095,0.040923530851714407,0.039064777730018818,0.034798916406774794,0.028834742837588134,0.025437849032368565,0.026081215965048532,0.028256380157377858,0.03127868252591659,0.027711465826941284,0.026637565369591831,0.035239412699141104,0.041427604388196038,0.046324575054815353,0.052463338640778234,0.0602563811740493,0.063304974162850636,0.063781896383520387,0.073761630076828011,0.077070577876525492,0.08375234616134053,0.085515239722135261,0.094490775193472709,0.091405024990123263,0.10112277566667882,0.10260208756766387,0.10476600939075431,0.11126610465808739,0.10820774691307333,0.11545078874989478,0.10782269406947353,0.10223038588490385,0.096375967808891572,0.094256958249718581,0.086542798558733702,0.085878371055302161,0.075245741632263607,0.0690609700752014,0.060174164810071096,0.052439626543564488,0.056100969035468129,0.047230485595947114,0.045145463948875086,0.044578080823434618,0.017384174118493023,0.019964309580231321,0.023310638812661155,0.019712096407118462,0.017429864080740654,0.017937828229748431,0.022139373881969737,0.022978648582345551,0.022484752306460631,0.031588078108512496,0.031467615369189073,0.031180222622319675],"text":["date: 2020-09-01<br />value: 0.03487886<br />name: Keypt oft","date: 2020-10-01<br />value: 0.03720469<br />name: Keypt oft","date: 2020-11-01<br />value: 0.03591089<br />name: Keypt oft","date: 2020-12-01<br />value: 0.03453080<br />name: Keypt oft","date: 2021-01-01<br />value: 0.03732970<br />name: Keypt oft","date: 2021-02-01<br />value: 0.04092353<br />name: Keypt oft","date: 2021-03-01<br />value: 0.03906478<br />name: Keypt oft","date: 2021-04-01<br />value: 0.03479892<br />name: Keypt oft","date: 2021-05-01<br />value: 0.02883474<br />name: Keypt oft","date: 2021-06-01<br />value: 0.02543785<br />name: Keypt oft","date: 2021-07-01<br />value: 0.02608122<br />name: Keypt oft","date: 2021-08-01<br />value: 0.02825638<br />name: Keypt oft","date: 2021-09-01<br />value: 0.03127868<br />name: Keypt oft","date: 2021-10-01<br />value: 0.02771147<br />name: Keypt oft","date: 2021-11-01<br />value: 0.02663757<br />name: Keypt oft","date: 2021-12-01<br />value: 0.03523941<br />name: Keypt oft","date: 2022-01-01<br />value: 0.04142760<br />name: Keypt oft","date: 2022-02-01<br />value: 0.04632458<br />name: Keypt oft","date: 2022-03-01<br />value: 0.05246334<br />name: Keypt oft","date: 2022-04-01<br />value: 0.06025638<br />name: Keypt oft","date: 2022-05-01<br />value: 0.06330497<br />name: Keypt oft","date: 2022-06-01<br />value: 0.06378190<br />name: Keypt oft","date: 2022-07-01<br />value: 0.07376163<br />name: Keypt oft","date: 2022-08-01<br />value: 0.07707058<br />name: Keypt oft","date: 2022-09-01<br />value: 0.08375235<br />name: Keypt oft","date: 2022-10-01<br />value: 0.08551524<br />name: Keypt oft","date: 2022-11-01<br />value: 0.09449078<br />name: Keypt oft","date: 2022-12-01<br />value: 0.09140502<br />name: Keypt oft","date: 2023-01-01<br />value: 0.10112278<br />name: Keypt oft","date: 2023-02-01<br />value: 0.10260209<br />name: Keypt oft","date: 2023-03-01<br />value: 0.10476601<br />name: Keypt oft","date: 2023-04-01<br />value: 0.11126610<br />name: Keypt oft","date: 2023-05-01<br />value: 0.10820775<br />name: Keypt oft","date: 2023-06-01<br />value: 0.11545079<br />name: Keypt oft","date: 2023-07-01<br />value: 0.10782269<br />name: Keypt oft","date: 2023-08-01<br />value: 0.10223039<br />name: Keypt oft","date: 2023-09-01<br />value: 0.09637597<br />name: Keypt oft","date: 2023-10-01<br />value: 0.09425696<br />name: Keypt oft","date: 2023-11-01<br />value: 0.08654280<br />name: Keypt oft","date: 2023-12-01<br />value: 0.08587837<br />name: Keypt oft","date: 2024-01-01<br />value: 0.07524574<br />name: Keypt oft","date: 2024-02-01<br />value: 0.06906097<br />name: Keypt oft","date: 2024-03-01<br />value: 0.06017416<br />name: Keypt oft","date: 2024-04-01<br />value: 0.05243963<br />name: Keypt oft","date: 2024-05-01<br />value: 0.05610097<br />name: Keypt oft","date: 2024-06-01<br />value: 0.04723049<br />name: Keypt oft","date: 2024-07-01<br />value: 0.04514546<br />name: Keypt oft","date: 2024-08-01<br />value: 0.04457808<br />name: Keypt oft","date: 2024-09-01<br />value: 0.01738417<br />name: Keypt oft","date: 2024-10-01<br />value: 0.01996431<br />name: Keypt oft","date: 2024-11-01<br />value: 0.02331064<br />name: Keypt oft","date: 2024-12-01<br />value: 0.01971210<br />name: Keypt oft","date: 2025-01-01<br />value: 0.01742986<br />name: Keypt oft","date: 2025-02-01<br />value: 0.01793783<br />name: Keypt oft","date: 2025-03-01<br />value: 0.02213937<br />name: Keypt oft","date: 2025-04-01<br />value: 0.02297865<br />name: Keypt oft","date: 2025-05-01<br />value: 0.02248475<br />name: Keypt oft","date: 2025-06-01<br />value: 0.03158808<br />name: Keypt oft","date: 2025-07-01<br />value: 0.03146762<br />name: Keypt oft","date: 2025-08-01<br />value: 0.03118022<br />name: Keypt oft"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(0,48,92,1)","dash":"solid"},"hoveron":"points","name":"Keypt oft","legendgroup":"Keypt oft","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.035678836016475257,0.036719814485341784,0.036333742911165867,0.037080649526472609,0.043826775687051178,0.042055751144416842,0.045916272034388639,0.047637521968733054,0.046065912083100624,0.043738981697734047,0.042461392728169622,0.041986797848415858,0.043231935976523417,0.044775686362392486,0.047588387991901904,0.050491554559206842,0.055545475896019436,0.059803544494696492,0.057928216262499221,0.063850697058258854,0.067786638267508748,0.080455159611084515,0.090820657844442598,0.088853357782349374,0.085053186801422376,0.086368882998247409,0.085959516935609992,0.087475390898606786,0.092721271310644671,0.096104626617341316,0.093467675001835504,0.094132020379948944,0.089613513898828101,0.083433202604868306,0.073245094012139411,0.074406889694426104,0.07724471109702491,0.075958025896059045,0.076536551364910332,0.074176233354237509,0.062863076265624596,0.062216795175723094,0.066915717376800243,0.059394895952121551,0.061382518074724279,0.057406917452699435,0.061874221251045913,0.059423043834401446,0.052609729565963104,0.050264341303730697,0.047169091698460175,0.047078135943718014,0.046614184582377094,0.041883489168904164,0.039376599235021681,0.043307285557585784,0.040116213860390992,0.043496138037839138,0.041766377154371703,0.038917397539933729],"text":["date: 2020-09-01<br />value: 0.03567884<br />name: Keypt sjaldan","date: 2020-10-01<br />value: 0.03671981<br />name: Keypt sjaldan","date: 2020-11-01<br />value: 0.03633374<br />name: Keypt sjaldan","date: 2020-12-01<br />value: 0.03708065<br />name: Keypt sjaldan","date: 2021-01-01<br />value: 0.04382678<br />name: Keypt sjaldan","date: 2021-02-01<br />value: 0.04205575<br />name: Keypt sjaldan","date: 2021-03-01<br />value: 0.04591627<br />name: Keypt sjaldan","date: 2021-04-01<br />value: 0.04763752<br />name: Keypt sjaldan","date: 2021-05-01<br />value: 0.04606591<br />name: Keypt sjaldan","date: 2021-06-01<br />value: 0.04373898<br />name: Keypt sjaldan","date: 2021-07-01<br />value: 0.04246139<br />name: Keypt sjaldan","date: 2021-08-01<br />value: 0.04198680<br />name: Keypt sjaldan","date: 2021-09-01<br />value: 0.04323194<br />name: Keypt sjaldan","date: 2021-10-01<br />value: 0.04477569<br />name: Keypt sjaldan","date: 2021-11-01<br />value: 0.04758839<br />name: Keypt sjaldan","date: 2021-12-01<br />value: 0.05049155<br />name: Keypt sjaldan","date: 2022-01-01<br />value: 0.05554548<br />name: Keypt sjaldan","date: 2022-02-01<br />value: 0.05980354<br />name: Keypt sjaldan","date: 2022-03-01<br />value: 0.05792822<br />name: Keypt sjaldan","date: 2022-04-01<br />value: 0.06385070<br />name: Keypt sjaldan","date: 2022-05-01<br />value: 0.06778664<br />name: Keypt sjaldan","date: 2022-06-01<br />value: 0.08045516<br />name: Keypt sjaldan","date: 2022-07-01<br />value: 0.09082066<br />name: Keypt sjaldan","date: 2022-08-01<br />value: 0.08885336<br />name: Keypt sjaldan","date: 2022-09-01<br />value: 0.08505319<br />name: Keypt sjaldan","date: 2022-10-01<br />value: 0.08636888<br />name: Keypt sjaldan","date: 2022-11-01<br />value: 0.08595952<br />name: Keypt sjaldan","date: 2022-12-01<br />value: 0.08747539<br />name: Keypt sjaldan","date: 2023-01-01<br />value: 0.09272127<br />name: Keypt sjaldan","date: 2023-02-01<br />value: 0.09610463<br />name: Keypt sjaldan","date: 2023-03-01<br />value: 0.09346768<br />name: Keypt sjaldan","date: 2023-04-01<br />value: 0.09413202<br />name: Keypt sjaldan","date: 2023-05-01<br />value: 0.08961351<br />name: Keypt sjaldan","date: 2023-06-01<br />value: 0.08343320<br />name: Keypt sjaldan","date: 2023-07-01<br />value: 0.07324509<br />name: Keypt sjaldan","date: 2023-08-01<br />value: 0.07440689<br />name: Keypt sjaldan","date: 2023-09-01<br />value: 0.07724471<br />name: Keypt sjaldan","date: 2023-10-01<br />value: 0.07595803<br />name: Keypt sjaldan","date: 2023-11-01<br />value: 0.07653655<br />name: Keypt sjaldan","date: 2023-12-01<br />value: 0.07417623<br />name: Keypt sjaldan","date: 2024-01-01<br />value: 0.06286308<br />name: Keypt sjaldan","date: 2024-02-01<br />value: 0.06221680<br />name: Keypt sjaldan","date: 2024-03-01<br />value: 0.06691572<br />name: Keypt sjaldan","date: 2024-04-01<br />value: 0.05939490<br />name: Keypt sjaldan","date: 2024-05-01<br />value: 0.06138252<br />name: Keypt sjaldan","date: 2024-06-01<br />value: 0.05740692<br />name: Keypt sjaldan","date: 2024-07-01<br />value: 0.06187422<br />name: Keypt sjaldan","date: 2024-08-01<br />value: 0.05942304<br />name: Keypt sjaldan","date: 2024-09-01<br />value: 0.05260973<br />name: Keypt sjaldan","date: 2024-10-01<br />value: 0.05026434<br />name: Keypt sjaldan","date: 2024-11-01<br />value: 0.04716909<br />name: Keypt sjaldan","date: 2024-12-01<br />value: 0.04707814<br />name: Keypt sjaldan","date: 2025-01-01<br />value: 0.04661418<br />name: Keypt sjaldan","date: 2025-02-01<br />value: 0.04188349<br />name: Keypt sjaldan","date: 2025-03-01<br />value: 0.03937660<br />name: Keypt sjaldan","date: 2025-04-01<br />value: 0.04330729<br />name: Keypt sjaldan","date: 2025-05-01<br />value: 0.04011621<br />name: Keypt sjaldan","date: 2025-06-01<br />value: 0.04349614<br />name: Keypt sjaldan","date: 2025-07-01<br />value: 0.04176638<br />name: Keypt sjaldan","date: 2025-08-01<br />value: 0.03891740<br />name: Keypt sjaldan"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(2,143,188,1)","dash":"solid"},"hoveron":"points","name":"Keypt sjaldan","legendgroup":"Keypt sjaldan","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null},{"x":[18506,18536,18567,18597,18628,18659,18687,18718,18748,18779,18809,18840,18871,18901,18932,18962,18993,19024,19052,19083,19113,19144,19174,19205,19236,19266,19297,19327,19358,19389,19417,19448,19478,19509,19539,19570,19601,19631,19662,19692,19723,19754,19783,19814,19844,19875,19905,19936,19967,19997,20028,20058,20089,20120,20148,20179,20209,20240,20270,20301],"y":[0.035069075451647169,0.035789919525624825,0.034898477157360386,0.035918022395943439,0.042997020008514353,0.040708711242353868,0.04335016835016825,0.045654450261780166,0.044365757133930428,0.042513479883865557,0.042658935597432279,0.042671614100185495,0.043531827515400412,0.045185033735432478,0.048436541998773786,0.05098919029165816,0.056938775510203987,0.061815970814754762,0.066559096409842589,0.072301221710394659,0.075987235739928272,0.088323055500298286,0.09930486593843102,0.097469355476472952,0.093270365997638827,0.09409233176838816,0.093372319688109107,0.09567242383077823,0.099440046340992572,0.10192784882611194,0.098146747352496178,0.098804632050803143,0.094717330861909144,0.088649241454944239,0.07642276422764227,0.076923076923076872,0.079733621310295266,0.079027355623100259,0.08004991977179543,0.077399929153382896,0.066561292588689813,0.065996882037069104,0.068193559497158551,0.060173380928097986,0.062140196410430004,0.058260577568838068,0.062772742531050696,0.060220809635329609,0.05400900150025012,0.050704225352112609,0.047705513370749353,0.047509452572743749,0.046435040342499567,0.042086447838804109,0.03772368208931165,0.041686708353374957,0.037780966044954623,0.041567507536093951,0.040113708149084104,0.037551278005679922],"text":["date: 2020-09-01<br />value: 0.03506908<br />name: Verbólga","date: 2020-10-01<br />value: 0.03578992<br />name: Verbólga","date: 2020-11-01<br />value: 0.03489848<br />name: Verbólga","date: 2020-12-01<br />value: 0.03591802<br />name: Verbólga","date: 2021-01-01<br />value: 0.04299702<br />name: Verbólga","date: 2021-02-01<br />value: 0.04070871<br />name: Verbólga","date: 2021-03-01<br />value: 0.04335017<br />name: Verbólga","date: 2021-04-01<br />value: 0.04565445<br />name: Verbólga","date: 2021-05-01<br />value: 0.04436576<br />name: Verbólga","date: 2021-06-01<br />value: 0.04251348<br />name: Verbólga","date: 2021-07-01<br />value: 0.04265894<br />name: Verbólga","date: 2021-08-01<br />value: 0.04267161<br />name: Verbólga","date: 2021-09-01<br />value: 0.04353183<br />name: Verbólga","date: 2021-10-01<br />value: 0.04518503<br />name: Verbólga","date: 2021-11-01<br />value: 0.04843654<br />name: Verbólga","date: 2021-12-01<br />value: 0.05098919<br />name: Verbólga","date: 2022-01-01<br />value: 0.05693878<br />name: Verbólga","date: 2022-02-01<br />value: 0.06181597<br />name: Verbólga","date: 2022-03-01<br />value: 0.06655910<br />name: Verbólga","date: 2022-04-01<br />value: 0.07230122<br />name: Verbólga","date: 2022-05-01<br />value: 0.07598724<br />name: Verbólga","date: 2022-06-01<br />value: 0.08832306<br />name: Verbólga","date: 2022-07-01<br />value: 0.09930487<br />name: Verbólga","date: 2022-08-01<br />value: 0.09746936<br />name: Verbólga","date: 2022-09-01<br />value: 0.09327037<br />name: Verbólga","date: 2022-10-01<br />value: 0.09409233<br />name: Verbólga","date: 2022-11-01<br />value: 0.09337232<br />name: Verbólga","date: 2022-12-01<br />value: 0.09567242<br />name: Verbólga","date: 2023-01-01<br />value: 0.09944005<br />name: Verbólga","date: 2023-02-01<br />value: 0.10192785<br />name: Verbólga","date: 2023-03-01<br />value: 0.09814675<br />name: Verbólga","date: 2023-04-01<br />value: 0.09880463<br />name: Verbólga","date: 2023-05-01<br />value: 0.09471733<br />name: Verbólga","date: 2023-06-01<br />value: 0.08864924<br />name: Verbólga","date: 2023-07-01<br />value: 0.07642276<br />name: Verbólga","date: 2023-08-01<br />value: 0.07692308<br />name: Verbólga","date: 2023-09-01<br />value: 0.07973362<br />name: Verbólga","date: 2023-10-01<br />value: 0.07902736<br />name: Verbólga","date: 2023-11-01<br />value: 0.08004992<br />name: Verbólga","date: 2023-12-01<br />value: 0.07739993<br />name: Verbólga","date: 2024-01-01<br />value: 0.06656129<br />name: Verbólga","date: 2024-02-01<br />value: 0.06599688<br />name: Verbólga","date: 2024-03-01<br />value: 0.06819356<br />name: Verbólga","date: 2024-04-01<br />value: 0.06017338<br />name: Verbólga","date: 2024-05-01<br />value: 0.06214020<br />name: Verbólga","date: 2024-06-01<br />value: 0.05826058<br />name: Verbólga","date: 2024-07-01<br />value: 0.06277274<br />name: Verbólga","date: 2024-08-01<br />value: 0.06022081<br />name: Verbólga","date: 2024-09-01<br />value: 0.05400900<br />name: Verbólga","date: 2024-10-01<br />value: 0.05070423<br />name: Verbólga","date: 2024-11-01<br />value: 0.04770551<br />name: Verbólga","date: 2024-12-01<br />value: 0.04750945<br />name: Verbólga","date: 2025-01-01<br />value: 0.04643504<br />name: Verbólga","date: 2025-02-01<br />value: 0.04208645<br />name: Verbólga","date: 2025-03-01<br />value: 0.03772368<br />name: Verbólga","date: 2025-04-01<br />value: 0.04168671<br />name: Verbólga","date: 2025-05-01<br />value: 0.03778097<br />name: Verbólga","date: 2025-06-01<br />value: 0.04156751<br />name: Verbólga","date: 2025-07-01<br />value: 0.04011371<br />name: Verbólga","date: 2025-08-01<br />value: 0.03755128<br />name: Verbólga"],"type":"scatter","mode":"lines","line":{"width":1.8897637795275593,"color":"rgba(238,194,21,1)","dash":"solid"},"hoveron":"points","name":"Verbólga","legendgroup":"Verbólga","showlegend":true,"xaxis":"x","yaxis":"y","hoverinfo":"text","frame":null}],"layout":{"margin":{"t":45.223744292237441,"r":7.3059360730593621,"b":27.031963470319642,"l":28.493150684931518},"font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724},"title":{"text":"Verðbólga eftir því hvort vara er keypt oft eða ekki","font":{"color":"rgba(0,0,0,1)","family":"","size":17.534246575342465},"x":0,"xref":"paper"},"xaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[18416.25,20390.75],"tickmode":"array","ticktext":["2021","2022","2023","2024","2025"],"tickvals":[18628,18993,19358,19723,20089],"categoryorder":"array","categoryarray":["2021","2022","2023","2024","2025"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.68949771689498},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"y","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"yaxis":{"domain":[0,1],"automargin":true,"type":"linear","autorange":false,"range":[0.012480843386922935,0.12035411948146488],"tickmode":"array","ticktext":["3%","6%","9%","12%"],"tickvals":[0.029999999999999999,0.059999999999999998,0.089999999999999997,0.12],"categoryorder":"array","categoryarray":["3%","6%","9%","12%"],"nticks":null,"ticks":"","tickcolor":null,"ticklen":3.6529680365296811,"tickwidth":0,"showticklabels":true,"tickfont":{"color":"rgba(77,77,77,1)","family":"","size":11.689497716894984},"tickangle":-0,"showline":false,"linecolor":null,"linewidth":0,"showgrid":true,"gridcolor":"rgba(235,235,235,1)","gridwidth":0.66417600664176002,"zeroline":false,"anchor":"x","title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"hoverformat":".2f"},"shapes":[{"type":"rect","fillcolor":null,"line":{"color":null,"width":0,"linetype":[]},"yref":"paper","xref":"paper","layer":"below","x0":0,"x1":1,"y0":0,"y1":1}],"showlegend":true,"legend":{"bgcolor":null,"bordercolor":null,"borderwidth":0,"font":{"color":"rgba(0,0,0,1)","family":"","size":11.68949771689498},"title":{"text":"","font":{"color":"rgba(0,0,0,1)","family":"","size":14.611872146118724}},"orientation":"h","y":-0.20000000000000001,"x":0.5,"xanchor":"center"},"hovermode":"closest","barmode":"relative"},"config":{"doubleClick":"reset","modeBarButtonsToAdd":["hoverclosest","hovercompare"],"showSendToCloud":false},"source":"A","attrs":{"228d7548bc46":{"x":{},"y":{},"colour":{},"type":"scatter"}},"cur_data":"228d7548bc46","visdat":{"228d7548bc46":["function (y) ","x"]},"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.20000000000000001,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<bslib-tooltip placement="auto" bsoptions="[]" data-require-bs-version="5" data-require-bs-caller="tooltip()">
+    <template>Expand</template>
+    <span class="bslib-full-screen-enter badge rounded-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" style="height:1em;width:1em;" aria-hidden="true" role="img"><path d="M20 5C20 4.4 19.6 4 19 4H13C12.4 4 12 3.6 12 3C12 2.4 12.4 2 13 2H21C21.6 2 22 2.4 22 3V11C22 11.6 21.6 12 21 12C20.4 12 20 11.6 20 11V5ZM4 19C4 19.6 4.4 20 5 20H11C11.6 20 12 20.4 12 21C12 21.6 11.6 22 11 22H3C2.4 22 2 21.6 2 21V13C2 12.4 2.4 12 3 12C3.6 12 4 12.4 4 13V19Z"></path></svg>
+    </span>
+</bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div>
+</div>
+</div>
+</div>
+<div id="framlag-undirliða-seinustu-12-mánuði" class="dashboard-page tab-pane grid-skip html-fill-item html-fill-container" data-orientation="rows" aria-labelledby="tab-framlag-undirliða-seinustu-12-mánuði">
+<div class="html-fill-item html-fill-container bslib-grid" style="display: grid; grid-template-rows: minmax(3em, 1fr); grid-auto-columns: minmax(0, 1fr);">
+<div class="card cell html-fill-item html-fill-container bslib-card" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
+<div class="card-body html-fill-item html-fill-container">
+<div class="cell-output-display html-fill-item html-fill-container">
+<img src="index_files/figure-html/waterfall_12m-1.png" class="img-fluid quarto-dashboard-img-contain">
+</div>
+</div>
+<bslib-tooltip placement="auto" bsoptions="[]" data-require-bs-version="5" data-require-bs-caller="tooltip()">
+    <template>Expand</template>
+    <span class="bslib-full-screen-enter badge rounded-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" style="height:1em;width:1em;" aria-hidden="true" role="img"><path d="M20 5C20 4.4 19.6 4 19 4H13C12.4 4 12 3.6 12 3C12 2.4 12.4 2 13 2H21C21.6 2 22 2.4 22 3V11C22 11.6 21.6 12 21 12C20.4 12 20 11.6 20 11V5ZM4 19C4 19.6 4.4 20 5 20H11C11.6 20 12 20.4 12 21C12 21.6 11.6 22 11 22H3C2.4 22 2 21.6 2 21V13C2 12.4 2.4 12 3 12C3.6 12 4 12.4 4 13V19Z"></path></svg>
+    </span>
+</bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div>
+</div>
+</div>
+<div id="framlag-undirliða-seinasta-mánuð" class="dashboard-page tab-pane grid-skip html-fill-item html-fill-container" data-orientation="rows" aria-labelledby="tab-framlag-undirliða-seinasta-mánuð">
+<div class="html-fill-item html-fill-container bslib-grid" style="display: grid; grid-template-rows: minmax(3em, 1fr); grid-auto-columns: minmax(0, 1fr);">
+<div class="card cell html-fill-item html-fill-container bslib-card" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
+<div class="card-body html-fill-item html-fill-container">
+<div class="cell-output-display html-fill-item html-fill-container">
+<img src="index_files/figure-html/undirflokkar_12m-1.png" class="img-fluid quarto-dashboard-img-contain">
+</div>
+</div>
+<bslib-tooltip placement="auto" bsoptions="[]" data-require-bs-version="5" data-require-bs-caller="tooltip()">
+    <template>Expand</template>
+    <span class="bslib-full-screen-enter badge rounded-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" style="height:1em;width:1em;" aria-hidden="true" role="img"><path d="M20 5C20 4.4 19.6 4 19 4H13C12.4 4 12 3.6 12 3C12 2.4 12.4 2 13 2H21C21.6 2 22 2.4 22 3V11C22 11.6 21.6 12 21 12C20.4 12 20 11.6 20 11V5ZM4 19C4 19.6 4.4 20 5 20H11C11.6 20 12 20.4 12 21C12 21.6 11.6 22 11 22H3C2.4 22 2 21.6 2 21V13C2 12.4 2.4 12 3 12C3.6 12 4 12.4 4 13V19Z"></path></svg>
+    </span>
+</bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div>
+</div>
+</div>
+<div id="undirflokkar" class="dashboard-page tab-pane grid-skip html-fill-item html-fill-container" data-orientation="rows" aria-labelledby="tab-undirflokkar">
+<div class="html-fill-item html-fill-container bslib-grid" style="display: grid; grid-template-rows: minmax(3em, 1fr); grid-auto-columns: minmax(0, 1fr);">
+<div class="card cell html-fill-item html-fill-container bslib-card" data-bslib-card-init="" data-require-bs-caller="card()" data-full-screen="false">
+<div class="card-body html-fill-item html-fill-container">
+<div class="cell-output-display html-fill-item html-fill-container">
+<img src="index_files/figure-html/undirflokkar_1m-1.png" class="img-fluid quarto-dashboard-img-contain">
+</div>
+</div>
+<bslib-tooltip placement="auto" bsoptions="[]" data-require-bs-version="5" data-require-bs-caller="tooltip()">
+    <template>Expand</template>
+    <span class="bslib-full-screen-enter badge rounded-pill">
+        <svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 24 24" style="height:1em;width:1em;" aria-hidden="true" role="img"><path d="M20 5C20 4.4 19.6 4 19 4H13C12.4 4 12 3.6 12 3C12 2.4 12.4 2 13 2H21C21.6 2 22 2.4 22 3V11C22 11.6 21.6 12 21 12C20.4 12 20 11.6 20 11V5ZM4 19C4 19.6 4.4 20 5 20H11C11.6 20 12 20.4 12 21C12 21.6 11.6 22 11 22H3C2.4 22 2 21.6 2 21V13C2 12.4 2.4 12 3 12C3.6 12 4 12.4 4 13V19Z"></path></svg>
+    </span>
+</bslib-tooltip><script data-bslib-card-init="">bslib.Card.initializeAllCards();</script></div>
+
+
+<div id="3ade8a4a-fb1d-4a6c-8409-ac45482d5fc9" class="hidden html-fill-item html-fill-container">
+
+</div>
+</div>
+</div>
+</div>
+
+
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp("https:\/\/hagdeild\.github\.io\/verdbolguskyrsla\/");
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+<script type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (_event) {
+  if (window.bslib.Card) {
+    window.bslib.Card.initializeAllCards();
+  }
+}); 
+</script>
+  
+
+
+
+</body></html>
