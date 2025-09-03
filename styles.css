@@ -1,0 +1,36 @@
+/* Prevent any grid row/card from clipping its children */
+.quarto-dashboard .grid-row,
+.quarto-dashboard .grid-row > .grid-cell,
+.quarto-dashboard .bslib-value-box,
+.quarto-dashboard .bslib-value-box .card {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Make the value box internals wrap safely */
+.quarto-dashboard .bslib-value-box .card-body,
+.quarto-dashboard .bslib-value-box .value-box-grid {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Responsive typography that *shrinks* when space is tight */
+.quarto-dashboard .bslib-value-box .value-box-value {
+  /* clamp(min, preferred, max) using container width units so it scales with the card */
+  font-size: clamp(1.1rem, 10cqw, 3rem);
+  line-height: 1.05;
+  white-space: normal;   /* allow wrapping if needed */
+}
+
+.quarto-dashboard .bslib-value-box .value-box-title {
+  font-size: clamp(.95rem, 6cqw, 1.15rem);
+  line-height: 1.1;
+  white-space: normal;
+}
+
+/* Small spacing guard so tight screens don’t squeeze content */
+.quarto-dashboard .bslib-value-box .card-body {
+  padding-block: 0.6rem;
+}

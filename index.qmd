@@ -2,5 +2,387 @@
 title: "Verðbólgugreining"
 format:
     dashboard:
-        logo: vr_logo.jpg
+        theme: default
+        scrolling: false
+        css: styles.css
 ---
+
+```{r, pakkar}
+library(tidyverse)
+library(waterfalls)
+library(scales)
+library(plotly)
+```
+
+```{r, data}
+data_ls <- read_rds("data/final_data.rds")
+
+vr_litir <- c("#00305c", "#028fbc", "#eec215", "#d64550", "#4fb94f", "#7d5ba6", "#e07b39", "#3a8e8e")
+
+date_back_year <- floor_date(today(), "year") - months(12)
+```
+
+
+# Verðbólga
+
+## Row
+
+```{r, valuebox_data_prep}
+inflation_diff  <- data_ls$pbi_inflation_verdbolga |> 
+    filter(flokkur == "Verðbólga") |> 
+    mutate(diff = verdbolga - lag(verdbolga)) |> 
+    tail(1) |> 
+    pull(diff)
+
+verdbolga_latest <- data_ls$pbi_inflation_verdbolga_valuebox |> 
+    pull(verdbolga) |> 
+    percent(accuracy = 0.1)
+
+verdbolga_milli_manada_latest <- data_ls$pbi_inflation_verdbolga_valuebox |> 
+    pull(milli_manada) |> 
+    percent(accuracy = 0.01)
+
+verdbolga_hradi <- data_ls$pbi_inflation_verdbolga_valuebox |> 
+    pull(hradi) |> 
+    percent(accuracy = 0.1)
+
+verdbolga_hradi_diff <- data_ls$pbi_inflation_verdbolga_valuebox$hradi_diff
+
+```
+
+
+```{r, valueboxe-inflation}
+#| content: valuebox
+#| title: "Verðbólga"
+list(
+    icon = case_when(
+        inflation_diff < 0 ~ "arrow-down",
+        inflation_diff > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+                    inflation_diff < 0 ~ "success",
+        inflation_diff > 0 ~ "danger",
+        TRUE ~ "warning"
+        ),
+    value = verdbolga_latest
+)
+```
+
+
+```{r, valuebox_inflation_mom}
+#| content: valuebox
+#| title: "Verðbólga milli mánaða"
+list(
+    icon = case_when(
+        verdbolga_milli_manada_latest < 0 ~ "arrow-down",
+        verdbolga_milli_manada_latest > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+                    verdbolga_milli_manada_latest < 0 ~ "success",
+        verdbolga_milli_manada_latest > 0 ~ "danger",
+        TRUE ~ "warning"
+        ),
+    value = verdbolga_milli_manada_latest
+)
+```
+
+
+```{r, valuebox_12m_taktur}
+#| content: valuebox
+#| title: "Tólf mánaða verðbólga m.v. seinustu sex mánuði"
+list(
+    icon = case_when(
+        verdbolga_hradi_diff < 0 ~ "arrow-down",
+        verdbolga_hradi_diff > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+        verdbolga_hradi_diff < 0 ~ "success",
+        verdbolga_hradi_diff > 0 ~ "danger",
+        TRUE ~ "warning"
+        ),
+    value = verdbolga_hradi
+)
+```
+
+
+## Row
+
+```{r, verðbólga-plot}
+p1 <- data_ls$pbi_inflation_verdbolga |> 
+    ggplot(aes(date, verdbolga, col = flokkur)) + 
+    geom_line() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólga"
+    ) +
+    theme_minimal() +
+    scale_color_manual(values = vr_litir) +
+    scale_y_continuous(labels = percent)
+    
+ggplotly(p1) |> 
+    layout(
+        legend = 
+            list(
+                title = list(text = ""),
+                orientation = "h",
+                y = -0.2,
+                x = 0.5,
+                xanchor = "center"
+            )
+    )
+```
+
+```{r, verðbólga-mom}
+p2 <- data_ls$pbi_inflation_verdbolga |> 
+    filter(
+        flokkur == "Verðbólga",
+        date >= date_back_year
+        ) |> 
+    ggplot(aes(date, milli_manada)) + 
+    geom_col(fill = vr_litir[1]) + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólga milli mánaða"
+    ) +
+    theme_minimal() +
+    scale_y_continuous(labels = percent)
+    
+ggplotly(p2) 
+```
+
+# Undirliggjandi verðbólga
+
+## Row
+
+```{r, undirliggjandi-verðbólga}
+p3 <- data_ls$pbi_inflation_undirliggjandi |> 
+    ungroup() |> 
+    filter(!name == "Kjarnavísitala 3") |> 
+    ggplot(aes(date, value, col = name)) + 
+    geom_line() +
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Undirliggjandi verðbólga"
+    ) +
+    theme_minimal() +
+    scale_color_manual(values = vr_litir) +
+    scale_y_continuous(labels = percent)
+
+ggplotly(p3) |> 
+    layout(
+        legend = 
+            list(
+                title = list(text = ""),
+                orientation = "h",
+                y = -0.2,
+                x = 0.5,
+                xanchor = "center"
+            )
+    )
+```
+
+
+```{r, verðbólga eftir uppruna}
+p4 <- data_ls$pbi_inflation_uppruni |> 
+    ggplot(aes(date, delta, col = flokkur)) + 
+    geom_line() +
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólga eftir uppruna"
+    ) +
+    theme_minimal() +
+    scale_color_manual(values = vr_litir) +
+    scale_y_continuous(labels = percent)
+
+ggplotly(p4) |> 
+    layout(
+        legend = 
+            list(
+                title = list(text = ""),
+                orientation = "h",
+                y = -0.2,
+                x = 0.5,
+                xanchor = "center"
+                )
+            )
+```
+
+
+## Row
+
+::: callout-note
+## Liðir undirliggjandi verðbólgu
+- **Kjarna­vísitala 1**: VNV án búvöru, grænmetis, ávaxta og bensíns  
+- **Kjarna­vísitala 2**: Kjarna­vísitala 1 án opinberrar þjónustu  
+- **Kjarna­vísitala 3**: Kjarna­vísitala 2 án áhrifa vaxtabreytinga á húsnæðisliði *(ekki reiknuð lengur)*  
+- **Kjarna­vísitala 4**: Kjarna­vísitala 2 án reiknaðrar húsaleigu
+:::
+
+```{r, froop}
+p5 <- data_ls$pbi_inflation_froop |> 
+    select(date, froop, non_froop, verdbolga) |> 
+    set_names("date", "Keypt oft", "Keypt sjaldan", "Verbólga") |> 
+    pivot_longer(cols = -date) |> 
+    ggplot(aes(date, value, col = name)) + 
+    geom_line() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólga eftir því hvort vara er keypt oft eða ekki"
+    ) +
+    theme_minimal() +
+    scale_color_manual(values = vr_litir) +
+    scale_y_continuous(labels = percent)
+
+ggplotly(p5) |> 
+    layout(
+        legend = 
+            list(
+                title = list(text = ""),
+                orientation = "h",
+                y = -0.2,
+                x = 0.5,
+                xanchor = "center"
+                )
+            )
+```
+
+
+# Framlag undirliða seinustu 12 mánuði
+
+```{r waterfal_function}
+waterfall_plot <- function(
+  data,
+  value_col,                      # bare name: ahrif or ahrif_1m
+  category_col = undirflokkur,    # bare name of category
+  title = "Framlag undirliða seinustu 12 mánuði",
+  total_bar_title = "Verðbólga",
+  color_pos = vr_litir[4],
+  color_neg = vr_litir[5],
+  color_total = vr_litir[1],
+  label_digits = 1,
+  bar_width = 0.6,
+  pad_frac = 0.02,
+  base_size = 12
+) {
+
+  # 1) choose columns and apply *waterfall* ordering
+  df <- data %>%
+    transmute(
+      category = {{ category_col }},
+      value    = {{ value_col }}
+    ) %>%
+    mutate(sign_grp = case_when(value > 0 ~ 2L,
+                                value == 0 ~ 1L,
+                                TRUE ~ 0L)) %>%
+    arrange(desc(sign_grp), desc(value)) %>%   # +ve desc, then 0, then -ve desc (=> most negative last)
+    select(-sign_grp)
+
+  # 2) colors (computed *after* ordering)
+  n_pos <- sum(df$value > 0, na.rm = TRUE)
+  n_neg <- sum(df$value <= 0, na.rm = TRUE)
+  waterfall_colors <- c(rep(color_pos, n_pos), rep(color_neg, n_neg))
+
+  # 3) running starts/ends for changes
+  steps <- df %>%
+    mutate(
+      step  = row_number(),
+      start = lag(cumsum(value), default = 0),
+      end   = start + value,
+      ymin  = pmin(start, end),
+      ymax  = pmax(start, end),
+      type  = "change",
+      label = sprintf(paste0("%.", label_digits, "f%%"), value * 100)
+    )
+
+  # 4) total
+  total_val <- sum(df$value, na.rm = TRUE)
+  total_row <- tibble(
+    category = total_bar_title,
+    value    = total_val,
+    step     = nrow(df) + 1,
+    start    = 0,
+    end      = total_val,
+    ymin     = pmin(0, total_val),
+    ymax     = pmax(0, total_val),
+    type     = "total",
+    label    = sprintf(paste0("%.", label_digits, "f%%"), total_val * 100)
+  )
+
+  plot_df <- bind_rows(steps, total_row)
+
+  # 5) label padding
+  yrange <- max(plot_df$ymax, 0) - min(plot_df$ymin, 0)
+  pad <- pad_frac * yrange
+
+  plot_df <- plot_df %>%
+    mutate(
+      y_lab     = if_else(value >= 0, ymax + pad, ymin - pad),
+      vjust_lab = if_else(value >= 0, 0, 1)
+    )
+
+  # 6) colors: one per change bar + total
+  stopifnot(length(waterfall_colors) == nrow(df))
+  fill_vec <- c(waterfall_colors, color_total)
+  half_w <- bar_width / 2
+
+  ggplot(plot_df) +
+    geom_rect(
+      aes(xmin = step - half_w, xmax = step + half_w,
+          ymin = ymin, ymax = ymax,
+          fill = factor(step)),
+      color = NA
+    ) +
+    geom_text(aes(x = step, y = y_lab, label = label, vjust = vjust_lab), size = 3) +
+    scale_x_continuous(
+      breaks = plot_df$step,
+      labels = plot_df$category,
+      expand = c(0.01, 0)
+    ) +
+    scale_y_continuous(expand = expansion(mult = c(0.02, 0.08))) +
+    scale_fill_manual(values = fill_vec, guide = "none") +
+    labs(x = NULL, y = NULL, title = title) +
+    theme_minimal(base_size = base_size) +
+    theme(
+      axis.text.y = element_blank(),
+      axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+      plot.margin = margin(8, 8, 8, 8)
+    ) +
+    coord_cartesian(clip = "off")
+}
+```
+
+```{r waterfall_12m, fig.width = 12}
+
+waterfall_plot(
+  data_ls$pbi_inflation_waterfall,
+  ahrif,
+  title = "Framlag undirliða seinustu 12 mánuði"
+)
+
+```
+
+
+# Framlag undirliða seinasta mánuð
+
+```{r}
+waterfall_plot(
+  data_ls$pbi_inflation_waterfall,
+  ahrif_1m,
+  title = "Framlag undirliða seinustu 12 mánuði"
+)
+
+```
+
+
+# Undirflokkar

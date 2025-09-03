@@ -42,27 +42,24 @@ vnv_tbl <- vnv_tbl %>%
   ungroup()
 
 
-vnv_fra_nov_tbl <- vnv_tbl %>% 
-  filter(date >= date_from) %>% 
-  group_by(flokkur) %>% 
-  mutate(voxtur = visitala / visitala[1] - 1) %>% 
-  ungroup()
-
 vnv_tbl <- vnv_tbl %>%
   arrange(date) %>% 
   group_by(flokkur) %>% 
   mutate(milli_manada = visitala / lag(visitala) - 1) %>%
   ungroup() %>% 
-  drop_na()
+  drop_na() |> 
+  filter(date >= date_from)
 
 valuebox_verdbolga <- vnv_tbl %>% 
   filter(flokkur == "Verðbólga") %>% 
   arrange(date) %>% 
   mutate(
-    hradi = ((visitala / lag(visitala, 6))^(1/6))^12-1
+    visital_ma = TTR::SMA(visitala, 12),
+    hradi = ((visital_ma / lag(visital_ma, 6))^(1/6))^12-1,
+    hradi_diff = hradi - lag(hradi)
   ) %>% 
   filter(date == max(date)) %>% 
-  select(verdbolga, milli_manada, hradi)
+  select(verdbolga, milli_manada, hradi, hradi_diff)
 
 
 
@@ -156,15 +153,8 @@ edli_og_uppruna_tbl <- edli_og_uppruna_raw_tbl %>%
 # Bæti við verðbólgunni 
 edli_og_uppruna_tbl <- edli_og_uppruna_tbl %>% 
   left_join(vnv_tbl %>% filter(flokkur == "Verðbólga") %>% select(-c(visitala, flokkur))) %>% 
-  drop_na()
-
-
-# Frá nóvember 2022
-edli_og_uppruna_nov_tbl <- edli_og_uppruna_tbl %>% 
-  filter(date >= date_from) %>% 
-  group_by(flokkur) %>% 
-  mutate(voxtur = value / value[1] - 1) %>% 
-  ungroup()
+  drop_na() |> 
+  filter(date >= date_from)
 
 
 # 2.4.0 Undirliggjandi verðbólga ------------------------------------------
@@ -183,7 +173,8 @@ undirliggjandi_tbl <- undirliggjandi_tbl %>%
   arrange(name, date) %>% 
   group_by(name) %>% 
   mutate(value = value / lag(value, 12) - 1) %>% 
-  drop_na()
+  drop_na() |> 
+  filter(date >= date_from)
 
 
 
@@ -399,7 +390,8 @@ non_froop_tbl <- vnv_vogir_tbl %>%
 # 4.1.0 Skeiti við vnv ----
 froop_tbl <- froop_tbl %>% 
   left_join(non_froop_tbl) %>% 
-  left_join(vnv_tbl %>% filter(flokkur == "Verðbólga") %>% select(date, verdbolga, visitala))
+  left_join(vnv_tbl %>% filter(flokkur == "Verðbólga") %>% select(date, verdbolga, visitala)) |> 
+  filter(date >= date_from)
 
 
 # 5.0.0 EUROSTAT - HICP ----
@@ -812,138 +804,138 @@ infl_exp_breakeven_tbl <- read_excel(exp_path, sheet = "Verðbólguálag_Breakev
 
 
 
-# 9.1.0 Skuldabréfamarkaðurinn --------------------------------------------
-print("Skuldabréfamarkaðurinn")
+# # 9.1.0 Skuldabréfamarkaðurinn --------------------------------------------
+# print("Skuldabréfamarkaðurinn")
 
-combine_interpolate_bonds <- function(overdtryggd_tbl, verdtryggd_tbl, method = "linear") {
+# combine_interpolate_bonds <- function(overdtryggd_tbl, verdtryggd_tbl, method = "linear") {
   
-  # Create sequence of monthly maturities
-  date_seq <- seq(min(overdtryggd_tbl$maturity), max(overdtryggd_tbl$maturity), by = "month")
+#   # Create sequence of monthly maturities
+#   date_seq <- seq(min(overdtryggd_tbl$maturity), max(overdtryggd_tbl$maturity), by = "month")
   
-  # Define interpolation function based on chosen method
-  interpolate_yield <- function(maturity, yield, xout, method) {
-    if (method == "linear") {
-      return(approx(maturity, yield, xout = xout, method = "linear", rule = 2)$y)
-    } else if (method == "spline") {
-      return(spline(maturity, yield, xout = xout, method = "natural")$y)
-    } else {
-      stop("Invalid method. Choose either 'linear' or 'spline'.")
-    }
-  }
+#   # Define interpolation function based on chosen method
+#   interpolate_yield <- function(maturity, yield, xout, method) {
+#     if (method == "linear") {
+#       return(approx(maturity, yield, xout = xout, method = "linear", rule = 2)$y)
+#     } else if (method == "spline") {
+#       return(spline(maturity, yield, xout = xout, method = "natural")$y)
+#     } else {
+#       stop("Invalid method. Choose either 'linear' or 'spline'.")
+#     }
+#   }
   
-  # Apply interpolation
-  indexed_yield <- interpolate_yield(verdtryggd_tbl$maturity, verdtryggd_tbl$yield, date_seq, method)
-  non_indexed_yield <- interpolate_yield(overdtryggd_tbl$maturity, overdtryggd_tbl$yield, date_seq, method)
+#   # Apply interpolation
+#   indexed_yield <- interpolate_yield(verdtryggd_tbl$maturity, verdtryggd_tbl$yield, date_seq, method)
+#   non_indexed_yield <- interpolate_yield(overdtryggd_tbl$maturity, overdtryggd_tbl$yield, date_seq, method)
   
-  # Create interpolated yield tables
-  indexed_tbl <- tibble(maturity = date_seq, yield = indexed_yield)
-  non_indexed_tbl <- tibble(maturity = date_seq, yield = non_indexed_yield)
+#   # Create interpolated yield tables
+#   indexed_tbl <- tibble(maturity = date_seq, yield = indexed_yield)
+#   non_indexed_tbl <- tibble(maturity = date_seq, yield = non_indexed_yield)
   
-  # Join datasets and calculate break-even inflation
-  combined_tbl <- inner_join(indexed_tbl, non_indexed_tbl, by = "maturity", suffix = c("_indexed", "_non_indexed")) %>%
-    mutate(break_even_inflation = (1 + yield_non_indexed) / (1 + yield_indexed) - 1) %>%
-    select(maturity, break_even_inflation)
+#   # Join datasets and calculate break-even inflation
+#   combined_tbl <- inner_join(indexed_tbl, non_indexed_tbl, by = "maturity", suffix = c("_indexed", "_non_indexed")) %>%
+#     mutate(break_even_inflation = (1 + yield_non_indexed) / (1 + yield_indexed) - 1) %>%
+#     select(maturity, break_even_inflation)
   
-  return(combined_tbl)
-}
+#   return(combined_tbl)
+# }
 
-combine_interpolate_bonds_multiple_days <- function(overdtryggd, verdtryggd, method = "linear") {
+# combine_interpolate_bonds_multiple_days <- function(overdtryggd, verdtryggd, method = "linear") {
   
-  # Ensure we have valid dates
-  unique_dates <- unique(c(overdtryggd$date, verdtryggd$date))
+#   # Ensure we have valid dates
+#   unique_dates <- unique(c(overdtryggd$date, verdtryggd$date))
   
-  # Nest data by date
-  nested_data <- tibble(date = unique_dates) %>%
-    mutate(
-      overd_data = map(date, ~ filter(overdtryggd, date == .x) %>% drop_na()),
-      verd_data  = map(date, ~ filter(verdtryggd, date == .x) %>% drop_na())
-    )
+#   # Nest data by date
+#   nested_data <- tibble(date = unique_dates) %>%
+#     mutate(
+#       overd_data = map(date, ~ filter(overdtryggd, date == .x) %>% drop_na()),
+#       verd_data  = map(date, ~ filter(verdtryggd, date == .x) %>% drop_na())
+#     )
   
-  # Apply function to each nested date
-  results <- nested_data %>%
-    mutate(
-      interpolated = map2(overd_data, verd_data, ~ {
-        if (nrow(.x) == 0 || nrow(.y) == 0) return(NULL) # Handle missing cases
-        combine_interpolate_bonds(.x, .y, method = method)
-      })
-    ) %>%
-    unnest(interpolated) %>%
-    select(date, maturity, break_even_inflation)
+#   # Apply function to each nested date
+#   results <- nested_data %>%
+#     mutate(
+#       interpolated = map2(overd_data, verd_data, ~ {
+#         if (nrow(.x) == 0 || nrow(.y) == 0) return(NULL) # Handle missing cases
+#         combine_interpolate_bonds(.x, .y, method = method)
+#       })
+#     ) %>%
+#     unnest(interpolated) %>%
+#     select(date, maturity, break_even_inflation)
   
-  return(results)
-}
+#   return(results)
+# }
 
 
-# 9.1.1 Söguleg gögn ------------------------------------------------------
+# # 9.1.1 Söguleg gögn ------------------------------------------------------
 
-# * RIKB ----
-rikb_files <- list.files(paste0(base_path, "/00_data/skuldabref/"), pattern = "rikb_")
+# # * RIKB ----
+# rikb_files <- list.files(paste0(base_path, "/00_data/skuldabref/"), pattern = "rikb_")
 
-rikb_ls <- rikb_files %>% 
-  paste0(base_path, "/00_data/skuldabref/", .) %>% 
-  map(., .f = function(x) read_csv2(x))
+# rikb_ls <- rikb_files %>% 
+#   paste0(base_path, "/00_data/skuldabref/", .) %>% 
+#   map(., .f = function(x) read_csv2(x))
 
-names(rikb_ls) <- rikb_files
+# names(rikb_ls) <- rikb_files
 
-rikb_tbl <- rikb_ls %>% 
-  bind_rows(.id = "bref") %>% 
-  mutate(
-    maturity = str_remove(bref, "rikb_|"),
-    maturity = str_remove(maturity, ".csv"),
-    maturity = ymd(maturity),
-    date = dmy(DateTime)
-  ) %>% 
-  select(-DateTime) %>% 
-  set_names("bref", "yield", "maturity", "date") %>% 
-  mutate(
-    yield = yield / 100,
-    key   = "ovt"
-  )
+# rikb_tbl <- rikb_ls %>% 
+#   bind_rows(.id = "bref") %>% 
+#   mutate(
+#     maturity = str_remove(bref, "rikb_|"),
+#     maturity = str_remove(maturity, ".csv"),
+#     maturity = ymd(maturity),
+#     date = dmy(DateTime)
+#   ) %>% 
+#   select(-DateTime) %>% 
+#   set_names("bref", "yield", "maturity", "date") %>% 
+#   mutate(
+#     yield = yield / 100,
+#     key   = "ovt"
+#   )
 
-# Bý til smooth feril fyrir yield. Of mikið noise ef valinn er einn dagur
-rikb_tbl <- rikb_tbl %>% 
-  arrange(bref, date) %>% 
-  mutate(yield = rollapplyr(yield, width = 10, FUN = mean, partial = TRUE))
-
-
-
-# * RIKS ---- 
-riks_files <- list.files(paste0(base_path, "/00_data/skuldabref/"), pattern = "riks_")
-
-riks_ls <- riks_files %>% 
-  paste0(base_path, "/00_data/skuldabref/", .) %>% 
-  map(., .f = function(x) read_csv2(x))
-
-names(riks_ls) <- riks_files
-
-riks_tbl <- riks_ls %>% 
-  bind_rows(.id = "bref") %>% 
-  mutate(
-    maturity = str_remove(bref, "riks_|"),
-    maturity = str_remove(maturity, ".csv"),
-    maturity = ymd(maturity),
-    date = dmy(DateTime)
-  ) %>% 
-  select(-DateTime) %>% 
-  set_names("bref", "yield", "maturity", "date") %>% 
-  mutate(
-    yield = yield / 100,
-    key   = "vt"
-  )
+# # Bý til smooth feril fyrir yield. Of mikið noise ef valinn er einn dagur
+# rikb_tbl <- rikb_tbl %>% 
+#   arrange(bref, date) %>% 
+#   mutate(yield = rollapplyr(yield, width = 10, FUN = mean, partial = TRUE))
 
 
-# Bý til smooth feril fyrir yield. Of mikið noise ef valinn er einn dagur
-riks_tbl <- riks_tbl %>% 
-  arrange(bref, date) %>% 
-  mutate(yield = rollapplyr(yield, width = 10, FUN = mean, partial = TRUE))
+
+# # * RIKS ---- 
+# riks_files <- list.files(paste0(base_path, "/00_data/skuldabref/"), pattern = "riks_")
+
+# riks_ls <- riks_files %>% 
+#   paste0(base_path, "/00_data/skuldabref/", .) %>% 
+#   map(., .f = function(x) read_csv2(x))
+
+# names(riks_ls) <- riks_files
+
+# riks_tbl <- riks_ls %>% 
+#   bind_rows(.id = "bref") %>% 
+#   mutate(
+#     maturity = str_remove(bref, "riks_|"),
+#     maturity = str_remove(maturity, ".csv"),
+#     maturity = ymd(maturity),
+#     date = dmy(DateTime)
+#   ) %>% 
+#   select(-DateTime) %>% 
+#   set_names("bref", "yield", "maturity", "date") %>% 
+#   mutate(
+#     yield = yield / 100,
+#     key   = "vt"
+#   )
 
 
-# * Verðbólguálag ----
+# # Bý til smooth feril fyrir yield. Of mikið noise ef valinn er einn dagur
+# riks_tbl <- riks_tbl %>% 
+#   arrange(bref, date) %>% 
+#   mutate(yield = rollapplyr(yield, width = 10, FUN = mean, partial = TRUE))
 
-combined_bonds_over_time <- combine_interpolate_bonds_multiple_days(
-  rikb_tbl %>% filter(date >= "2023-10-01"),
-  riks_tbl %>% filter(date >= "2023-10-01")
-)
+
+# # * Verðbólguálag ----
+
+# combined_bonds_over_time <- combine_interpolate_bonds_multiple_days(
+#   rikb_tbl %>% filter(date >= "2023-10-01"),
+#   riks_tbl %>% filter(date >= "2023-10-01")
+# )
 
 
 # Define the current month
