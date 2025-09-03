@@ -23,6 +23,7 @@ fix_date <- function(data) {
 
 date_from <- floor_date(today() - years(5), "month")
 data_path <- here("data/verdbolguskyrsla_data.xlsx")
+exp_path  <- here("data/Verdbolguvaentingar-a-mismunandi-maelikvarda.xlsx")
 
 # 2.0.0 - DATA - ----------------------------------------------------------
 
@@ -586,9 +587,11 @@ vextir_tbl <- vextir_tbl %>%
   drop_na()
 
 
-# # 6.4.0 Útlán -------------------------------------------------------------
+# 7.0.0 ÚTLÁN ----
 
-# Innlánsstofnanir - Útlánastabbi
+# 7.1.0 Útlánastabbi ----
+
+# Innlánsstofnanir
 bankakerfi_tbl <- read_xlsx(data_path, "bank_stabbi") %>%
   slice(7, 10) %>% 
   select(-c(1, 2)) %>%
@@ -598,14 +601,11 @@ bankakerfi_tbl <- read_xlsx(data_path, "bank_stabbi") %>%
   select(-name) %>% 
   pivot_wider(names_from = type, values_from = value) %>% 
   unnest(everything()) %>% 
-  mutate(date = seq.Date(from = as.Date("1997-12-01"), length.out = nrow(.), by = "month")) |> 
-  pivot_longer(cols = -date)
+  mutate(date = seq.Date(from = as.Date("1997-12-01"), length.out = nrow(.), by = "month"))
 
 
-
-# -- Lifeyrissjodir Data from LIF_Utlan e geirum_ --
-# 
-lifeyrissjodir_tbl <- read_xlsx(paste0(base_path, "/00_data/Útlán_lifeyrir.xlsx")) %>%
+# Lífeyrissjóðir
+lifeyrissjodir_tbl <- read_xlsx(data_path, "lif_stabbi") %>%
   slice(16, 19) %>%
   select(-1) %>%
   mutate(type = c("lif_vtr", "lif_ovtr")) %>%
@@ -618,9 +618,8 @@ lifeyrissjodir_tbl <- read_xlsx(paste0(base_path, "/00_data/Útlán_lifeyrir.xls
   mutate(date = seq.Date(from = as.Date("1997-01-01"), length.out = nrow(.), by = "month"))
 
 
-
-# # -- Lanasjodir-rikisins Data from LSJ_Utlan e geirum --
-lsj_tbl <- read_xlsx(paste0(base_path, "/00_data/Útlán_lanasjodir.xlsx")) %>%
+# Lánasjóðir ríkisins
+lsj_tbl <- read_xlsx(data_path, "lanasjodir_stabbi") %>%
   slice(16, 19) %>%
   select(-1) %>%
   mutate(type = c("lanasjodir_vtr", "lanasjodir_ovtr")) %>%
@@ -632,7 +631,8 @@ lsj_tbl <- read_xlsx(paste0(base_path, "/00_data/Útlán_lanasjodir.xlsx")) %>%
   mutate(across(everything(), as.numeric)) %>% 
   mutate(date = seq.Date(from = as.Date("1992-03-01"), length.out = nrow(.), by = "month"))
 
-# -- Combine the three via left_join --
+
+# sameina stabba
 utlan_stada_tbl <- bankakerfi_tbl %>%
   left_join(lifeyrissjodir_tbl, by = "date") %>%
   left_join(lsj_tbl, by = "date") %>%
@@ -645,57 +645,57 @@ utlan_stada_tbl <- bankakerfi_tbl %>%
   pivot_longer(cols = -date) %>%
   group_by(date) %>%
   mutate(share = value / sum(value)) %>%
-  filter(date >= utlan_date_from) %>% 
+  filter(date >= date_from) %>% 
   ungroup()
 
 
+# 7.2.0 Ný útlán ----
 
-# # ===============================
-# # For ny_utlan_tbl (Items 2 and 4)
-# # ===============================
-# 
-# # -- Bankakerfi Data from INN_Ny utlan_ --
-# banki_ny_utlan_ovtr_br <- read_excel_data(excel_urls[["INN_Ny"]], sheet = "I", range = "B81:TA81")
-# banki_ny_utlan_ovtr_fst <- read_excel_data(excel_urls[["INN_Ny"]], sheet = "I", range = "B82:TA82")
-# banki_ny_utlan_vtr_br <- read_excel_data(excel_urls[["INN_Ny"]], sheet = "I", range = "B119:TA119")
-# banki_ny_utlan_vtr_fst <- read_excel_data(excel_urls[["INN_Ny"]], sheet = "I", range = "B120:TA120")
-# 
-# bankakerfi_ny_tbl <- tibble(
-#   date = seq(ymd("2013-01-01"), by = "month", length.out = ncol(banki_ny_utlan_ovtr_br)),
-#   banki_ny_utlan_ovtr_br = as.numeric(banki_ny_utlan_ovtr_br),
-#   banki_ny_utlan_ovtr_fst = as.numeric(banki_ny_utlan_ovtr_fst),
-#   banki_ny_utlan_vtr_br = as.numeric(banki_ny_utlan_vtr_br),
-#   banki_ny_utlan_vtr_fst = as.numeric(banki_ny_utlan_vtr_fst)
-# )
-# 
-# # -- Lifeyrissjodir Data from LIF_Ny utlan_ --
-# lif_ny_utlan_vtr <- read_excel_data(excel_urls[["LIF_Ny"]], sheet = "Sheet1", range = "AX11:TA11")
-# lif_ny_utlan_ovtr <- read_excel_data(excel_urls[["LIF_Ny"]], sheet = "Sheet1", range = "AX12:TA12")
-# 
-# lifeyrissjodir_ny_tbl <- tibble(
-#   date = seq(ymd("2013-01-01"), by = "month", length.out = ncol(lif_ny_utlan_vtr)),
-#   lif_ny_utlan_vtr = as.numeric(lif_ny_utlan_vtr),
-#   lif_ny_utlan_ovtr = as.numeric(lif_ny_utlan_ovtr)
-# )
-# 
-# # -- Combine the two via left_join --
-# ny_utlan_tbl <- bankakerfi_ny_tbl %>%
-#   left_join(lifeyrissjodir_ny_tbl, by = "date") %>%
-#   drop_na()
-# 
-# ny_utlan_tbl <- ny_utlan_tbl %>%
-#   mutate(
-#     "Verðtryggð lán" = (banki_ny_utlan_vtr_br + banki_ny_utlan_vtr_fst + lif_ny_utlan_vtr),
-#     "Óverðtryggð lán" = (banki_ny_utlan_ovtr_br + banki_ny_utlan_ovtr_fst + lif_ny_utlan_ovtr)
-#   ) %>%
-#   select(-contains("_")) %>%
-#   pivot_longer(cols = -date) %>%
-#   filter(date >= utlan_date_from)
+# Lífeyrissjóðir
+lif_ny_utlan <- read_excel(data_path, "lif_ny_utlan") |> 
+  slice(4, 5) |> 
+  select(-c(1, 2)) |>
+  mutate(key = c("vtr", "ovtr")) |> 
+  pivot_longer(cols = -key) |> 
+  select(-name) |> 
+  pivot_wider(names_from = key, values_from = value) |> 
+  unnest(everything()) %>%
+  mutate(across(everything(), as.numeric)) %>% 
+  mutate(date = seq.Date(from = as.Date("2009-01-01"), length.out = nrow(.), by = "month"))
 
 
+# Innlánsstofnanir
+banki_ny_utlan_tbl <- read_excel(data_path, "bank_ny_utlan") |> 
+  slice(72, 73, 110, 111) |> 
+  select(-c(1)) |>
+  mutate(across(is.character, as.numeric)) |> 
+  mutate(key = c("br_ovt", "fst_ovt", "br_vt", "fst_vt")) |> 
+  pivot_longer(cols = -key) |> 
+  select(-name) |> 
+  pivot_wider(names_from = key, values_from = value) |> 
+  unnest(everything()) %>%
+  mutate(across(everything(), as.numeric)) %>% 
+  mutate(date = seq.Date(from = as.Date("2013-01-01"), length.out = nrow(.), by = "month"))
 
-# _ ----
-# 7.0.0 GENGI ----
+
+# sameina ný útlán
+ny_utlan_tbl <- lif_ny_utlan %>%
+  left_join(banki_ny_utlan_tbl, by = "date") %>%
+  drop_na()
+
+ny_utlan_tbl <- ny_utlan_tbl %>%
+  mutate(
+    "Verðtryggð lán" = (vtr + br_vt + fst_vt),
+    "Óverðtryggð lán" = (ovtr + br_ovt + fst_ovt)
+  ) %>%
+  select(date, contains("lán")) |> 
+  pivot_longer(cols = -date) |> 
+  filter(date >= date_from)
+
+
+
+
+# 8.0.0 GENGI ----
 print("Sæki upplýsingar um gengi af heimasíðu Seðlabankans")
 
 get_si_gengi <- function(gjaldmidill) {
@@ -739,29 +739,76 @@ gengi_tbl <- get_si_gengi("eur") %>%
   summarise(value = mean(value))
 
 
-# _ ----
+
 # 9.0.0 VERÐBÓLGUVÆNTINGAR -----------------------------------------------
-# "https://www.sedlabanki.is/library/Skraarsafn/Verdbolguvaentingar-/Verdbolguvaentingar_a_mismunandi_maelikvarda.xlsx"
-# 
-# 
-# verdbolguvaentingar <- "https://www.sedlabanki.is/hagtolur/verdbolguvaentingar-a-mismunandi-maelikvarda/" %>% 
-#   read_html() %>% 
-#   html_nodes("a") %>% 
-#   html_attr("href")
-# 
-# vaentingar_mismunandi_maelikvardar <- verdbolguvaentingar[str_detect(verdbolguvaentingar, "mismunandi_maelikvarda")] %>% unique()
-# vaentingar_markadsadilar           <- verdbolguvaentingar[str_detect(verdbolguvaentingar, "markadsadila")] %>% unique()
-# 
-# vaentingar_mismunandi_maelikvardar <- paste0("https://www.sedlabanki.is", vaentingar_mismunandi_maelikvardar)
-# vaentingar_markadsadilar           <- paste0("https://www.sedlabanki.is", vaentingar_markadsadilar)
-# 
-# 
-# # Download
-# temp_file_mism <- tempfile(fileext = ".xlsx")
-# GET(vaentingar_mismunandi_maelikvardar, write_disk(temp_file_mism, overwrite = TRUE))
-# 
-# temp_file_mark <- tempfile(fileext = ".xlsx")
-# GET(vaentingar_markadsadilar, write_disk(temp_file_mark, overwrite = TRUE))
+
+get_infl_exp <- function(exp_path, rows, sheet_name, date_from) {
+  read_excel(exp_path, sheet = sheet_name) |> 
+  slice(rows) |> 
+  pivot_longer(cols = everything()) |> 
+  select(2) |> 
+  slice(-1) |> 
+  mutate(
+    date = seq.Date(from = as.Date(date_from), length.out = nrow(cur_data()), by = "quarter"),
+    value = as.numeric(value) / 100
+  ) |> 
+    drop_na()
+}
+
+# Heimili
+infl_exp_heimili_tbl <- get_infl_exp(
+  exp_path   = exp_path,
+  rows       = 9,
+  sheet_name = "Heimili_Households",
+  date_from  = "2003-01-01"
+) |> 
+  mutate(key = "Heimili")
+  
+# Fyrirtæki
+infl_exp_fyrirtaeki_tbl <- get_infl_exp(
+  exp_path   = exp_path,
+  rows       = 9,
+  sheet_name = "Fyrirtæki_Businesses",
+  date_from  = "2003-01-01"
+) |> 
+  mutate(key = "Fyrirtæki")
+
+# Markaðsaðilar
+infl_exp_markadsadilar_tbl <- read_excel("data/Vaentingar_markadsadila.xlsx", sheet = "III-a") |> 
+  slice(9) |> 
+  select(-1) |> 
+  pivot_longer(cols = everything()) |> 
+  select(-name) |> 
+  mutate(
+    date = seq.Date(from = as.Date("2012-01-01"), length.out = nrow(cur_data()), by = "quarter"),
+    value = as.numeric(value) / 100
+  ) |> 
+  mutate(key = "Markaðsaðilar")
+
+
+# sameina
+infl_exp_tbl <- bind_rows(
+  infl_exp_heimili_tbl,
+  infl_exp_fyrirtaeki_tbl,
+  infl_exp_markadsadilar_tbl
+)
+
+# Skuldabréfamarkaður
+infl_exp_breakeven_tbl <- read_excel(exp_path, sheet = "Verðbólguálag_Breakeven rates") |> 
+  slice(4:7) |> 
+  pivot_longer(cols = -1) |> 
+  select(-name) |>
+  set_names("bref", "value") |> 
+  mutate(value = as.numeric(value) / 100) |> 
+  pivot_wider(names_from = bref, values_from = value) |> 
+  unnest(everything()) |> 
+  set_names("Verðbólguálag til 1 árs", "Verðbólguálag til 2 ára", "Verðbólguálag til 5 ára", "Verðbólguálag til 10 ára") |> 
+  mutate(
+    date = seq.Date(from = as.Date("2003-01-01"), length.out = nrow(cur_data()), by = "quarter"),
+  ) |> 
+  pivot_longer(cols = -date) |> 
+  rename("key" = "name")
+
 
 
 
@@ -927,66 +974,6 @@ combined_bonds_over_time <- combined_bonds_over_time %>%
   mutate(index = as.numeric(as_factor(as.character(date))))
 
 
-# 9.2.0 Heimili, fyrirtæki og skuldabréfamarkaður -------------------------
-
-
-# # * Heimili: Hver telur þú að verðbólga verði næstu 12 mánuði?
-# heimili_tbl <- readxl::read_excel(temp_file_mism, sheet = 1, range = "A10:LM13") %>% 
-#   pivot_longer(cols = - ...1) %>% 
-#   filter(str_detect(...1, "average")) %>% 
-#   # select(-...1) %>% 
-#   drop_na(value) %>% 
-#   mutate(date = date(zoo::as.yearqtr(name))) %>% 
-#   select(date, value) %>% 
-#   mutate(value = value / 100) %>% 
-#   rename("Heimili" = "value")
-# 
-# # * Fyrirtæki: Hver telur þú að verðbólgan verði næstu 12 mánuði?
-# fyrirtaeki_tbl <- readxl::read_excel(temp_file_mism, sheet = 2, range = "A10:LM13") %>% 
-#   pivot_longer(cols = - ...1) %>% 
-#   filter(str_detect(...1, "average")) %>% 
-#   select(-...1) %>% 
-#   drop_na(value) %>% 
-#   mutate(date = date(zoo::as.yearqtr(name))) %>% 
-#   select(date, value) %>% 
-#   mutate(value = value / 100) %>% 
-#   rename("Fyrirtæki" = "value")
-# 
-# # * Verðbólguálag á skuldabréfamarkaði
-# break_even_tbl <- readxl::read_excel(temp_file_mism, sheet = 3, range = "A5:LM9") %>% 
-#   pivot_longer(cols = - ...1) %>% 
-#   drop_na() %>% 
-#   separate(...1, into = c("is", "en"), sep = "/") %>% 
-#   mutate(
-#     key = str_trim(is),
-#     date = date(zoo::as.yearqtr(name))
-#   ) %>% 
-#   mutate(value = value / 100) %>% 
-#   select(date, key, value)
-# 
-
-# 9.3.0 Markaðsaðilar ----
-
-# markadsadilar_tbl <- readxl::read_excel(temp_file_mark, sheet = "III-a", range = "A6:LM10") %>% 
-#   select_if(~any(!is.na(.))) %>% 
-#   drop_na() %>% 
-#   mutate(across(.cols = !...1, .fns = ~ as.numeric(.))) %>% 
-#   pivot_longer(cols = -...1) %>% 
-#   filter(str_detect(...1, "average")) %>% 
-#   mutate(date = date(zoo::as.yearqtr(name))) %>% 
-#   select(date, value) %>% 
-#   mutate(value = value / 100) %>% 
-#   rename("Markaðsaðilar" = "value")
-
-
-# Sameina
-# all_dates <- unique(c(heimili_tbl$date, fyrirtaeki_tbl$date, markadsadilar_tbl$date))
-# 
-# vaentingar_tbl <- tibble(date = all_dates) %>% 
-#   left_join(heimili_tbl) %>% 
-#   left_join(fyrirtaeki_tbl) %>% 
-#   left_join(markadsadilar_tbl)
-#drop_na()
 
 
 # 10.0.0 Vista ----
@@ -1017,12 +1004,12 @@ list(
   
   # Útlán
   pbi_inflation_utlanastabbi = utlan_stada_tbl,
-  # pbi_inflation_utlan_ny = ny_utlan_tbl,   # commented out in your code
+  pbi_inflation_utlan_ny = ny_utlan_tbl,
   
   # Gengi og væntingar
-  # pbi_inflation_skuldabref = combined_bonds_over_time,   # commented out
-  # pbi_inflation_vaentingar = vaentingar_tbl,             # commented out
-  # pbi_inflation_vaentingar_skuldabrefamarkadur = break_even_tbl,  # commented out
+  #pbi_inflation_skuldabref = combined_bonds_over_time,
+  pbi_inflation_vaentingar = infl_exp_tbl,
+  pbi_inflation_vaentingar_skuldabrefamarkadur = infl_exp_breakeven_tbl,
   pbi_inflation_gengi = gengi_tbl
 ) |> 
 
