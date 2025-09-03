@@ -2,10 +2,8 @@
 
 library(tidyverse)
 library(eurostat)
-#library(quantmod)
 library(XML)
 library(httr)
-#library(blsAPI)
 library(openxlsx)
 library(zoo)
 library(rvest)

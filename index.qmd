@@ -9,7 +9,6 @@ format:
 
 ```{r, pakkar}
 library(tidyverse)
-library(waterfalls)
 library(scales)
 library(plotly)
 ```
@@ -375,7 +374,7 @@ waterfall_plot(
 
 # Framlag undirliða seinasta mánuð
 
-```{r}
+```{r, undirflokkar_12m, fig.width = 12}
 waterfall_plot(
   data_ls$pbi_inflation_waterfall,
   ahrif_1m,
@@ -387,7 +386,22 @@ waterfall_plot(
 
 # Undirflokkar
 
-```{r}
+```{r, undirflokkar_1m, fig.width = 12}
 data_ls$phi_inflation_undirflokkar |> 
-    ggplot(aes())
+    mutate(merking = percent(value, accuracy = 0.1)) |> 
+    ggplot(aes(fct_reorder(name, -value),  value, label = merking)) + 
+    geom_col(fill = vr_litir[1]) + 
+    geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
+    geom_text(vjust = -1) + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "12 mánaða verðbólga undirliða"
+    ) +
+    theme_minimal() +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+        axis.text.y = element_blank()
+    )
+
 ```
