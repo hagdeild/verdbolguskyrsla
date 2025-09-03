@@ -24,7 +24,7 @@ jobs:
 
       # Quarto CLI (pin version for reproducibility; omit version to float latest)
       - name: Set up Quarto
-        uses: quarto-dev/quarto-actions/setup@v3
+        uses: quarto-dev/quarto-actions/setup@v2
         with:
           version: '1.5.57'
 
