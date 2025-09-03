@@ -1,5 +1,6 @@
 # Quarto build output
 _site/
+.quarto/
 
 # R session files
 .Rproj.user/
@@ -10,5 +11,3 @@ _site/
 # OS
 .DS_Store
 Thumbs.db
-
-/.quarto/
