@@ -386,3 +386,8 @@ waterfall_plot(
 
 
 # Undirflokkar
+
+```{r}
+data_ls$phi_inflation_undirflokkar |> 
+    ggplot(aes())
+```

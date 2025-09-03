@@ -2,10 +2,10 @@
 
 library(tidyverse)
 library(eurostat)
-library(quantmod)
+#library(quantmod)
 library(XML)
 library(httr)
-library(blsAPI)
+#library(blsAPI)
 library(openxlsx)
 library(zoo)
 library(rvest)
@@ -290,7 +290,8 @@ undirflokkar_12m_tbl <- undirflokkar_tbl %>%
   ungroup() %>% 
   select(undirflokkur, verdbolga) %>% 
   pivot_wider(names_from = undirflokkur, values_from = verdbolga) %>% 
-  pivot_longer(cols = - "Vísitala neysluverðs")
+  pivot_longer(cols = - "Vísitala neysluverðs") |> 
+  set_names("verdbolga", "name", "value")
 
 
 undirflokkar_1m_tbl <- undirflokkar_tbl %>% 
@@ -303,9 +304,8 @@ undirflokkar_1m_tbl <- undirflokkar_tbl %>%
   ungroup() %>% 
   select(undirflokkur, verdbolga) %>% 
   pivot_wider(names_from = undirflokkur, values_from = verdbolga) %>% 
-  pivot_longer(cols = - "Vísitala neysluverðs")
-
-
+  pivot_longer(cols = - "Vísitala neysluverðs") |> 
+  set_names("verdbolga", "name", "value")
 
 
 # 4.0.0 FROOP ----
@@ -938,32 +938,32 @@ infl_exp_breakeven_tbl <- read_excel(exp_path, sheet = "Verðbólguálag_Breakev
 # )
 
 
-# Define the current month
-current_month <- floor_date(Sys.Date(), "month")
+# # Define the current month
+# current_month <- floor_date(Sys.Date(), "month")
 
-# Filter for the last 3 months
-last_3_months_dates <- seq(from = current_month - months(3), 
-                           to = current_month - months(1), 
-                           by = "month")
+# # Filter for the last 3 months
+# last_3_months_dates <- seq(from = current_month - months(3), 
+#                            to = current_month - months(1), 
+#                            by = "month")
 
-# Find the last date available in each of the past 3 months
-dates_vector <- tibble(date = last_3_months_dates) %>%
-  mutate(last_available_date = map(date, ~ {
-    last_date <- max(
-      filter(combined_bonds_over_time, floor_date(date, "month") == .x)$date, 
-      na.rm = TRUE
-    )
-    return(last_date)
-  })) %>%
-  unnest(last_available_date) %>% 
-  pull(last_available_date)
+# # Find the last date available in each of the past 3 months
+# dates_vector <- tibble(date = last_3_months_dates) %>%
+#   mutate(last_available_date = map(date, ~ {
+#     last_date <- max(
+#       filter(combined_bonds_over_time, floor_date(date, "month") == .x)$date, 
+#       na.rm = TRUE
+#     )
+#     return(last_date)
+#   })) %>%
+#   unnest(last_available_date) %>% 
+#   pull(last_available_date)
 
 
-combined_bonds_over_time <- combined_bonds_over_time %>% 
-  filter(date %in% c(today(), dates_vector))
+# combined_bonds_over_time <- combined_bonds_over_time %>% 
+#   filter(date %in% c(today(), dates_vector))
 
-combined_bonds_over_time <- combined_bonds_over_time %>% 
-  mutate(index = as.numeric(as_factor(as.character(date))))
+# combined_bonds_over_time <- combined_bonds_over_time %>% 
+#   mutate(index = as.numeric(as_factor(as.character(date))))
 
 
 
