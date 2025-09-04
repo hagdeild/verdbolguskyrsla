@@ -5,12 +5,13 @@ on:
     branches: [ main ]
   workflow_dispatch:
   schedule:
-    - cron: '2 9 * * *'   # every day at 09:02 UTC (Reykjavík local time)
+    - cron: '2 9 * * *'   # every day at 09:02 UTC
 
 permissions:
-  contents: write
+  contents: read
   packages: read
-
+  pages: write
+  id-token: write
 
 concurrency:
   group: 'quarto-publish'
@@ -34,9 +35,12 @@ jobs:
       - name: Render site
         run: quarto render .
 
-      - name: Publish to GitHub Pages
-        uses: quarto-dev/quarto-actions/publish@v2
+      # New: deploy via Pages artifact (no gh-pages branch)
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
         with:
-          target: gh-pages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
