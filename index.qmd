@@ -11,17 +11,19 @@ format:
 library(tidyverse)
 library(scales)
 library(plotly)
-library(patchwork)
+
 ```
 
-```{r, data}
+```{r, data og annað}
 data_ls <- read_rds("data/final_data.rds")
+fc_ls   <- read_rds("data/spar.rds")
 
+# Litir
 vr_litir <- c("#00305c", "#028fbc", "#eec215", "#d64550", "#4fb94f", "#7d5ba6", "#e07b39", "#3a8e8e")
-
-date_back_year <- floor_date(today(), "year") - months(12)
-
 valuebox_litir <- c("#2E7D6E", "#E57373", "#F9A825")
+
+# Date
+date_back_year <- floor_date(today(), "year") - months(12)
 ```
 
 ```{r, hjalparfoll}
@@ -395,7 +397,7 @@ data_ls$phi_inflation_undirflokkar_1m |>
   geom_col(fill = vr_litir[1]) +
   geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
   geom_text(vjust = -1, col = "grey50") +
-  labs(x = NULL, y = NULL, title = "12 mánaða verðbólga undirliða") +
+  labs(x = NULL, y = NULL, title = "1 mánaða verðbólga undirliða") +
   theme_minimal() +
   theme(
     axis.text.x = element_text(angle = 90, hjust = 1, size = 7),
@@ -879,3 +881,78 @@ p17_plotly |>
 # Verðbólguspá
 
 ## Row
+
+```{r, verðbólguspá_valuebox_prep}
+# 12 mánaða spá
+fc_diff_tbl <- fc_ls$verdbolguspa |> 
+    filter(!name == "Söguleg") |> 
+    arrange(date, name) |> 
+    group_by(name) |> 
+    mutate(diff = value - lag(value)) |> 
+    drop_na() |> 
+    filter(date == min(date)) |> 
+    ungroup()
+
+sum_fc_diff <- sum(fc_diff_tbl$diff > 0)
+
+# 1 mánaða spá
+fc_1m <- str_extract_all(fc_ls$verdbolguspa_valuebox$spa_1m, "-?\\d+\\.\\d+")[[1]] |> as.numeric()
+sum_fc_1m_diff <- sum(fc_1m > 0)
+```
+
+```{r}
+#| content: valuebox
+#| title: "Verðbólguspá næsta mánaðar"
+list(
+    icon = case_when(
+        sum_fc_diff == 2 ~ "arrow-up",
+        sum_fc_diff == 1 ~ "dash",
+        TRUE ~ "arrow-down"
+        ),
+    color = 
+        case_when(
+        sum_fc_diff == 2 ~ valuebox_litir[2],
+        sum_fc_diff == 1 ~ valuebox_litir[3],
+        TRUE ~ valuebox_litir[1]
+        ),
+    value = fc_ls$verdbolguspa_valuebox$spa_12m
+)
+```
+
+
+```{r}
+#| content: valuebox
+#| title: "Verðbólguspá - Hækkun milli mánaða"
+list(
+    icon = case_when(
+        sum_fc_1m_diff == 2 ~ "arrow-up",
+        sum_fc_1m_diff == 1 ~ "dash",
+        TRUE ~ "arrow-down"
+        ),
+    color = 
+        case_when(
+        sum_fc_1m_diff == 2 ~ valuebox_litir[2],
+        sum_fc_1m_diff == 1 ~ valuebox_litir[3],
+        TRUE ~ valuebox_litir[1]
+        ),
+    value = fc_ls$verdbolguspa_valuebox$spa_1m
+)
+```
+
+## Row
+
+```{r verðbólguspá}
+p18 <- fc_ls$verdbolguspa |> 
+    ggplot(aes(date, value, col = name)) + 
+    geom_line() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólguspá"
+    ) +
+    scale_y_continuous(labels = percent) +
+    theme_minimal() +
+    scale_color_manual(values = vr_litir[c(2, 4, 1)])
+
+vr_layout(p18)
+```
