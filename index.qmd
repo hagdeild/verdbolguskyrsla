@@ -11,6 +11,7 @@ format:
 library(tidyverse)
 library(scales)
 library(plotly)
+library(patchwork)
 ```
 
 ```{r, data}
@@ -19,247 +20,28 @@ data_ls <- read_rds("data/final_data.rds")
 vr_litir <- c("#00305c", "#028fbc", "#eec215", "#d64550", "#4fb94f", "#7d5ba6", "#e07b39", "#3a8e8e")
 
 date_back_year <- floor_date(today(), "year") - months(12)
+
+valuebox_litir <- c("#2E7D6E", "#E57373", "#F9A825")
 ```
 
+```{r, hjalparfoll}
 
-# Verðbólga
-
-## Row
-
-```{r, valuebox_data_prep}
-inflation_diff  <- data_ls$pbi_inflation_verdbolga |> 
-    filter(flokkur == "Verðbólga") |> 
-    mutate(diff = verdbolga - lag(verdbolga)) |> 
-    tail(1) |> 
-    pull(diff)
-
-verdbolga_latest <- data_ls$pbi_inflation_verdbolga_valuebox |> 
-    pull(verdbolga) |> 
-    percent(accuracy = 0.1)
-
-verdbolga_milli_manada_latest <- data_ls$pbi_inflation_verdbolga_valuebox |> 
-    pull(milli_manada) |> 
-    percent(accuracy = 0.01)
-
-verdbolga_hradi <- data_ls$pbi_inflation_verdbolga_valuebox |> 
-    pull(hradi) |> 
-    percent(accuracy = 0.1)
-
-verdbolga_hradi_diff <- data_ls$pbi_inflation_verdbolga_valuebox$hradi_diff
-
-```
-
-
-```{r, valueboxe-inflation}
-#| content: valuebox
-#| title: "Verðbólga"
-list(
-    icon = case_when(
-        inflation_diff < 0 ~ "arrow-down",
-        inflation_diff > 0 ~ "arrow-up",
-        TRUE ~ "dash"
-        ),
-    color = 
-        case_when(
-                    inflation_diff < 0 ~ "success",
-        inflation_diff > 0 ~ "danger",
-        TRUE ~ "warning"
-        ),
-    value = verdbolga_latest
-)
-```
-
-
-```{r, valuebox_inflation_mom}
-#| content: valuebox
-#| title: "Verðbólga milli mánaða"
-list(
-    icon = case_when(
-        verdbolga_milli_manada_latest < 0 ~ "arrow-down",
-        verdbolga_milli_manada_latest > 0 ~ "arrow-up",
-        TRUE ~ "dash"
-        ),
-    color = 
-        case_when(
-                    verdbolga_milli_manada_latest < 0 ~ "success",
-        verdbolga_milli_manada_latest > 0 ~ "danger",
-        TRUE ~ "warning"
-        ),
-    value = verdbolga_milli_manada_latest
-)
-```
-
-
-```{r, valuebox_12m_taktur}
-#| content: valuebox
-#| title: "Tólf mánaða verðbólga m.v. seinustu sex mánuði"
-list(
-    icon = case_when(
-        verdbolga_hradi_diff < 0 ~ "arrow-down",
-        verdbolga_hradi_diff > 0 ~ "arrow-up",
-        TRUE ~ "dash"
-        ),
-    color = 
-        case_when(
-        verdbolga_hradi_diff < 0 ~ "success",
-        verdbolga_hradi_diff > 0 ~ "danger",
-        TRUE ~ "warning"
-        ),
-    value = verdbolga_hradi
-)
-```
-
-
-## Row
-
-```{r, verðbólga-plot}
-p1 <- data_ls$pbi_inflation_verdbolga |> 
-    ggplot(aes(date, verdbolga, col = flokkur)) + 
-    geom_line() + 
-    labs(
-        x = NULL,
-        y = NULL,
-        title = "Verðbólga"
-    ) +
-    theme_minimal() +
-    scale_color_manual(values = vr_litir) +
-    scale_y_continuous(labels = percent)
-    
-ggplotly(p1) |> 
+# VR plot layout
+vr_layout <- function(plot) {
+  ggplotly(plot) |> 
     layout(
-        legend = 
-            list(
-                title = list(text = ""),
-                orientation = "h",
-                y = -0.2,
-                x = 0.5,
-                xanchor = "center"
-            )
+      legend = list(
+        title = list(text = ""),
+        orientation = "h",
+        y = -0.2,
+        x = 0.5,
+        xanchor = "center"
+      )
     )
-```
-
-```{r, verðbólga-mom}
-p2 <- data_ls$pbi_inflation_verdbolga |> 
-    filter(
-        flokkur == "Verðbólga",
-        date >= date_back_year
-        ) |> 
-    ggplot(aes(date, milli_manada)) + 
-    geom_col(fill = vr_litir[1]) + 
-    labs(
-        x = NULL,
-        y = NULL,
-        title = "Verðbólga milli mánaða"
-    ) +
-    theme_minimal() +
-    scale_y_continuous(labels = percent)
-    
-ggplotly(p2) 
-```
-
-# Undirliggjandi verðbólga
-
-## Row
-
-```{r, undirliggjandi-verðbólga}
-p3 <- data_ls$pbi_inflation_undirliggjandi |> 
-    ungroup() |> 
-    filter(!name == "Kjarnavísitala 3") |> 
-    ggplot(aes(date, value, col = name)) + 
-    geom_line() +
-    labs(
-        x = NULL,
-        y = NULL,
-        title = "Undirliggjandi verðbólga"
-    ) +
-    theme_minimal() +
-    scale_color_manual(values = vr_litir) +
-    scale_y_continuous(labels = percent)
-
-ggplotly(p3) |> 
-    layout(
-        legend = 
-            list(
-                title = list(text = ""),
-                orientation = "h",
-                y = -0.2,
-                x = 0.5,
-                xanchor = "center"
-            )
-    )
-```
+}
 
 
-```{r, verðbólga eftir uppruna}
-p4 <- data_ls$pbi_inflation_uppruni |> 
-    ggplot(aes(date, delta, col = flokkur)) + 
-    geom_line() +
-    labs(
-        x = NULL,
-        y = NULL,
-        title = "Verðbólga eftir uppruna"
-    ) +
-    theme_minimal() +
-    scale_color_manual(values = vr_litir) +
-    scale_y_continuous(labels = percent)
-
-ggplotly(p4) |> 
-    layout(
-        legend = 
-            list(
-                title = list(text = ""),
-                orientation = "h",
-                y = -0.2,
-                x = 0.5,
-                xanchor = "center"
-                )
-            )
-```
-
-
-## Row
-
-::: callout-note
-## Liðir undirliggjandi verðbólgu
-- **Kjarna­vísitala 1**: VNV án búvöru, grænmetis, ávaxta og bensíns  
-- **Kjarna­vísitala 2**: Kjarna­vísitala 1 án opinberrar þjónustu  
-- **Kjarna­vísitala 3**: Kjarna­vísitala 2 án áhrifa vaxtabreytinga á húsnæðisliði *(ekki reiknuð lengur)*  
-- **Kjarna­vísitala 4**: Kjarna­vísitala 2 án reiknaðrar húsaleigu
-:::
-
-```{r, froop}
-p5 <- data_ls$pbi_inflation_froop |> 
-    select(date, froop, non_froop, verdbolga) |> 
-    set_names("date", "Keypt oft", "Keypt sjaldan", "Verbólga") |> 
-    pivot_longer(cols = -date) |> 
-    ggplot(aes(date, value, col = name)) + 
-    geom_line() + 
-    labs(
-        x = NULL,
-        y = NULL,
-        title = "Verðbólga eftir því hvort vara er keypt oft eða ekki"
-    ) +
-    theme_minimal() +
-    scale_color_manual(values = vr_litir) +
-    scale_y_continuous(labels = percent)
-
-ggplotly(p5) |> 
-    layout(
-        legend = 
-            list(
-                title = list(text = ""),
-                orientation = "h",
-                y = -0.2,
-                x = 0.5,
-                xanchor = "center"
-                )
-            )
-```
-
-
-# Framlag undirliða seinustu 12 mánuði
-
-```{r waterfal_function}
+# Waterfall plot function
 waterfall_plot <- function(
   data,
   value_col,                      # bare name: ahrif or ahrif_1m
@@ -342,7 +124,7 @@ waterfall_plot <- function(
           fill = factor(step)),
       color = NA
     ) +
-    geom_text(aes(x = step, y = y_lab, label = label, vjust = vjust_lab), size = 3) +
+    geom_text(aes(x = step, y = y_lab, label = label, vjust = vjust_lab), size = 2.5) +
     scale_x_continuous(
       breaks = plot_df$step,
       labels = plot_df$category,
@@ -354,14 +136,208 @@ waterfall_plot <- function(
     theme_minimal(base_size = base_size) +
     theme(
       axis.text.y = element_blank(),
-      axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
+      axis.text.x = element_text(angle = 90, hjust = 1, size = 7),
       plot.margin = margin(8, 8, 8, 8)
     ) +
     coord_cartesian(clip = "off")
 }
 ```
 
-```{r waterfall_12m, fig.width = 12}
+# Verðbólga
+
+## Row
+
+```{r, valuebox_data_prep}
+inflation_diff  <- data_ls$pbi_inflation_verdbolga |> 
+    filter(flokkur == "Verðbólga") |> 
+    mutate(diff = verdbolga - lag(verdbolga)) |> 
+    tail(1) |> 
+    pull(diff)
+
+verdbolga_latest <- data_ls$pbi_inflation_verdbolga_valuebox |> 
+    pull(verdbolga) |> 
+    percent(accuracy = 0.1)
+
+verdbolga_milli_manada_latest <- data_ls$pbi_inflation_verdbolga_valuebox |> 
+    pull(milli_manada) |> 
+    percent(accuracy = 0.01)
+
+verdbolga_hradi <- data_ls$pbi_inflation_verdbolga_valuebox |> 
+    pull(hradi) |> 
+    percent(accuracy = 0.1)
+
+verdbolga_hradi_diff <- data_ls$pbi_inflation_verdbolga_valuebox$hradi_diff
+
+```
+
+```{r, valueboxe-inflation}
+#| content: valuebox
+#| title: "Verðbólga"
+list(
+    icon = case_when(
+        inflation_diff < 0 ~ "arrow-down",
+        inflation_diff > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+        inflation_diff < 0 ~ valuebox_litir[1],
+        inflation_diff > 0 ~ valuebox_litir[2],
+        TRUE ~ valuebox_litir[3]
+        ),
+    value = verdbolga_latest
+)
+```
+
+```{r, valuebox_inflation_mom}
+#| content: valuebox
+#| title: "Verðbólga milli mánaða"
+list(
+    icon = case_when(
+        verdbolga_milli_manada_latest < 0 ~ "arrow-down",
+        verdbolga_milli_manada_latest > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+        verdbolga_milli_manada_latest < 0 ~ valuebox_litir[1],
+        verdbolga_milli_manada_latest > 0 ~ valuebox_litir[2],
+        TRUE ~ valuebox_litir[3]
+        ),
+    value = verdbolga_milli_manada_latest
+)
+```
+
+```{r, valuebox_12m_taktur}
+#| content: valuebox
+#| title: "Tólf mánaða verðbólga m.v. seinustu sex mánuði"
+list(
+    icon = case_when(
+        verdbolga_hradi_diff < 0 ~ "arrow-down",
+        verdbolga_hradi_diff > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+        verdbolga_hradi_diff < 0 ~ valuebox_litir[1],
+        verdbolga_hradi_diff > 0 ~ valuebox_litir[2],
+        TRUE ~ valuebox_litir[3]
+        ),
+    value = verdbolga_hradi
+)
+```
+
+
+## Row
+
+```{r, verðbólga-plot}
+p1 <- data_ls$pbi_inflation_verdbolga |> 
+    ggplot(aes(date, verdbolga, col = flokkur)) + 
+    geom_line() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólga"
+    ) +
+    theme_minimal() +
+    scale_color_manual(values = vr_litir) +
+    scale_y_continuous(labels = percent)
+    
+vr_layout(p1)
+```
+
+```{r, verðbólga-mom}
+p2 <- data_ls$pbi_inflation_verdbolga |> 
+    filter(
+        flokkur == "Verðbólga",
+        date >= date_back_year
+        ) |> 
+    ggplot(aes(date, milli_manada)) + 
+    geom_col(fill = vr_litir[1]) + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólga milli mánaða"
+    ) +
+    theme_minimal() +
+    scale_y_continuous(labels = percent)
+    
+ggplotly(p2) 
+```
+
+# Undirliggjandi verðbólga
+
+## Row
+
+```{r, undirliggjandi-verðbólga}
+p3 <- data_ls$pbi_inflation_undirliggjandi |> 
+    ungroup() |> 
+    filter(!name == "Kjarnavísitala 3") |> 
+    ggplot(aes(date, value, col = name)) + 
+    geom_line() +
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Undirliggjandi verðbólga"
+    ) +
+    theme_minimal() +
+    scale_color_manual(values = vr_litir) +
+    scale_y_continuous(labels = percent)
+
+vr_layout(p3)
+```
+
+
+```{r, verðbólga eftir uppruna}
+p4 <- data_ls$pbi_inflation_uppruni |> 
+    ggplot(aes(date, delta, col = flokkur)) + 
+    geom_line() +
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólga eftir uppruna"
+    ) +
+    theme_minimal() +
+    scale_color_manual(values = vr_litir) +
+    scale_y_continuous(labels = percent)
+
+vr_layout(p4)
+```
+
+
+## Row
+
+::: callout-note
+## Liðir undirliggjandi verðbólgu
+- **Kjarna­vísitala 1**: VNV án búvöru, grænmetis, ávaxta og bensíns  
+- **Kjarna­vísitala 2**: Kjarna­vísitala 1 án opinberrar þjónustu  
+- **Kjarna­vísitala 3**: Kjarna­vísitala 2 án áhrifa vaxtabreytinga á húsnæðisliði *(ekki reiknuð lengur)*  
+- **Kjarna­vísitala 4**: Kjarna­vísitala 2 án reiknaðrar húsaleigu
+:::
+
+```{r, froop}
+p5 <- data_ls$pbi_inflation_froop |> 
+    select(date, froop, non_froop, verdbolga) |> 
+    set_names("date", "Keypt oft", "Keypt sjaldan", "Verbólga") |> 
+    pivot_longer(cols = -date) |> 
+    ggplot(aes(date, value, col = name)) + 
+    geom_line() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólga eftir því hvort vara er keypt oft eða ekki"
+    ) +
+    theme_minimal() +
+    scale_color_manual(values = vr_litir) +
+    scale_y_continuous(labels = percent)
+
+vr_layout(p5)
+```
+
+
+# Framlag undirliða seinustu 12 mánuði
+
+```{r waterfall_12m, fig.width = 16, fig.height = 8}
 
 waterfall_plot(
   data_ls$pbi_inflation_waterfall,
@@ -374,7 +350,7 @@ waterfall_plot(
 
 # Framlag undirliða seinasta mánuð
 
-```{r, undirflokkar_12m, fig.width = 12}
+```{r, waterfal_1m, fig.width = 16, fig.height = 8}
 waterfall_plot(
   data_ls$pbi_inflation_waterfall,
   ahrif_1m,
@@ -386,13 +362,15 @@ waterfall_plot(
 
 # Undirflokkar
 
-```{r, undirflokkar_1m, fig.width = 12}
+```{r, undirflokkar_12m, fig.width = 16, fig.height = 8}
 data_ls$phi_inflation_undirflokkar |> 
-    mutate(merking = percent(value, accuracy = 0.1)) |> 
+    mutate(
+        merking = percent(value, accuracy = 0.1)
+        ) |> 
     ggplot(aes(fct_reorder(name, -value),  value, label = merking)) + 
     geom_col(fill = vr_litir[1]) + 
     geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
-    geom_text(vjust = -1) + 
+    geom_text(vjust = -1, col = "grey50") + 
     labs(
         x = NULL,
         y = NULL,
@@ -402,6 +380,502 @@ data_ls$phi_inflation_undirflokkar |>
     theme(
         axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
         axis.text.y = element_blank()
-    )
+        #plot.margin = margin(t = 30, r = 10, b = 10, l = 10)
+    ) +
+    coord_cartesian(clip = "off")
 
 ```
+
+
+# Undirflokkar - breyting milli mánaða
+```{r, undirflokkar_1m, fig.width = 16, fig.height = 8}
+data_ls$phi_inflation_undirflokkar_1m |>
+  mutate(merking = percent(value, accuracy = 0.1)) |>
+  ggplot(aes(fct_reorder(name, -value), value, label = merking)) +
+  geom_col(fill = vr_litir[1]) +
+  geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
+  geom_text(vjust = -1, col = "grey50") +
+  labs(x = NULL, y = NULL, title = "12 mánaða verðbólga undirliða") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 7),
+    axis.text.y = element_blank()
+  ) +
+  coord_cartesian(clip = "off")
+
+```
+
+
+# Samræmd vísitala
+
+## Row
+
+```{r, samræmd data prep}
+hicp_diff_tbl <- data_ls$pbi_inflation_hicp |> 
+    filter(flokkur == "CP00") |> 
+    arrange(date, country) |> 
+    group_by(country) |> 
+    mutate(infl_diff = infl - lag(infl)) |> 
+    filter(date == max(date, na.rm = TRUE)) |> 
+    select(country, infl_diff)
+
+hicp_infl_tbl <- data_ls$pbi_inflation_hicp |> 
+    filter(date == max(date)) |> 
+    select(country, infl) |> 
+    mutate(infl = percent(infl, accuracy = 0.1))
+
+get_country_diff <- function(land) {
+    hicp_diff_tbl |> 
+    filter(country == land) |> 
+    pull(infl_diff)
+}
+
+get_country_hicp <- function(land) {
+    hicp_infl_tbl |> 
+    filter(country == land) |> 
+    pull(infl)
+}
+
+# Ísland
+hicp_island_diff <- get_country_diff("Ísland")
+hicp_island_infl <- get_country_hicp("Ísland")
+
+# Danmörk
+hicp_dk_diff <- get_country_diff("Danmörk")
+hicp_dk_infl <- get_country_hicp("Danmörk")
+
+# Noregur
+hicp_no_diff <- get_country_diff("Noregur")
+hicp_no_infl <- get_country_hicp("Noregur")
+
+# Finnland
+hicp_fi_diff <- get_country_diff("Finnland")
+hicp_fi_infl <- get_country_hicp("Finnland")
+
+# Svíþjóð
+hicp_se_diff <- get_country_diff("Svíþjóð")
+hicp_se_infl <- get_country_hicp("Svíþjóð")
+
+# Evrópa
+hicp_eu_diff <- get_country_diff("EU")
+hicp_eu_infl <- get_country_hicp("EU")
+
+```
+
+```{r, hicp_island}
+#| content: valuebox
+#| title: "Ísland"
+list(
+    icon = case_when(
+        hicp_island_diff < 0 ~ "arrow-down",
+        hicp_island_diff > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+        hicp_island_diff < 0 ~ valuebox_litir[1],
+        hicp_island_diff > 0 ~ valuebox_litir[2],
+        TRUE ~ valuebox_litir[3]
+        ),
+    value = hicp_island_infl
+)
+
+```
+
+
+```{r, hicp_dk}
+#| content: valuebox
+#| title: "Danmörk"
+list(
+    icon = case_when(
+        hicp_dk_diff < 0 ~ "arrow-down",
+        hicp_dk_diff > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+        hicp_dk_diff < 0 ~ valuebox_litir[1],
+        hicp_dk_diff > 0 ~ valuebox_litir[2],
+        TRUE ~ valuebox_litir[3]
+        ),
+    value = hicp_dk_infl
+)
+```
+
+
+```{r, hicp_noregur}
+#| content: valuebox
+#| title: "Noregur"
+list(
+    icon = case_when(
+        hicp_no_diff < 0 ~ "arrow-down",
+        hicp_no_diff > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+        hicp_no_diff < 0 ~ valuebox_litir[1],
+        hicp_no_diff > 0 ~ valuebox_litir[2],
+        TRUE ~ valuebox_litir[3]
+        ),
+    value = hicp_no_infl
+)
+```
+
+
+```{r, hicp_svíþjóð}
+#| content: valuebox
+#| title: "Svíþjóð"
+list(
+    icon = case_when(
+        hicp_se_diff < 0 ~ "arrow-down",
+        hicp_se_diff > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+        hicp_se_diff < 0 ~ valuebox_litir[1],
+        hicp_se_diff > 0 ~ valuebox_litir[2],
+        TRUE ~ valuebox_litir[3]
+        ),
+    value = hicp_se_infl
+)
+```
+
+
+```{r, hicp_finnland}
+#| content: valuebox
+#| title: "Finnland"
+list(
+    icon = case_when(
+        hicp_fi_diff < 0 ~ "arrow-down",
+        hicp_fi_diff > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+        hicp_fi_diff < 0 ~ valuebox_litir[1],
+        hicp_fi_diff > 0 ~ valuebox_litir[2],
+        TRUE ~ valuebox_litir[3]
+        ),
+    value = hicp_fi_infl
+)
+```
+
+
+```{r, hicp_EU}
+#| content: valuebox
+#| title: "Evrusvæðið"
+list(
+    icon = case_when(
+        hicp_eu_diff < 0 ~ "arrow-down",
+        hicp_eu_diff > 0 ~ "arrow-up",
+        TRUE ~ "dash"
+        ),
+    color = 
+        case_when(
+        hicp_eu_diff < 0 ~ valuebox_litir[1],
+        hicp_eu_diff > 0 ~ valuebox_litir[2],
+        TRUE ~ valuebox_litir[3]
+        ),
+    value = hicp_eu_infl
+)
+```
+
+
+## Row
+
+```{r, hicp_12m}
+p6 <- data_ls$pbi_inflation_hicp |> 
+    ggplot(aes(date, infl, col = country)) + 
+    geom_line() +
+    theme_minimal() +
+    scale_y_continuous(labels = percent) +
+    scale_color_manual(values = vr_litir) +
+    labs(
+        x = NULL,
+        y = NULL
+    )
+
+vr_layout(p6)
+```
+
+
+
+```{r, hicp_3m}
+date_from_3m_hicp <- floor_date(today(), "month") - years(2)
+
+p7 <- data_ls$pbi_inflation_hicp |> 
+    filter(date >= date_from_3m_hicp) |> 
+    ggplot(aes(date, infl_3m, col = country)) + 
+    geom_line() +
+    theme_minimal() +
+    scale_y_continuous(labels = percent) +
+    scale_color_manual(values = vr_litir) +
+    labs(
+        x = NULL,
+        y = NULL
+    )
+
+vr_layout(p7)
+```
+
+
+# Samræmd vísitala - Undirflokkar
+
+## Row
+```{r, hicp_undirflokkar_12m}
+p8 <- data_ls$pbi_inflation_hicp_undirflokkar |> 
+    mutate(
+        key = if_else(country == "Ísland", "isl", "other"),
+        merking = percent(infl, accuracy = 0.1)
+        ) |> 
+    ggplot(aes(country, infl, fill = key, label = merking)) + 
+    geom_col() + 
+    facet_wrap(~ flokkur, nrow = 1) + 
+    coord_flip() +
+    geom_text(position = position_nudge(y = 0.005)) + 
+    scale_fill_manual(values = vr_litir) +
+    theme_minimal() +
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Undirflokkar - 12 mánaða verðbólga"
+    )
+
+vr_layout(p8)
+```
+
+
+## Row
+
+```{r, hicp_undirflokkar_3m}
+p9 <- data_ls$pbi_inflation_hicp_undirflokkar |> 
+    mutate(
+        key = if_else(country == "Ísland", "isl", "other"),
+        merking = percent(infl_3m, accuracy = 0.1)
+        ) |> 
+    ggplot(aes(country, infl_3m, fill = key, label = merking)) + 
+    geom_col() + 
+    facet_wrap(~ flokkur, nrow = 1) + 
+    coord_flip() +
+    geom_text(position = position_nudge(y = 0.005)) + 
+    scale_fill_manual(values = vr_litir) +
+    theme_minimal() +
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Undirflokkar - 3ja mánaða verðbólga"
+    )
+
+vr_layout(p9)
+```
+
+
+# Húsnæðismarkaðurinn
+
+## Row
+
+```{r, husnaedis_lidur_vnv}
+p10 <- data_ls$pbi_inflation_husnaedisverd |> 
+    ggplot(aes(date, infl, col = lidur)) +
+    geom_line() +
+    theme_minimal() +
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Húsnæði, hitit og rafmagn"
+    ) +
+    scale_color_manual(values = vr_litir) +
+    scale_y_continuous(labels = percent)
+
+vr_layout(p10)
+```
+
+```{r, vextir_fasteignalana}
+p11 <- data_ls$pbi_inflation_husnaaedisvextir |> 
+    pivot_longer(cols = -date) |> 
+    ggplot(aes(date, value, col = name)) + 
+    geom_line() + 
+    theme_minimal() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Vextir fasteignalána og stýrivexti"
+    ) +
+    scale_y_continuous(labels = percent) + 
+    scale_color_manual(values = vr_litir)
+
+vr_layout(p11)
+```
+
+
+## Row
+```{r, ny_utlan}
+p12 <- data_ls$pbi_inflation_utlan_ny |> 
+    ggplot(aes(date, value, fill = name)) + 
+    geom_col() +
+    scale_fill_manual(values = vr_litir) +
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Ný útlán lífeyrissjóða og innlánsstofnana"
+    ) +
+    theme_minimal()
+
+vr_layout(p12)
+```
+
+```{r, útlánastabbi}
+p13 <- data_ls$pbi_inflation_utlanastabbi |> 
+    ggplot(aes(date, share, fill = name)) + 
+    geom_area() +
+    geom_hline(yintercept = 0.5, linetype = "dashed") + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Staða útlána"
+    ) +
+    scale_y_continuous(labels = percent) + 
+    scale_fill_manual(values = vr_litir) +
+    theme_minimal()
+
+vr_layout(p13)
+```
+
+
+# Væntingar og gjaldeyrismarkaður
+
+## Row
+
+```{r, verðbólguvæntingar}
+p14 <- data_ls$pbi_inflation_vaentingar |> 
+    ggplot(aes(date, value, col = key)) + 
+    geom_line() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólguvæntingar"
+    ) +
+    scale_y_continuous(labels = percent) + 
+    scale_color_manual(values = vr_litir) + 
+    theme_minimal()
+
+vr_layout(p14)
+```
+
+```{r, verðbólguvæntingar_skuldabréf}
+p15 <- data_ls$pbi_inflation_vaentingar_skuldabrefamarkadur |> 
+    ggplot(aes(date, value, col = key)) + 
+    geom_line() +
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Verðbólguálaga á skuldabréfamarkaði"
+    ) +
+    scale_y_continuous(labels = percent) + 
+    scale_color_manual(values = vr_litir) + 
+    theme_minimal()
+
+vr_layout(p15)
+```
+
+## Row
+
+```{r, gjaldmiðlar}
+p16 <- data_ls$pbi_inflation_gengi |> 
+    ungroup() |> 
+    ggplot(aes(date, value, col = name)) +
+    geom_line() +
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Gengi gjaldmiðla"
+    ) +
+    scale_y_continuous(labels = percent) + 
+    scale_color_manual(values = vr_litir) + 
+    theme_minimal()
+
+vr_layout(p16)
+```
+
+
+```{r, inngrip_si}
+inngrip_use_tbl <- data_ls$pbi_inflation_inngrip |> 
+    select(date, kaup_hlutfall_velta, EURISK) |> 
+    set_names("date", "inngrip", "gengi")
+
+p17_a <- inngrip_use_tbl |> 
+    ggplot(aes(date, gengi)) + 
+    geom_line() +
+    labs(
+        x = NULL,
+        y = NULL
+        #title = "Gengi Evru"
+    ) +
+    scale_color_manual(values = vr_litir) + 
+    theme_minimal()
+
+p17_b <- inngrip_use_tbl |> 
+    ggplot(aes(date, inngrip)) + 
+    geom_line() + 
+    labs(
+        x = NULL,
+        y = NULL
+        #title = "Kaup seðlabankans á gjaldeyrismarkaði, hlutfall af heildarveltu"
+    ) +
+    scale_y_continuous(labels = percent) + 
+    scale_color_manual(values = vr_litir) + 
+    theme_minimal()
+    
+p17_a_plotly <- ggplotly(p17_a)
+p17_b_plotly <- ggplotly(p17_b)
+
+p17_plotly <- subplot(
+  p17_a_plotly,
+  p17_b_plotly,
+  nrows = 2,
+  shareX = TRUE,
+  titleX = TRUE,
+  titleY = TRUE
+)
+
+p17_plotly |>
+  layout(
+    # add subplot-specific titles
+    annotations = list(
+      list(
+        text = "Gengi Evru",
+        x = 0.5, y = 1, xref = "paper", yref = "paper",
+        xanchor = "center", yanchor = "bottom",
+        showarrow = FALSE, font = list(size = 14)
+      ),
+      list(
+        text = "Kaup seðlabankans á gjaldeyrismarkaði, hlutfall af heildarveltu",
+        x = 0.5, y = 0.47, xref = "paper", yref = "paper",
+        xanchor = "center", yanchor = "bottom",
+        showarrow = FALSE, font = list(size = 14)
+      ),
+      # GLOBAL title
+      list(
+        text = "Inngrip og gengisþróun",
+        x = 0.1, y = 1.12, xref = "paper", yref = "paper",
+        xanchor = "center", yanchor = "bottom",
+        showarrow = FALSE, font = list(size = 18, family = "Arial")
+      )
+    ),
+    legend = list(
+      title = list(text = ""),
+      orientation = "h",
+      y = -0.2,
+      x = 0.5,
+      xanchor = "center"
+    ),
+    margin = list(t = 100) # make room for the global title
+  )
+```
+
+
+# Verðbólguspá
+
+## Row

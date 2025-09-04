@@ -465,7 +465,8 @@ land_tbl <- tibble(
 
 hicp_pbi_tbl <- hicp_infl_tbl %>% 
   filter(flokkur == "CP00") %>% 
-  left_join(land_tbl)
+  left_join(land_tbl) |> 
+  filter(date >= date_from)
 
 
 # 5.2.0 By Coicip ----
@@ -532,7 +533,8 @@ hus_unnid_tbl <- hus_tbl %>%
   group_by(lidur) %>% 
   mutate(infl = visitala / lag(visitala, 12) - 1) %>% 
   drop_na() %>% 
-  ungroup()
+  ungroup() |> 
+  filter(date >= date_from)
 
 # 6.3.0 Vextir ------------------------------------------------------------
 
@@ -556,25 +558,30 @@ vextir_tbl <- readxl::read_xls(temp_file, skip = 9) %>%
 vextir_date <- seq.Date(from = as.Date("2003-01-01"), length.out = nrow(vextir_tbl),  by = "month")
 
 vextir_tbl <- vextir_tbl %>% 
-  mutate(date = vextir_date)
+  mutate(date = vextir_date) |> 
+  filter(date >= date_from)
 
 
 # 6.3.1 Meginvextir ----
 print("Hleð inn meginvexti")
 
 meginvextir_tbl <- read_excel(data_path, sheet = "meginvextir") %>% 
-  select(1, 4) %>% 
   set_names("date", "Meginvextir")
 
 meginvextir_tbl <- meginvextir_tbl %>% 
-  mutate(date = make_date(str_sub(date, 7, 10), str_sub(date, 4, 5))) %>% 
+  mutate(
+    date = dmy(date),
+    date = floor_date(date, "month"),
+    Meginvextir = as.numeric(str_replace(Meginvextir, ",", ".")) / 100
+  ) %>% 
   group_by(date) %>% 
-  summarise(Meginvextir = mean(Meginvextir) / 100)
+  summarise(Meginvextir = mean(Meginvextir))
 
 
 vextir_tbl <- vextir_tbl %>% 
   left_join(meginvextir_tbl) %>% 
-  drop_na()
+  drop_na() |> 
+  select(date, everything())
 
 
 # 7.0.0 ÚTLÁN ----
@@ -583,7 +590,7 @@ vextir_tbl <- vextir_tbl %>%
 
 # Innlánsstofnanir
 bankakerfi_tbl <- read_xlsx(data_path, "bank_stabbi") %>%
-  slice(7, 10) %>% 
+  slice(6, 9) %>% 
   select(-c(1, 2)) %>%
   mutate(type = c("banki_vtr", "banki_ovtr")) %>% 
   pivot_longer(cols = -type) %>% 
@@ -726,11 +733,35 @@ gengi_tbl <- get_si_gengi("eur") %>%
   pivot_longer(cols = -date) %>% 
   mutate(date = floor_date(date, "month")) %>% 
   group_by(date, name) %>% 
-  summarise(value = mean(value))
+  summarise(value = mean(value)) |> 
+  filter(date >= date_from)
 
 
+# 9.0.0 INNGRIP SEÐLABANKANS Á GJALDEYRISMARKAÐ ----
+inngrip_si_tbl <- read_xlsx(data_path, "inngrip_si") |> 
+  janitor::clean_names() |> 
+  select(date_reverse, velta_i_isk, fe_buy_m_kr, fe_sell_m_kr) |> 
+  set_names("date", "velta", "kaup", "sala") |> 
+  mutate(
+    date = floor_date(dmy(date), "month"),
+    velta = as.numeric(str_replace(velta, ",", ".")),
+    kaup  = as.numeric(str_replace(kaup, ",", ".")),
+    sala  = as.numeric(str_replace(sala, ",", "."))
+  ) |> 
+  group_by(date) |> 
+  summarise(
+    velta = sum(velta),
+    kaup = sum(kaup),
+    sala = sum(sala)
+  ) |> 
+  mutate(kaup_hlutfall_velta = kaup / velta) |> 
+  filter(date < floor_date(today(), "month"))
 
-# 9.0.0 VERÐBÓLGUVÆNTINGAR -----------------------------------------------
+inngrip_si_tbl <- inngrip_si_tbl |> 
+  left_join(gengi_tbl |> ungroup() |> filter(name == "EUR") |> select(-name) |> rename("EURISK" = "value")) |> 
+  filter(date >= date_from)
+
+# 10.0.0 VERÐBÓLGUVÆNTINGAR -----------------------------------------------
 
 get_infl_exp <- function(exp_path, rows, sheet_name, date_from) {
   read_excel(exp_path, sheet = sheet_name) |> 
@@ -781,7 +812,8 @@ infl_exp_tbl <- bind_rows(
   infl_exp_heimili_tbl,
   infl_exp_fyrirtaeki_tbl,
   infl_exp_markadsadilar_tbl
-)
+) |> 
+  filter(date >= date_from)
 
 # Skuldabréfamarkaður
 infl_exp_breakeven_tbl <- read_excel(exp_path, sheet = "Verðbólguálag_Breakeven rates") |> 
@@ -797,12 +829,11 @@ infl_exp_breakeven_tbl <- read_excel(exp_path, sheet = "Verðbólguálag_Breakev
     date = seq.Date(from = as.Date("2003-01-01"), length.out = nrow(cur_data()), by = "quarter"),
   ) |> 
   pivot_longer(cols = -date) |> 
-  rename("key" = "name")
+  rename("key" = "name") |> 
+  filter(date >= date_from)
 
 
-
-
-# # 9.1.0 Skuldabréfamarkaðurinn --------------------------------------------
+# # 10.1.0 Skuldabréfamarkaðurinn --------------------------------------------
 # print("Skuldabréfamarkaðurinn")
 
 # combine_interpolate_bonds <- function(overdtryggd_tbl, verdtryggd_tbl, method = "linear") {
@@ -864,7 +895,7 @@ infl_exp_breakeven_tbl <- read_excel(exp_path, sheet = "Verðbólguálag_Breakev
 # }
 
 
-# # 9.1.1 Söguleg gögn ------------------------------------------------------
+# # 10.1.1 Söguleg gögn ------------------------------------------------------
 
 # # * RIKB ----
 # rikb_files <- list.files(paste0(base_path, "/00_data/skuldabref/"), pattern = "rikb_")
@@ -966,7 +997,7 @@ infl_exp_breakeven_tbl <- read_excel(exp_path, sheet = "Verðbólguálag_Breakev
 
 
 
-# 10.0.0 Vista ----
+# 11.0.0 Vista ----
 
 list(
   # Verðbólga
@@ -1000,7 +1031,8 @@ list(
   #pbi_inflation_skuldabref = combined_bonds_over_time,
   pbi_inflation_vaentingar = infl_exp_tbl,
   pbi_inflation_vaentingar_skuldabrefamarkadur = infl_exp_breakeven_tbl,
-  pbi_inflation_gengi = gengi_tbl
+  pbi_inflation_gengi = gengi_tbl,
+  pbi_inflation_inngrip = inngrip_si_tbl
 ) |> 
 
   write_rds("data/final_data.rds")
