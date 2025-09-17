@@ -12,7 +12,6 @@
 # 
 
 
-
 get_univariate_forecasts <- function(data,
                                      transformation = c("level", "log"),
                                      roc = c(1, 12),
@@ -529,32 +528,181 @@ get_univariate_forecasts <- function(data,
       summarize_accuracy_metrics(truth = ACTUAL, estimate = value, metric_set = metric_set(rmse)) %>% 
       mutate(resample = paste0("resample_", i))
     
-    accuracy_ls[[i]] <- accuracy_tbl
-    
-    
-
-# 1.7.0 Correclation ------------------------------------------------------
-    # cor_tbl <- all_fc_tbl %>% 
-    #   select(-resample) %>% 
-    #   pivot_wider(names_from = name, values_from = growth) %>% 
-    #   filter(.index >= min(test_loop_univar_tbl$date)) %>% 
-    #   select(-c(1:2)) %>% 
-    #   cor() %>% 
-    #   as.data.frame() %>% 
-    #   rownames_to_column(var = "models") %>% 
-    #   as_tibble()
-    
+    accuracy_ls[[i]] <- accuracy_tbl    
     
   }
 
   fc_tbl <- forecast_ls %>% bind_rows()
   accuracy_tbl <- accuracy_ls %>% bind_rows()
 
-  return_list <- list(
-    "Forecasts" = fc_tbl,
-    "Accuracy"  = accuracy_tbl
+
+
+  # ---- 4.0.0 Ensembles (optional) ----------------------------------------
+ensemble_results <- NULL
+
+if (!is.null(ensembles) && "auto_best2" %in% ensembles) {
+
+  # Pick best pair & weights using cross-validated test slices
+  pick <- pick_best_pair_and_weights(fc_tbl, step = 0.05)
+  best_pair    <- pick$pair
+  best_weights <- pick$weights
+  pair_board   <- pick$leaderboard
+
+  cli::cli_alert_success(
+    "Best pair: {best_pair[1]} + {best_pair[2]} | weights ~ ({round(best_weights[1],3)}, {round(best_weights[2],3)})"
   )
+
+  # Build ensemble forecasts (same long format as fc_tbl)
+  ens_fc_tbl <- build_pair_ensemble_fc(
+    fc_tbl,
+    pair    = best_pair,
+    weights = best_weights
+  )
+
+  # Bind into forecast table so downstream code can see it
+  fc_tbl <- bind_rows(fc_tbl, ens_fc_tbl)
+
+  # Compute accuracy table for the ensemble (and compare)
+  ensemble_accuracy <- accuracy_from_long(fc_tbl, include_models = unique(ens_fc_tbl$name))
+
+  ensemble_results <- list(
+    "BestPair"         = best_pair,
+    "Weights"          = best_weights,
+    "PairLeaderboard"  = pair_board,
+    "EnsembleAccuracy" = ensemble_accuracy
+  )
+}
+
+ return_list <- list(
+  "Forecasts" = fc_tbl,
+  "Accuracy"  = accuracy_tbl
+)
+
+if (!is.null(ensemble_results)) {
+  return_list$Ensembles <- ensemble_results
+}
+
+return(return_list)
   
-  return(return_list)
   
+}
+
+
+
+# ---- Helpers for picking & building 2-model ensembles ----
+
+# Grid of convex weights (you can set step = 0.01 if you want it finer)
+.weight_grid <- function(step = 0.05) {
+  tibble(w1 = seq(0, 1, by = step)) %>% mutate(w2 = 1 - w1)
+}
+
+# Compute CV metrics for all pairs and pick the best pair + weights
+pick_best_pair_and_weights <- function(fc_tbl, # long: resample, .index, name, growth
+                                       step = 0.05) {
+  stopifnot("ACTUAL" %in% unique(fc_tbl$name))
+
+  wide <- fc_tbl %>%
+    select(resample, .index, name, growth) %>%
+    pivot_wider(names_from = name, values_from = growth)
+
+  model_names <- setdiff(names(wide), c("resample", ".index", "ACTUAL"))
+  if (length(model_names) < 2) {
+    cli::cli_abort("Need at least two candidate models to form an ensemble.")
+  }
+
+  pairs <- t(combn(model_names, 2)) %>%
+    as_tibble(.name_repair = "minimal") %>%
+    set_names(c("m1", "m2"))
+
+  # Average error correlation across resamples (for tie-breaking/info)
+  cor_tbl <- pairs %>%
+    rowwise() %>%
+    mutate(cor_mean = {
+      cors <- wide %>%
+        group_by(resample) %>%
+        summarize(
+          cor = suppressWarnings(
+            cor(
+              (.data[[m1]] - ACTUAL),
+              (.data[[m2]] - ACTUAL),
+              use = "complete.obs"
+            )
+          ),
+          .groups = "drop_last"
+        ) %>%
+        pull(cor)
+      mean(cors, na.rm = TRUE)
+    }) %>%
+    ungroup()
+
+  wg <- tibble(w1 = seq(0, 1, by = step)) %>% mutate(w2 = 1 - w1)
+
+  # For each pair & resample, pick the best convex weight on that resample
+  best_per_resample <- pairs %>%
+    rowwise() %>%
+    mutate(metrics = list({
+      wide %>%
+        group_by(resample) %>%
+        reframe(
+          wg,
+          ens  = w1 * .data[[m1]] + w2 * .data[[m2]],
+          rmse = yardstick::rmse_vec(truth = ACTUAL, estimate = ens)
+        ) %>%
+        group_by(resample) %>%
+        slice_min(rmse, with_ties = FALSE) %>%
+        ungroup()
+    })) %>%
+    ungroup()
+
+  summary_pairs <- best_per_resample %>%
+    mutate(
+      mean_rmse = purrr::map_dbl(metrics, ~ mean(.x$rmse, na.rm = TRUE)),
+      mean_w1   = purrr::map_dbl(metrics, ~ mean(.x$w1,  na.rm = TRUE)),
+      mean_w2   = purrr::map_dbl(metrics, ~ mean(.x$w2,  na.rm = TRUE))
+    ) %>%
+    select(m1, m2, mean_rmse, mean_w1, mean_w2) %>%
+    left_join(cor_tbl, by = c("m1","m2")) %>%
+    arrange(mean_rmse, abs(cor_mean))
+
+  best <- summary_pairs %>% slice(1)
+
+  list(
+    pair        = c(best$m1, best$m2),
+    weights     = c(best$mean_w1, best$mean_w2),
+    leaderboard = summary_pairs
+  )
+}
+
+
+# Build an ensemble series (long) from chosen pair + weights
+build_pair_ensemble_fc <- function(fc_tbl, pair, weights, label = NULL) {
+  label <- label %||% paste0("ENSEMBLE_", pair[1], "_", pair[2])
+
+  # Join the two model columns and ACTUAL for completeness (not required)
+  fc_tbl %>%
+    select(resample, .index, name, growth) %>%
+    filter(name %in% c(pair, "ACTUAL")) %>%
+    pivot_wider(names_from = name, values_from = growth) %>%
+    mutate("{label}" := weights[1] * .data[[ pair[1] ]] + weights[2] * .data[[ pair[2] ]]) %>%
+    select(resample, .index, "{label}") %>%
+    pivot_longer(-c(resample, .index), names_to = "name", values_to = "growth")
+}
+
+# Accuracy helper for any long-format forecast table (expects ACTUAL inside fc_tbl)
+accuracy_from_long <- function(fc_tbl, include_models = NULL) {
+  wide <- fc_tbl %>%
+    select(resample, .index, name, growth) %>%
+    pivot_wider(names_from = name, values_from = growth)
+
+  cols <- setdiff(names(wide), c("resample", ".index", "ACTUAL"))
+  if (!is.null(include_models)) cols <- intersect(cols, include_models)
+
+  wide %>%
+    pivot_longer(cols = all_of(cols), names_to = "name", values_to = "estimate") %>%
+    group_by(resample, name) %>%
+    summarize(rmse = yardstick::rmse_vec(truth = ACTUAL, estimate = estimate),
+              .groups = "drop") %>%
+    group_by(name) %>%
+    summarize(mean_rmse = mean(rmse, na.rm = TRUE), .groups = "drop") %>%
+    arrange(mean_rmse)
 }
