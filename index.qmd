@@ -2,7 +2,7 @@
 title: "Verðbólgugreining"
 format:
     dashboard:
-        theme: default
+        theme: flatly
         scrolling: false
         css: styles.css
 ---
@@ -46,8 +46,8 @@ vr_layout <- function(plot) {
 # Waterfall plot function
 waterfall_plot <- function(
   data,
-  value_col,                      # bare name: ahrif or ahrif_1m
-  category_col = undirflokkur,    # bare name of category
+  value_col,                      
+  category_col = undirflokkur,    
   title = "Framlag undirliða seinustu 12 mánuði",
   total_bar_title = "Verðbólga",
   color_pos = vr_litir[4],
@@ -56,10 +56,9 @@ waterfall_plot <- function(
   label_digits = 1,
   bar_width = 0.6,
   pad_frac = 0.02,
-  base_size = 12
+  base_size = 12,
+  flip = FALSE                    
 ) {
-
-  # 1) choose columns and apply *waterfall* ordering
   df <- data %>%
     transmute(
       category = {{ category_col }},
@@ -68,15 +67,13 @@ waterfall_plot <- function(
     mutate(sign_grp = case_when(value > 0 ~ 2L,
                                 value == 0 ~ 1L,
                                 TRUE ~ 0L)) %>%
-    arrange(desc(sign_grp), desc(value)) %>%   # +ve desc, then 0, then -ve desc (=> most negative last)
+    arrange(desc(sign_grp), desc(value)) %>%
     select(-sign_grp)
 
-  # 2) colors (computed *after* ordering)
   n_pos <- sum(df$value > 0, na.rm = TRUE)
   n_neg <- sum(df$value <= 0, na.rm = TRUE)
   waterfall_colors <- c(rep(color_pos, n_pos), rep(color_neg, n_neg))
 
-  # 3) running starts/ends for changes
   steps <- df %>%
     mutate(
       step  = row_number(),
@@ -88,7 +85,6 @@ waterfall_plot <- function(
       label = sprintf(paste0("%.", label_digits, "f%%"), value * 100)
     )
 
-  # 4) total
   total_val <- sum(df$value, na.rm = TRUE)
   total_row <- tibble(
     category = total_bar_title,
@@ -104,7 +100,6 @@ waterfall_plot <- function(
 
   plot_df <- bind_rows(steps, total_row)
 
-  # 5) label padding
   yrange <- max(plot_df$ymax, 0) - min(plot_df$ymin, 0)
   pad <- pad_frac * yrange
 
@@ -114,35 +109,58 @@ waterfall_plot <- function(
       vjust_lab = if_else(value >= 0, 0, 1)
     )
 
-  # 6) colors: one per change bar + total
   stopifnot(length(waterfall_colors) == nrow(df))
   fill_vec <- c(waterfall_colors, color_total)
   half_w <- bar_width / 2
 
-  ggplot(plot_df) +
+  p <- ggplot(plot_df) +
     geom_rect(
       aes(xmin = step - half_w, xmax = step + half_w,
           ymin = ymin, ymax = ymax,
           fill = factor(step)),
       color = NA
     ) +
-    geom_text(aes(x = step, y = y_lab, label = label, vjust = vjust_lab), size = 2.5) +
-    scale_x_continuous(
-      breaks = plot_df$step,
-      labels = plot_df$category,
-      expand = c(0.01, 0)
-    ) +
-    scale_y_continuous(expand = expansion(mult = c(0.02, 0.08))) +
+    geom_hline(yintercept = 0, color = "black", linewidth = 0.4) +  # <-- zero line
+    geom_text(aes(x = step, y = y_lab, label = label), size = 3.5) +
     scale_fill_manual(values = fill_vec, guide = "none") +
+    scale_y_continuous(expand = expansion(mult = c(0.02, 0.08))) +
     labs(x = NULL, y = NULL, title = title) +
     theme_minimal(base_size = base_size) +
     theme(
-      axis.text.y = element_blank(),
-      axis.text.x = element_text(angle = 90, hjust = 1, size = 7),
       plot.margin = margin(8, 8, 8, 8)
     ) +
     coord_cartesian(clip = "off")
+
+  if (flip) {
+    p <- p +
+      scale_x_continuous(
+        breaks = plot_df$step,
+        labels = plot_df$category,
+        expand = c(0.01, 0),
+        trans = "reverse"
+      ) +
+      coord_flip() +
+      theme(
+        axis.text.x = element_text(size = 9),
+        axis.text.y = element_text(size = 9)
+      )
+  } else {
+    p <- p +
+      scale_x_continuous(
+        breaks = plot_df$step,
+        labels = plot_df$category,
+        expand = c(0.01, 0)
+      ) +
+      theme(
+        axis.text.y = element_blank(),
+        axis.text.x = element_text(angle = 90, hjust = 1, size = 9)  
+      )
+  }
+
+  p
 }
+
+
 ```
 
 # Verðbólga
@@ -229,7 +247,6 @@ list(
 )
 ```
 
-
 ## Row
 
 ```{r, verðbólga-plot}
@@ -289,7 +306,6 @@ p3 <- data_ls$pbi_inflation_undirliggjandi |>
 vr_layout(p3)
 ```
 
-
 ```{r, verðbólga eftir uppruna}
 p4 <- data_ls$pbi_inflation_uppruni |> 
     ggplot(aes(date, delta, col = flokkur)) + 
@@ -306,15 +322,15 @@ p4 <- data_ls$pbi_inflation_uppruni |>
 vr_layout(p4)
 ```
 
-
 ## Row
 
 ::: callout-note
 ## Liðir undirliggjandi verðbólgu
-- **Kjarna­vísitala 1**: VNV án búvöru, grænmetis, ávaxta og bensíns  
-- **Kjarna­vísitala 2**: Kjarna­vísitala 1 án opinberrar þjónustu  
-- **Kjarna­vísitala 3**: Kjarna­vísitala 2 án áhrifa vaxtabreytinga á húsnæðisliði *(ekki reiknuð lengur)*  
-- **Kjarna­vísitala 4**: Kjarna­vísitala 2 án reiknaðrar húsaleigu
+
+-   **Kjarna­vísitala 1**: VNV án búvöru, grænmetis, ávaxta og bensíns\
+-   **Kjarna­vísitala 2**: Kjarna­vísitala 1 án opinberrar þjónustu\
+-   **Kjarna­vísitala 3**: Kjarna­vísitala 2 án áhrifa vaxtabreytinga á húsnæðisliði *(ekki reiknuð lengur)*\
+-   **Kjarna­vísitala 4**: Kjarna­vísitala 2 án reiknaðrar húsaleigu
 :::
 
 ```{r, froop}
@@ -336,75 +352,166 @@ p5 <- data_ls$pbi_inflation_froop |>
 vr_layout(p5)
 ```
 
-
-# Framlag undirliða seinustu 12 mánuði
+# Framlag undirliða 12m
 
 ```{r waterfall_12m, fig.width = 16, fig.height = 8}
 
 waterfall_plot(
   data_ls$pbi_inflation_waterfall,
   ahrif,
-  title = "Framlag undirliða seinustu 12 mánuði"
+  title = "Framlag undirliða seinustu 12 mánuði",
+  flip = TRUE
 )
 
 ```
 
-
-# Framlag undirliða seinasta mánuð
+# Framlag undirliða 1m
 
 ```{r, waterfal_1m, fig.width = 16, fig.height = 8}
 waterfall_plot(
   data_ls$pbi_inflation_waterfall,
   ahrif_1m,
-  title = "Framlag undirliða seinustu 12 mánuði"
+  title = "Framlag undirliða seinustu 12 mánuði",
+  flip = TRUE
 )
 
 ```
 
-
-# Undirflokkar
+# Undirflokkar 12m
 
 ```{r, undirflokkar_12m, fig.width = 16, fig.height = 8}
 data_ls$phi_inflation_undirflokkar |> 
     mutate(
-        merking = percent(value, accuracy = 0.1)
+        merking = percent(value, accuracy = 0.1),
+        merking_pos = if_else(value >= 0, value + 0.0075, value -0.0075)
         ) |> 
-    ggplot(aes(fct_reorder(name, -value),  value, label = merking)) + 
+    ggplot(aes(fct_reorder(name, -value),  value)) + 
     geom_col(fill = vr_litir[1]) + 
     geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
-    geom_text(vjust = -1, col = "grey50") + 
+    geom_text(aes(y = merking_pos, label = merking)) + 
     labs(
         x = NULL,
         y = NULL,
         title = "12 mánaða verðbólga undirliða"
     ) +
     theme_minimal() +
-    theme(
-        axis.text.x = element_text(angle = 45, hjust = 1, size = 7),
-        axis.text.y = element_blank()
-        #plot.margin = margin(t = 30, r = 10, b = 10, l = 10)
-    ) +
-    coord_cartesian(clip = "off")
+    coord_cartesian(clip = "off") +
+    coord_flip() +
+    scale_y_continuous(label = percent)
+
+```
+
+# Undirflokkar 1m
+
+```{r, undirflokkar_1m, fig.width = 16, fig.height = 8}
+data_ls$phi_inflation_undirflokkar_1m |>
+  mutate(
+    merking = percent(value, accuracy = 0.1),
+    merking_pos = if_else(value >= 0, value + 0.0075, value -0.0075)
+    ) |>
+  ggplot(aes(fct_reorder(name, -value), value)) +
+  geom_col(fill = vr_litir[1]) +
+  geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
+  geom_text(aes(y = merking_pos, label = merking)) + 
+  labs(x = NULL, y = NULL, title = "1 mánaða verðbólga undirliða") +
+  theme_minimal() +
+  coord_cartesian(clip = "off") +
+  coord_flip() +
+  scale_y_continuous(label = percent)
+
+```
+
+# Top 10 listinn
+
+## Row
+```{r top10_12m}
+p_top10_12m <- data_ls$top_12m |> 
+    mutate(
+        merking = percent(infl_12m, accuracy = 0.10),
+        merking_pos = if_else(infl_12m >= 0, infl_12m + 0.01, infl_12m - 0.01)
+    ) |> 
+    ggplot(aes(fct_reorder(flokkur, infl_12m), infl_12m)) +
+    geom_col(fill = vr_litir[1]) +
+    geom_text(aes(label = merking, y = merking_pos)) + 
+    theme_minimal() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Top 10 mestu hækkanir seinustu 12 mánuði"
+    ) + 
+    scale_y_continuous(labels = percent) + 
+    coord_flip()
+
+vr_layout(p_top10_12m)
 
 ```
 
 
-# Undirflokkar - breyting milli mánaða
-```{r, undirflokkar_1m, fig.width = 16, fig.height = 8}
-data_ls$phi_inflation_undirflokkar_1m |>
-  mutate(merking = percent(value, accuracy = 0.1)) |>
-  ggplot(aes(fct_reorder(name, -value), value, label = merking)) +
-  geom_col(fill = vr_litir[1]) +
-  geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
-  geom_text(vjust = -1, col = "grey50") +
-  labs(x = NULL, y = NULL, title = "1 mánaða verðbólga undirliða") +
-  theme_minimal() +
-  theme(
-    axis.text.x = element_text(angle = 90, hjust = 1, size = 7),
-    axis.text.y = element_blank()
-  ) +
-  coord_cartesian(clip = "off")
+```{r, bottom10_12m}
+p_botn_12m <- data_ls$botn_12m |> 
+    mutate(
+        merking = percent(infl_12m, accuracy = 0.10),
+        merking_pos = if_else(infl_12m >= 0, infl_12m + 0.01, infl_12m - 0.01)
+    ) |> 
+    ggplot(aes(fct_reorder(flokkur, infl_12m), infl_12m)) +
+    geom_col(fill = vr_litir[1]) +
+    geom_text(aes(label = merking, y = merking_pos)) + 
+    theme_minimal() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Top 10 minnstu hækkanir seinustu 12 mánuði"
+    ) + 
+    scale_y_continuous(labels = percent) + 
+    coord_flip()
 
+vr_layout(p_botn_12m)
+```
+
+
+## Row
+
+```{r, top10_1m}
+p_top10_1m <- data_ls$top_1m |> 
+    mutate(
+        merking = percent(infl_1m, accuracy = 0.10),
+        merking_pos = if_else(infl_1m >= 0, infl_1m + 0.01, infl_1m - 0.01)
+    ) |> 
+    ggplot(aes(fct_reorder(flokkur, infl_1m), infl_1m)) +
+    geom_col(fill = vr_litir[1]) +
+    geom_text(aes(label = merking, y = merking_pos)) + 
+    theme_minimal() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Top 10 mestu hækkanir milli mánaða"
+    ) + 
+    scale_y_continuous(labels = percent) + 
+    coord_flip()
+
+vr_layout(p_top10_1m)
+
+```
+
+```{r, botn10_1m}
+p_botn_1m <- data_ls$botn_1m |> 
+    mutate(
+        merking = percent(infl_1m, accuracy = 0.10),
+        merking_pos = if_else(infl_1m >= 0, infl_1m + 0.01, infl_1m - 0.01)
+    ) |> 
+    ggplot(aes(fct_reorder(flokkur, infl_1m), infl_1m)) +
+    geom_col(fill = vr_litir[1]) +
+    geom_text(aes(label = merking, y = merking_pos)) + 
+    theme_minimal() + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "Top 10 minnstu hækkanir milli mánaða"
+    ) + 
+    scale_y_continuous(labels = percent) + 
+    coord_flip()
+
+vr_layout(p_botn_1m)
 ```
 
 
@@ -484,7 +591,6 @@ list(
 
 ```
 
-
 ```{r, hicp_dk}
 #| content: valuebox
 #| title: "Danmörk"
@@ -503,7 +609,6 @@ list(
     value = hicp_dk_infl
 )
 ```
-
 
 ```{r, hicp_noregur}
 #| content: valuebox
@@ -524,7 +629,6 @@ list(
 )
 ```
 
-
 ```{r, hicp_svíþjóð}
 #| content: valuebox
 #| title: "Svíþjóð"
@@ -543,7 +647,6 @@ list(
     value = hicp_se_infl
 )
 ```
-
 
 ```{r, hicp_finnland}
 #| content: valuebox
@@ -564,7 +667,6 @@ list(
 )
 ```
 
-
 ```{r, hicp_EU}
 #| content: valuebox
 #| title: "Evrusvæðið"
@@ -584,7 +686,6 @@ list(
 )
 ```
 
-
 ## Row
 
 ```{r, hicp_12m}
@@ -596,13 +697,12 @@ p6 <- data_ls$pbi_inflation_hicp |>
     scale_color_manual(values = vr_litir) +
     labs(
         x = NULL,
-        y = NULL
+        y = NULL,
+        title = "12 mánaða verðbólga"
     )
 
 vr_layout(p6)
 ```
-
-
 
 ```{r, hicp_3m}
 date_from_3m_hicp <- floor_date(today(), "month") - years(2)
@@ -616,16 +716,17 @@ p7 <- data_ls$pbi_inflation_hicp |>
     scale_color_manual(values = vr_litir) +
     labs(
         x = NULL,
-        y = NULL
+        y = NULL,
+        title = "3ja mánaða verðbólga"
     )
 
 vr_layout(p7)
 ```
 
-
 # Samræmd vísitala - Undirflokkar
 
 ## Row
+
 ```{r, hicp_undirflokkar_12m}
 p8 <- data_ls$pbi_inflation_hicp_undirflokkar |> 
     mutate(
@@ -643,11 +744,11 @@ p8 <- data_ls$pbi_inflation_hicp_undirflokkar |>
         x = NULL,
         y = NULL,
         title = "Undirflokkar - 12 mánaða verðbólga"
-    )
+    ) +
+    scale_y_continuous(labels = percent)
 
 vr_layout(p8)
 ```
-
 
 ## Row
 
@@ -668,11 +769,11 @@ p9 <- data_ls$pbi_inflation_hicp_undirflokkar |>
         x = NULL,
         y = NULL,
         title = "Undirflokkar - 3ja mánaða verðbólga"
-    )
+    ) +
+    scale_y_continuous(labels = percent)
 
 vr_layout(p9)
 ```
-
 
 # Húsnæðismarkaðurinn
 
@@ -711,8 +812,8 @@ p11 <- data_ls$pbi_inflation_husnaaedisvextir |>
 vr_layout(p11)
 ```
 
-
 ## Row
+
 ```{r, ny_utlan}
 p12 <- data_ls$pbi_inflation_utlan_ny |> 
     ggplot(aes(date, value, fill = name)) + 
@@ -744,7 +845,6 @@ p13 <- data_ls$pbi_inflation_utlanastabbi |>
 
 vr_layout(p13)
 ```
-
 
 # Væntingar og gjaldeyrismarkaður
 
@@ -800,7 +900,6 @@ p16 <- data_ls$pbi_inflation_gengi |>
 
 vr_layout(p16)
 ```
-
 
 ```{r, inngrip_si}
 inngrip_use_tbl <- data_ls$pbi_inflation_inngrip |> 
@@ -877,7 +976,6 @@ p17_plotly |>
   )
 ```
 
-
 # Verðbólguspá
 
 ## Row
@@ -918,7 +1016,6 @@ list(
     value = fc_ls$verdbolguspa_valuebox$spa_12m
 )
 ```
-
 
 ```{r}
 #| content: valuebox
