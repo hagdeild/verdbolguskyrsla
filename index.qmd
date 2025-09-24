@@ -30,8 +30,8 @@ date_back_year <- floor_date(today(), "year") - months(12)
 
 # VR plot layout
 vr_layout <- function(plot) {
-  ggplotly(plot) |> 
-    layout(
+  plotly::ggplotly(plot) |>
+    plotly::layout(
       legend = list(
         title = list(text = ""),
         orientation = "h",
@@ -982,54 +982,52 @@ p17_plotly |>
 
 ```{r, verðbólguspá_valuebox_prep}
 # 12 mánaða spá
-fc_diff_tbl <- fc_ls$verdbolguspa |> 
-    filter(!name == "Söguleg") |> 
+fc_diff <- fc_ls$verdbolguspa |> 
+    filter(name %in% c("Söguleg", "Skammtíma")) |> 
     arrange(date, name) |> 
-    group_by(name) |> 
     mutate(diff = value - lag(value)) |> 
-    drop_na() |> 
+    drop_na() |>
+    filter(name == "Skammtíma") |> 
     filter(date == min(date)) |> 
-    ungroup()
+    pull(diff)
 
-sum_fc_diff <- sum(fc_diff_tbl$diff > 0)
 
 # 1 mánaða spá
-fc_1m <- str_extract_all(fc_ls$verdbolguspa_valuebox$spa_1m, "-?\\d+\\.\\d+")[[1]] |> as.numeric()
-sum_fc_1m_diff <- sum(fc_1m > 0)
+fc_1m_diff <- parse_number(fc_ls$verdbolguspa_valuebox$spa_1m) / 100
 ```
 
-```{r}
+```{r, fc_valuebox_next_month}
 #| content: valuebox
 #| title: "Verðbólguspá næsta mánaðar"
 list(
     icon = case_when(
-        sum_fc_diff == 2 ~ "arrow-up",
-        sum_fc_diff == 1 ~ "dash",
+        fc_diff > 0 ~ "arrow-up",
+        fc_diff == 0 ~ "dash",
         TRUE ~ "arrow-down"
         ),
     color = 
         case_when(
-        sum_fc_diff == 2 ~ valuebox_litir[2],
-        sum_fc_diff == 1 ~ valuebox_litir[3],
+        fc_diff > 0 ~ valuebox_litir[2],
+        fc_diff == 0 ~ valuebox_litir[3],
         TRUE ~ valuebox_litir[1]
         ),
     value = fc_ls$verdbolguspa_valuebox$spa_12m
 )
 ```
 
-```{r}
+```{r, fc_valuebox}
 #| content: valuebox
 #| title: "Verðbólguspá - Hækkun milli mánaða"
 list(
     icon = case_when(
-        sum_fc_1m_diff == 2 ~ "arrow-up",
-        sum_fc_1m_diff == 1 ~ "dash",
+        fc_1m_diff > 0 ~ "arrow-up",
+        fc_1m_diff == 0 ~ "dash",
         TRUE ~ "arrow-down"
         ),
     color = 
         case_when(
-        sum_fc_1m_diff == 2 ~ valuebox_litir[2],
-        sum_fc_1m_diff == 1 ~ valuebox_litir[3],
+        fc_1m_diff > 0 ~ valuebox_litir[2],
+        fc_1m_diff == 0 ~ valuebox_litir[3],
         TRUE ~ valuebox_litir[1]
         ),
     value = fc_ls$verdbolguspa_valuebox$spa_1m
@@ -1039,17 +1037,72 @@ list(
 ## Row
 
 ```{r verðbólguspá}
-p18 <- fc_ls$verdbolguspa |> 
-    ggplot(aes(date, value, col = name)) + 
-    geom_line() + 
-    labs(
-        x = NULL,
-        y = NULL,
-        title = "Verðbólguspá"
-    ) +
-    scale_y_continuous(labels = percent) +
-    theme_minimal() +
-    scale_color_manual(values = vr_litir[c(2, 4, 1)])
+fc_litir <- c(
+    vr_litir[c(8, 7, 3)],
+    # Landsbankinn
+    "#00436c",
+    # Íslandsbanki
+    "#dc1d37" 
+)
+
+name_levels <- fc_ls$verdbolguspa |>
+  distinct(name) |>
+  pull(name) |>
+  unique()
+
+# build a named color vector for everything:
+# fc_litir can be named or unnamed; we force names to match `name_levels`
+cols_all <- c(setNames(fc_litir, name_levels),
+              "Seðlabankinn" = "#004864")
+
+breaks_all <- c(name_levels, "Seðlabankinn")
+
+# p18 <- fc_ls$verdbolguspa |>
+#   ggplot(aes(date, value)) +
+#   geom_line(aes(color = name)) +
+#   geom_point(aes(y = `Seðlabankinn`, color = "Seðlabankinn"),
+#              na.rm = TRUE) +
+#   labs(
+#     x = NULL, y = NULL,
+#     title = "Verðbólguspá",
+#     color = "Uppruni"
+#   ) +
+#   scale_y_continuous(labels = percent) +
+#   theme_minimal() +
+#   scale_color_manual(values = cols_all,
+#                      breaks = breaks_all,
+#                      drop = FALSE)
+
+
+# vr_layout(p18)
+
+p18 <- fc_ls$verdbolguspa |>
+  mutate(
+    value_label = scales::percent(value, accuracy = 0.01),
+    sedlabanki_label = ifelse(is.na(`Seðlabankinn`), NA,
+                              scales::percent(`Seðlabankinn`, accuracy = 0.01))
+  ) |>
+  ggplot(aes(date, value)) +
+  geom_line(aes(color = name,
+                group = name,                      # <-- keep paths intact
+                text  = paste0(name, "<br>", date, "<br>", value_label))) +
+  geom_point(
+    aes(y = `Seðlabankinn`, color = "Seðlabankinn",
+        text = paste0("Seðlabankinn<br>", date, "<br>", sedlabanki_label)),
+    na.rm = TRUE
+  ) +
+  labs(x = NULL, y = NULL, title = "Verðbólguspá", color = "Uppruni") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal() +
+  scale_color_manual(values = cols_all, breaks = breaks_all, drop = FALSE)
+
+vr_layout <- function(plot) {
+  plotly::ggplotly(plot, tooltip = "text") |>
+    plotly::layout(
+      legend = list(title = list(text = ""), orientation = "h",
+                    y = -0.2, x = 0.5, xanchor = "center")
+    )
+}
 
 vr_layout(p18)
 ```

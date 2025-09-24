@@ -603,7 +603,7 @@ get_univariate_forecasts <- function(
 
   # Get the most accurate one
   best_model <- final_accuracy_tbl |>
-    slice_head(n = 3) |>
+    slice_head(n = 1) |>
     pull(name)
 
   best_future_fc_tbl <- future_ensemble_tbl |>

@@ -3,7 +3,7 @@
 # SETUP ----
 library(tidyverse)
 
-#source("R/get_univar_function.R")
+source("R/get_univar_function.R")
 #source("R/neuralforecast.R")
 
 # Data ----
@@ -63,8 +63,8 @@ full_vnv_tbl <- full_vnv_tbl |>
 # Best univariate ----
 fc_best_ls <- get_univariate_forecasts(
   data = vnv_tbl,
-  horizon = 12,
-  slice_limit = 4,
+  horizon = 3,
+  slice_limit = 10,
   ensembles = NULL
 )
 

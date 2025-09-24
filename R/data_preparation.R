@@ -1186,49 +1186,48 @@ top_12m_tbl <- infl_allir_flokkar_tbl |>
   select(flokkur, infl_12m)
 
 
-top_tbl <-
-  # 12.0.0 Vista ----
+# 12.0.0 Vista ----
 
-  list(
-    # Verðbólga
-    pbi_inflation_verdbolga = vnv_tbl,
-    pbi_inflation_verdbolga_valuebox = valuebox_verdbolga,
+list(
+  # Verðbólga
+  pbi_inflation_verdbolga = vnv_tbl,
+  pbi_inflation_verdbolga_valuebox = valuebox_verdbolga,
 
-    # Undirliggjandi
-    pbi_inflation_undirliggjandi = undirliggjandi_tbl,
-    pbi_inflation_uppruni = edli_og_uppruna_tbl,
-    pbi_inflation_froop = froop_tbl,
+  # Undirliggjandi
+  pbi_inflation_undirliggjandi = undirliggjandi_tbl,
+  pbi_inflation_uppruni = edli_og_uppruna_tbl,
+  pbi_inflation_froop = froop_tbl,
 
-    # Framlag undirliða
-    pbi_inflation_waterfall = undirflokkar_latest_tbl,
-    phi_inflation_undirflokkar = undirflokkar_12m_tbl,
-    phi_inflation_undirflokkar_1m = undirflokkar_1m_tbl,
+  # Framlag undirliða
+  pbi_inflation_waterfall = undirflokkar_latest_tbl,
+  phi_inflation_undirflokkar = undirflokkar_12m_tbl,
+  phi_inflation_undirflokkar_1m = undirflokkar_1m_tbl,
 
-    # HICP
-    pbi_inflation_hicp = hicp_pbi_tbl,
-    pbi_inflation_hicp_undirflokkar = hicp_undirflokkar_tbl,
-    pbi_inflation_hicp_valuebox = hicp_valuebox_tbl,
+  # HICP
+  pbi_inflation_hicp = hicp_pbi_tbl,
+  pbi_inflation_hicp_undirflokkar = hicp_undirflokkar_tbl,
+  pbi_inflation_hicp_valuebox = hicp_valuebox_tbl,
 
-    # Húsnæðisverð
-    pbi_inflation_husnaedisverd = hus_unnid_tbl,
-    pbi_inflation_husnaaedisvextir = vextir_tbl,
+  # Húsnæðisverð
+  pbi_inflation_husnaedisverd = hus_unnid_tbl,
+  pbi_inflation_husnaaedisvextir = vextir_tbl,
 
-    # Útlán
-    pbi_inflation_utlanastabbi = utlan_stada_tbl,
-    pbi_inflation_utlan_ny = ny_utlan_tbl,
+  # Útlán
+  pbi_inflation_utlanastabbi = utlan_stada_tbl,
+  pbi_inflation_utlan_ny = ny_utlan_tbl,
 
-    # Gengi og væntingar
-    #pbi_inflation_skuldabref = combined_bonds_over_time,
-    pbi_inflation_vaentingar = infl_exp_tbl,
-    pbi_inflation_vaentingar_skuldabrefamarkadur = infl_exp_breakeven_tbl,
-    pbi_inflation_gengi = gengi_tbl,
-    pbi_inflation_inngrip = inngrip_si_tbl,
+  # Gengi og væntingar
+  #pbi_inflation_skuldabref = combined_bonds_over_time,
+  pbi_inflation_vaentingar = infl_exp_tbl,
+  pbi_inflation_vaentingar_skuldabrefamarkadur = infl_exp_breakeven_tbl,
+  pbi_inflation_gengi = gengi_tbl,
+  pbi_inflation_inngrip = inngrip_si_tbl,
 
-    # Top listinn
-    botn_1m = botn_1m_tbl,
-    botn_12m = botn_12m_tbl,
-    top_1m = top_1m_tbl,
-    top_12m = top_12m_tbl
-  ) |>
+  # Top listinn
+  botn_1m = botn_1m_tbl,
+  botn_12m = botn_12m_tbl,
+  top_1m = top_1m_tbl,
+  top_12m = top_12m_tbl
+) |>
 
   write_rds("data/final_data.rds")
