@@ -1017,7 +1017,7 @@ list(
 
 ```{r, fc_valuebox}
 #| content: valuebox
-#| title: "Verðbólguspá - Hækkun milli mánaða"
+#| title: "Verðbólguspá - Breyting milli mánaða"
 list(
     icon = case_when(
         fc_1m_diff > 0 ~ "arrow-up",
