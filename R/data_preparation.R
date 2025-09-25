@@ -1146,7 +1146,11 @@ cpi_detailed <- cpi_leaf %>%
   filter(!is.na(code), code %in% leaf_codes) %>%
   mutate(
     flokkur = stringr::str_remove(flokkur, "^\\d+\\s+"),
-    # = readr::parse_number(flokkur)
+    flokkur = case_when(
+      code == "01221" ~ "Vatn (drykkjarvörur)",
+      code == "0443" ~ "Vatn (innan heimilis)",
+      TRUE ~ flokkur
+    )
   ) %>%
   select(date, flokkur, visitala) |>
   mutate(visitala = as.numeric(visitala))
