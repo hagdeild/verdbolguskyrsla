@@ -595,31 +595,13 @@ hus_unnid_tbl <- hus_tbl %>%
 
 # 6.3.0 Vextir ------------------------------------------------------------
 
-print("Sæki vexti af heimasíðu Seðlabankans")
-
-url <- "https://sedlabanki.is/library?itemid=93002694-2f52-4209-bf1c-48f2893845f7&type=xls"
-
-temp_file <- tempfile(fileext = ".xlsx")
-
-curl::curl_download(url, temp_file)
-
-vextir_tbl <- readxl::read_xls(temp_file, skip = 9) %>%
-  select(5, 8) %>%
-  set_names("Óverðtryggðir", "Verðtryggðir") %>%
+# Vextir bankanna
+vextir_tbl <- readxl::read_excel(data_path, sheet = "vextir") |>
   mutate(
+    date = date(date),
     Óverðtryggðir = Óverðtryggðir / 100,
     Verðtryggðir = Verðtryggðir / 100
-  ) %>%
-  drop_na()
-
-vextir_date <- seq.Date(
-  from = as.Date("2003-01-01"),
-  length.out = nrow(vextir_tbl),
-  by = "month"
-)
-
-vextir_tbl <- vextir_tbl %>%
-  mutate(date = vextir_date) |>
+  ) |>
   filter(date >= date_from)
 
 
@@ -730,7 +712,7 @@ utlan_stada_tbl <- bankakerfi_tbl %>%
 # Lífeyrissjóðir
 lif_ny_utlan <- read_excel(data_path, "lif_ny_utlan") |>
   slice(4, 5) |>
-  select(-c(1, 2)) |>
+  select(-c(1)) |>
   mutate(key = c("vtr", "ovtr")) |>
   pivot_longer(cols = -key) |>
   select(-name) |>
