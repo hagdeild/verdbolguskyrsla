@@ -427,7 +427,8 @@ data_ls$hitakort |>
     ) +
     labs(
         x = NULL,
-        y = NULL
+        y = NULL,
+        title = "Umfang verðhækkana - Hlutfall af neyslukörfu VNV flokkað eftir árshækkun."
     ) +
     scale_y_continuous(labels = percent)
 
