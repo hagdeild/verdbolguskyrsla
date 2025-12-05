@@ -1172,7 +1172,88 @@ top_12m_tbl <- infl_allir_flokkar_tbl |>
   select(flokkur, infl_12m)
 
 
-# 12.0.0 Vista ----
+# 12.0.0 Umfang verðhækkana ----
+manudir_tbl <-
+  tibble(
+    manudur = c(
+      "Janúar",
+      "Febrúar",
+      "Mars",
+      "Apríl",
+      "Maí",
+      "Júní",
+      "Júlí",
+      "Ágúst",
+      "September",
+      "Október",
+      "Nóvember",
+      "Desember"
+    ),
+    man_no = 1:12
+  )
+
+vnv_vog_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/b5f484a5-9fe9-4e4a-9162-7af35d97e5b8"
+) |>
+  janitor::clean_names()
+
+vnv_vog_tbl <- vnv_vog_tbl |>
+  separate_wider_delim(timi, delim = " ", names = c("manudur", "ar")) |>
+  left_join(manudir_tbl) |>
+  mutate(date = make_date(ar, man_no)) |>
+  select(date, undirvisitala, visitala_neysluverds) |>
+  set_names("date", "flokkur", "vog") |>
+  mutate(flokkur = str_remove(flokkur, "^\\d+\\s*"))
+
+infl_umfang_tbl <- cpi_detailed |>
+  mutate(date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))) |>
+  arrange(date, flokkur) |>
+  group_by(flokkur) |>
+  mutate(
+    infl = visitala / lag(visitala, 12) - 1
+  ) |>
+  ungroup() |>
+  drop_na()
+
+
+infl_umfang_tbl <- infl_umfang_tbl |>
+  left_join(vnv_vog_tbl) |>
+  group_by(flokkur) |>
+  fill(vog, .direction = "down") |>
+  filter(date >= "2020-01-01") |>
+  mutate(
+    vog = as.numeric(vog),
+    haekkanir = case_when(
+      infl < 0 ~ "Verðlækkun",
+      infl < 0.025 ~ "0-2,5%",
+      infl < 0.05 ~ "2,5-5%",
+      infl < 0.075 ~ "5-7,5%",
+      infl < 0.1 ~ "7,5%-10%",
+      TRUE ~ "Meira en 10%"
+    )
+  ) |>
+  group_by(date) |>
+  mutate(vog = vog / sum(vog, na.rm = TRUE)) |>
+  group_by(date, haekkanir) |>
+  summarise(vaegi = sum(vog, na.rm = TRUE)) |>
+  ungroup()
+
+infl_umfang_tbl <- infl_umfang_tbl |>
+  mutate(
+    haekkanir = factor(
+      haekkanir,
+      levels = c(
+        "Meira en 10%",
+        "7,5%-10%",
+        "5-7,5%",
+        "2,5-5%",
+        "0-2,5%",
+        "Verðlækkun"
+      )
+    )
+  )
+
+# x.0.0 Vista ----
 
 list(
   # Verðbólga
@@ -1213,7 +1294,10 @@ list(
   botn_1m = botn_1m_tbl,
   botn_12m = botn_12m_tbl,
   top_1m = top_1m_tbl,
-  top_12m = top_12m_tbl
+  top_12m = top_12m_tbl,
+
+  # hitakort
+  hitakort = infl_umfang_tbl
 ) |>
 
   write_rds("data/final_data.rds")

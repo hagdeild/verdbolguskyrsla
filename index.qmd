@@ -24,6 +24,17 @@ valuebox_litir <- c("#2E7D6E", "#E57373", "#F9A825")
 
 # Date
 date_back_year <- floor_date(today(), "year") - months(12)
+
+
+# inflation colors
+inflation_colors <- c(
+  "Meira en 10%" = "#d73027",      # Dark red
+  "7,5%-10%" = "#fc8d59",          # Orange
+  "5-7,5%" = "#fee090",            # Light orange/yellow
+  "2,5-5%" = "#e0f3f8",            # Light blue
+  "0-2,5%" = "#91bfdb",            # Medium blue
+  "Verðlækkun" = "#4575b4"         # Dark blue/green
+)
 ```
 
 ```{r, hjalparfoll}
@@ -377,27 +388,48 @@ waterfall_plot(
 
 ```
 
-# Undirflokkar 12m
 
 ```{r, undirflokkar_12m, fig.width = 16, fig.height = 8}
-data_ls$phi_inflation_undirflokkar |> 
-    mutate(
-        merking = percent(value, accuracy = 0.1),
-        merking_pos = if_else(value >= 0, value + 0.0075, value -0.0075)
-        ) |> 
-    ggplot(aes(fct_reorder(name, -value),  value)) + 
-    geom_col(fill = vr_litir[1]) + 
-    geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
-    geom_text(aes(y = merking_pos, label = merking)) + 
+# Undirflokkar 12m
+# data_ls$phi_inflation_undirflokkar |> 
+#     mutate(
+#         merking = percent(value, accuracy = 0.1),
+#         merking_pos = if_else(value >= 0, value + 0.0075, value -0.0075)
+#         ) |> 
+#     ggplot(aes(fct_reorder(name, -value),  value)) + 
+#     geom_col(fill = vr_litir[1]) + 
+#     geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
+#     geom_text(aes(y = merking_pos, label = merking)) + 
+#     labs(
+#         x = NULL,
+#         y = NULL,
+#         title = "12 mánaða verðbólga undirliða"
+#     ) +
+#     theme_minimal() +
+#     coord_cartesian(clip = "off") +
+#     coord_flip() +
+#     scale_y_continuous(label = percent)
+
+```
+
+
+# Hitakort
+
+```{r hitakort, fig.width = 16, fig.height = 8}
+data_ls$hitakort |>
+    ungroup() |>
+    ggplot(aes(date, vaegi, fill = haekkanir)) +
+    geom_col() +
+    scale_fill_manual(values = inflation_colors) +
+    theme_minimal() +
+    theme(
+        legend.title = element_blank()
+    ) +
     labs(
         x = NULL,
-        y = NULL,
-        title = "12 mánaða verðbólga undirliða"
+        y = NULL
     ) +
-    theme_minimal() +
-    coord_cartesian(clip = "off") +
-    coord_flip() +
-    scale_y_continuous(label = percent)
+    scale_y_continuous(labels = percent)
 
 ```
 
