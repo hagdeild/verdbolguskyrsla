@@ -420,6 +420,16 @@ data_ls$hitakort |>
     ungroup() |>
     ggplot(aes(date, vaegi, fill = haekkanir)) +
     geom_col() +
+    geom_text(
+        data = ~filter(.x, date == max(date)),
+        aes(
+            x = max(date) + 30,  # Position 30 days after the last bar
+            label = scales::percent(vaegi, accuracy = 0.1)
+        ),
+        position = position_stack(vjust = 0.5),
+        hjust = 0,
+        size = 4
+    )+ 
     scale_fill_manual(values = inflation_colors) +
     theme_minimal() +
     theme(
