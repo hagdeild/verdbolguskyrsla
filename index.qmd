@@ -837,6 +837,9 @@ p9 <- data_ls$pbi_inflation_hicp_undirflokkar |>
 vr_layout(p9)
 ```
 
+# Alþjóðlegur samanburður
+
+
 # Húsnæðismarkaðurinn
 
 ## Row

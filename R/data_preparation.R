@@ -9,7 +9,8 @@ library(zoo)
 library(rvest)
 library(readxl)
 library(here)
-
+library(isocountry)
+library(OECD)
 
 # 1.1.0 Functions ----
 fix_date <- function(data) {
@@ -23,7 +24,7 @@ date_from <- floor_date(today() - years(5), "month")
 data_path <- here("data/verdbolguskyrsla_data.xlsx")
 exp_path <- here("data/Verdbolguvaentingar-a-mismunandi-maelikvarda.xlsx")
 
-# 2.0.0 - DATA - ----------------------------------------------------------
+# 2.0.0 Verðbólga ----
 
 # 2.1.0 Verðbólga með og án húsnæðis --------------------------------------
 vnv_tbl <- read_csv2(
@@ -1252,6 +1253,83 @@ infl_umfang_tbl <- infl_umfang_tbl |>
       )
     )
   )
+
+
+# 13.0.0 Alþjóðlegur samanburður ----
+
+# fredr_set_key(Sys.getenv("FRED_API_KEY"))
+
+# # All 38 OECD member country codes
+# oecd_countries <- c(
+#   "AUS",
+#   "AUT",
+#   "BEL",
+#   "CAN",
+#   "CHL",
+#   "COL",
+#   "CRI",
+#   "CZE",
+#   "DNK",
+#   "EST",
+#   "FIN",
+#   "FRA",
+#   "DEU",
+#   "GRC",
+#   "HUN",
+#   "ISL",
+#   "IRL",
+#   "ISR",
+#   "ITA",
+#   "JPN",
+#   "KOR",
+#   "LVA",
+#   "LTU",
+#   "LUX",
+#   "MEX",
+#   "NLD",
+#   "NZL",
+#   "NOR",
+#   "POL",
+#   "PRT",
+#   "SVK",
+#   "SVN",
+#   "ESP",
+#   "SWE",
+#   "CHE",
+#   "TUR",
+#   "GBR",
+#   "USA"
+# )
+
+# # Build series IDs
+# series_ids <- paste0(oecd_countries, "CPIALLMINMEI")
+
+# # Fetch all series (with error handling for any missing)
+# cpi_data_raw_tbl <- map_dfr(
+#   series_ids,
+#   possibly(
+#     ~ {
+#       fredr(
+#         series_id = .x,
+#         observation_start = as.Date("2020-01-01")
+#       ) |>
+#         mutate(country = str_sub(.x, 1, 3))
+#     },
+#     otherwise = NULL
+#   )
+# )
+
+# # Clean up
+# cpi_data_tbl <- cpi_data_raw_tbl |>
+#   select(country, date, cpi_index = value)
+
+# # 12 mánaða verðbólga
+# cpi_data_tbl |>
+#   arrange(country, date) |>
+#   group_by(country) |>
+#   mutate(inflation = cpi_index / lag(cpi_index, 12) - 1) |>
+#   #ungroup() |>
+#   filter(date == max(date))
 
 # x.0.0 Vista ----
 
