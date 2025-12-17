@@ -345,20 +345,39 @@ vr_layout(p4)
 :::
 
 ```{r, froop}
-p5 <- data_ls$pbi_inflation_froop |> 
-    select(date, froop, non_froop, verdbolga) |> 
-    set_names("date", "Keypt oft", "Keypt sjaldan", "Verbólga") |> 
-    pivot_longer(cols = -date) |> 
-    ggplot(aes(date, value, col = name)) + 
-    geom_line() + 
-    labs(
-        x = NULL,
-        y = NULL,
-        title = "Verðbólga eftir því hvort vara er keypt oft eða ekki"
-    ) +
-    theme_minimal() +
-    scale_color_manual(values = vr_litir) +
-    scale_y_continuous(labels = percent)
+froop_tbl <- data_ls$pbi_inflation_froop |>
+  select(date, froop, non_froop, verdbolga) |>
+  set_names("date", "Keypt oft", "Keypt sjaldan", "Verbólga") |>
+  pivot_longer(cols = -date)
+
+yr <- range(froop_tbl$value, na.rm = TRUE)
+yr[1] <- 0
+
+p5 <- ggplot(froop_tbl, aes(date, value, col = name)) +
+  annotate(
+    "rect",
+    xmin = as.Date("2024-08-01"),
+    xmax = as.Date("2025-09-01"),
+    ymin = yr[1],
+    ymax = yr[2],
+    fill = "grey80",
+    alpha = 0.3
+  ) +
+  annotate(
+  "text",
+  x = as.Date("2025-01-01"),
+  y = yr[2] - 0.05 * diff(yr),
+  label = str_wrap("Áhrif niðurfellingar á skólamáltíðum", width = 25),
+  hjust = 0,
+  vjust = 1,
+  colour = "grey30",
+  size = 4
+  ) + 
+  geom_line() +
+  labs(x = NULL, y = NULL, title = "Verðbólga eftir því hvort vara er keypt oft eða ekki") +
+  theme_minimal() +
+  scale_color_manual(values = vr_litir) +
+  scale_y_continuous(labels = percent)
 
 vr_layout(p5)
 ```
@@ -474,13 +493,13 @@ p_top10_12m <- data_ls$top_12m |>
         merking_pos = if_else(infl_12m >= 0, infl_12m + 0.01, infl_12m - 0.01)
     ) |> 
     ggplot(aes(fct_reorder(flokkur, infl_12m), infl_12m)) +
-    geom_col(fill = vr_litir[1]) +
+    geom_col(fill = valuebox_litir[2]) +
     geom_text(aes(label = merking, y = merking_pos)) + 
     theme_minimal() + 
     labs(
         x = NULL,
         y = NULL,
-        title = "Top 10 mestu hækkanir seinustu 12 mánuði"
+        title = "Mestu hækkanir seinustu 12 mánuði"
     ) + 
     scale_y_continuous(labels = percent) + 
     coord_flip()
@@ -497,13 +516,13 @@ p_botn_12m <- data_ls$botn_12m |>
         merking_pos = if_else(infl_12m >= 0, infl_12m + 0.01, infl_12m - 0.01)
     ) |> 
     ggplot(aes(fct_reorder(flokkur, infl_12m), infl_12m)) +
-    geom_col(fill = vr_litir[1]) +
+    geom_col(fill = valuebox_litir[1]) +
     geom_text(aes(label = merking, y = merking_pos)) + 
     theme_minimal() + 
     labs(
         x = NULL,
         y = NULL,
-        title = "Top 10 minnstu hækkanir seinustu 12 mánuði"
+        title = "Mestu lækkanir seinustu 12 mánuði"
     ) + 
     scale_y_continuous(labels = percent) + 
     coord_flip()
@@ -521,13 +540,13 @@ p_top10_1m <- data_ls$top_1m |>
         merking_pos = if_else(infl_1m >= 0, infl_1m + 0.01, infl_1m - 0.01)
     ) |> 
     ggplot(aes(fct_reorder(flokkur, infl_1m), infl_1m)) +
-    geom_col(fill = vr_litir[1]) +
+    geom_col(fill = valuebox_litir[2]) +
     geom_text(aes(label = merking, y = merking_pos)) + 
     theme_minimal() + 
     labs(
         x = NULL,
         y = NULL,
-        title = "Top 10 mestu hækkanir milli mánaða"
+        title = "Mestu hækkanir milli mánaða"
     ) + 
     scale_y_continuous(labels = percent) + 
     coord_flip()
@@ -543,13 +562,13 @@ p_botn_1m <- data_ls$botn_1m |>
         merking_pos = if_else(infl_1m >= 0, infl_1m + 0.01, infl_1m - 0.01)
     ) |> 
     ggplot(aes(fct_reorder(flokkur, infl_1m), infl_1m)) +
-    geom_col(fill = vr_litir[1]) +
+    geom_col(fill = valuebox_litir[1]) +
     geom_text(aes(label = merking, y = merking_pos)) + 
     theme_minimal() + 
     labs(
         x = NULL,
         y = NULL,
-        title = "Top 10 minnstu hækkanir milli mánaða"
+        title = "Mestu lækkanir milli mánaða"
     ) + 
     scale_y_continuous(labels = percent) + 
     coord_flip()
