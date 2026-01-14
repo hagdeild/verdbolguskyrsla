@@ -72,7 +72,8 @@ valuebox_verdbolga <- vnv_tbl %>%
 # 2.2.0 Innlend og erlend verðbólga ---------------------------------------
 
 innlend_innflutt_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/0078e607-b594-47e8-baf4-4bb71c78fecf",
+  "https://px.hagstofa.is:443/pxis/sq/efeec1b8-11a5-402c-b747-99fe8ab61bec",
+  na = "."
 ) %>%
   set_names("date", "flokkur", "visitala", "weight")
 
@@ -96,6 +97,7 @@ innlend_innflutt_tbl <- innlend_innflutt_tbl %>%
 
 
 innlend_innflutt_tbl <- innlend_innflutt_tbl %>%
+  drop_na() |>
   group_by(date, flokkur_2) %>%
   mutate(
     new_weight = weight / sum(weight),
@@ -117,8 +119,10 @@ innlend_innflutt_nov_tbl <- innlend_innflutt_tbl %>%
 # 2.3.0 Verðbólga eftir eðli og uppruna -----------------------------------
 
 edli_og_uppruna_raw_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/0403e9bc-5ac4-4623-8794-7c6b3bc29161",
+  "https://px.hagstofa.is:443/pxis/sq/efeec1b8-11a5-402c-b747-99fe8ab61bec",
+  na = "."
 ) %>%
+  drop_na() |>
   set_names("date", "flokkur", "value", "weight") %>%
   mutate(
     value = value / 10,
@@ -172,18 +176,17 @@ edli_og_uppruna_tbl <- edli_og_uppruna_tbl %>%
 # 2.4.0 Undirliggjandi verðbólga ------------------------------------------
 
 undirliggjandi_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/a70b5bba-ab47-4232-b0a0-61f2cda36aaa",
+  "https://px.hagstofa.is:443/pxis/sq/137a4f3a-738e-4637-b15a-315d533aef39",
   na = "."
 ) %>%
+  drop_na() |>
   set_names(
     "date",
     "Vísitala neysluverðs",
     "Kjarnavísitala 1",
     "Kjarnavísitala 2",
-    "Kjarnavísitala 3",
     "Kjarnavísitala 4"
-  ) %>%
-  select(-`Kjarnavísitala 3`)
+  )
 
 
 undirliggjandi_tbl <- undirliggjandi_tbl %>%
