@@ -299,15 +299,62 @@ undirliggjandi_tbl <-
 # Based on this: https://www.r-bloggers.com/2019/05/basic-waterfall-graphs-in-r/
 # https://rpubs.com/techanswers88/waterfall-chart-ggplot
 
-# 3.1.Ö Vísitölugildi ----
-undirflokkar_raw_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/23334db3-e8af-4dd6-bbf7-798d15fe4562",
+# 3.1.0 Vísitölugildi ----
+
+# 3.1.1 eldra ----
+undirflokkar_raw_old_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/ea481531-344b-45ba-b5bf-90f45bb08022",
   na = ".."
 ) %>%
   janitor::clean_names() %>%
   fix_date() %>%
   select(-manudur) %>%
   set_names("undirflokkur", "visitala", "date")
+
+# 3.1.2 nýtt ----
+
+undirflokkar_raw_new_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/508c7a25-db4b-4701-8fce-c6c6e51d4db1",
+  na = "."
+) |>
+  janitor::clean_names() %>%
+  fix_date() %>%
+  select(-c(manudur, lidur)) %>%
+  set_names("undirflokkur", "visitala", "date")
+
+
+# 3.1.3 sameina raw undirflokka ----
+
+# Find the overlap date (first month in new data that exists in old data)
+overlap_date <- min(undirflokkar_raw_new_tbl$date)
+
+# Calculate rebasing factors for each undirflokkur
+# Factor = old_visitala / new_visitala at overlap date
+rebase_factors <- undirflokkar_raw_old_tbl %>%
+  filter(date == overlap_date) %>%
+  select(undirflokkur, visitala_old = visitala) %>%
+  inner_join(
+    undirflokkar_raw_new_tbl %>%
+      filter(date == overlap_date) %>%
+      select(undirflokkur, visitala_new = visitala),
+    by = "undirflokkur"
+  ) %>%
+  mutate(factor = visitala_old / visitala_new) %>%
+  select(undirflokkur, factor)
+
+# Rebase new data and combine
+undirflokkar_raw_tbl <- bind_rows(
+  # Old data up to (but not including) the overlap date
+  undirflokkar_raw_old_tbl %>% filter(date < overlap_date),
+  # New data from overlap date onwards, rebased to old index
+  undirflokkar_raw_new_tbl %>%
+    left_join(rebase_factors, by = "undirflokkur") %>%
+    mutate(
+      factor = replace_na(factor, 1),
+      visitala = visitala * factor
+    ) %>%
+    select(-factor)
+)
 
 
 # Bý til undirflokka án númers og vel þá undirflokka sem ég vil
@@ -329,19 +376,49 @@ undirflokkar_tbl <- undirflokkar_raw_tbl %>%
 
 
 # 3.2.0 Vogir ----
-undirflokkar_vogir_raw_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/5724ce7f-53ed-4118-9ff9-eb2934e4af5c"
+
+manudir_tbl <- tibble(
+  manudur = c("Mars", "Desember"),
+  man_no = c(3, 12)
+)
+
+# 3.2.1 eldri ----
+undirflokkar_vogir_old_raw_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/dac051cc-1094-449d-b638-b3a95ddf2b86"
 ) %>%
   janitor::clean_names() %>%
-  separate(timi, c("manududr", "ar")) %>%
-  mutate(date = make_date(year = ar, month = 3)) %>%
+  separate(timi, c("manudur", "ar")) |>
+  left_join(manudir_tbl) |>
+  drop_na(man_no) |>
+  mutate(date = make_date(year = ar, month = man_no)) %>%
   drop_na(date) %>%
   select(date, undirvisitala, visitala_neysluverds) %>%
   set_names("date", "undirflokkur", "vog") %>%
   mutate(vog = as.numeric(vog), vog = vog / 10000)
 
 
-undirflokkar_vogir_tbl <- undirflokkar_vogir_raw_tbl %>%
+# 3.2.2 nýtt ----
+undirflokkar_vogir_new_raw_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/cc438998-989e-4a33-b7da-42d5b5edc326"
+) |>
+  janitor::clean_names() |>
+  separate(timi, c("manudur", "ar")) |>
+  left_join(manudir_tbl) |>
+  drop_na(man_no) |>
+  mutate(date = make_date(year = ar, month = 3)) %>%
+  drop_na(date) %>%
+  select(date, undirvisitala, visitala_neysluverds) %>%
+  set_names("date", "undirflokkur", "vog") %>%
+  mutate(vog = as.numeric(vog), vog = vog / 10000)
+
+# 3.2.3 sameina ----
+undirflokkar_vogir_tbl <- bind_rows(
+  undirflokkar_vogir_old_raw_tbl |>
+    filter(date < min(undirflokkar_vogir_new_raw_tbl$date)),
+  undirflokkar_vogir_new_raw_tbl
+)
+
+undirflokkar_vogir_tbl <- undirflokkar_vogir_tbl %>%
   mutate(
     numer_flokks = parse_number(undirflokkur),
     undirflokkur = str_trim(str_remove_all(undirflokkur, "[:digit:]")),
@@ -356,7 +433,6 @@ undirflokkar_vogir_tbl <- undirflokkar_vogir_raw_tbl %>%
   filter(to_select == "select") %>%
   select(-c(numer_flokks:to_select))
 
-
 # 3.3.0 Sameina ----
 undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>%
   left_join(undirflokkar_vogir_tbl) %>%
@@ -364,7 +440,6 @@ undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>%
   fill(vog, .direction = "down") %>%
   drop_na(vog) %>%
   ungroup()
-
 
 # 3.4.0 Úreikningar ----
 undirflokkar_og_vogir_tbl <- undirflokkar_og_vogir_tbl %>%

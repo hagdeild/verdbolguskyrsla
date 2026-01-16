@@ -341,7 +341,8 @@ vr_layout(p4)
 -   **Kjarna­vísitala 1**: VNV án búvöru, grænmetis, ávaxta og bensíns\
 -   **Kjarna­vísitala 2**: Kjarna­vísitala 1 án opinberrar þjónustu\
 -   **Kjarna­vísitala 3**: Kjarna­vísitala 2 án áhrifa vaxtabreytinga á húsnæðisliði *(ekki reiknuð lengur)*\
--   **Kjarna­vísitala 4**: Kjarna­vísitala 2 án reiknaðrar húsaleigu
+-   **Kjarna­vísitala 4**: Kjarna­vísitala 2 án reiknaðrar húsaleigu*\
+-   **Kjarna­vísitala 5**: VNV án orku og matvöru
 :::
 
 ```{r, froop}
