@@ -24,11 +24,13 @@ date_from <- floor_date(today() - years(5), "month")
 data_path <- here("data/verdbolguskyrsla_data.xlsx")
 exp_path <- here("data/Verdbolguvaentingar-a-mismunandi-maelikvarda.xlsx")
 
+new_coicop_date_from <- "2026-01-01"
+
 # 2.0.0 Verðbólga ----
 
 # 2.1.0 Verðbólga með og án húsnæðis --------------------------------------
 vnv_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/afdd1b6c-63e6-46fa-8dbd-257ffa5d0cc9"
+  "https://px.hagstofa.is:443/pxis/sq/da187c8c-c71f-4c34-be66-004d46474f8a"
 ) %>%
   janitor::clean_names()
 
@@ -71,54 +73,53 @@ valuebox_verdbolga <- vnv_tbl %>%
 
 # 2.2.0 Innlend og erlend verðbólga ---------------------------------------
 
-innlend_innflutt_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/efeec1b8-11a5-402c-b747-99fe8ab61bec",
-  na = "."
-) %>%
-  set_names("date", "flokkur", "visitala", "weight")
+# innlend_innflutt_old_tbl <- read_csv2(
+#   "https://px.hagstofa.is:443/pxis/sq/efeec1b8-11a5-402c-b747-99fe8ab61bec",
+#   na = "."
+# ) %>%
+#   set_names("date", "flokkur", "visitala", "weight") |>
+#   drop_na()
 
+# innlend_innflutt_tbl <- innlend_innflutt_tbl %>%
+#   mutate(
+#     # Laga gildi
+#     visitala = visitala / 10,
+#     weight = weight / 1000,
 
-innlend_innflutt_tbl <- innlend_innflutt_tbl %>%
-  mutate(
-    # Laga gildi
-    visitala = visitala / 10,
-    weight = weight / 1000,
+#     # Bý til dagsetningu
+#     date = make_date(year = str_sub(date, 1, 4), month = str_sub(date, 6, 7)),
 
-    # Bý til dagsetningu
-    date = make_date(year = str_sub(date, 1, 4), month = str_sub(date, 6, 7)),
+#     # Bý til nýja flokka
+#     flokkur_2 = case_when(
+#       str_detect(flokkur, "5|6|7|8|9") ~ "Innflutt verðlag",
+#       str_detect(flokkur, "Húsnæði") ~ "Húsnæði",
+#       str_detect(flokkur, "1|2|3|4|11|12") ~ "Innlent verðlag utan húsnæðis"
+#     )
+#   )
 
-    # Bý til nýja flokka
-    flokkur_2 = case_when(
-      str_detect(flokkur, "5|6|7|8|9") ~ "Innflutt verðlag",
-      str_detect(flokkur, "Húsnæði") ~ "Húsnæði",
-      str_detect(flokkur, "1|2|3|4|11|12") ~ "Innlent verðlag utan húsnæðis"
-    )
-  )
-
-
-innlend_innflutt_tbl <- innlend_innflutt_tbl %>%
-  drop_na() |>
-  group_by(date, flokkur_2) %>%
-  mutate(
-    new_weight = weight / sum(weight),
-    new_index = new_weight * visitala
-  ) %>%
-  summarise(index = sum(new_index)) %>%
-  group_by(flokkur_2) %>%
-  mutate(delta = index / lag(index, 12) - 1) %>%
-  drop_na(delta) %>%
-  ungroup()
+# innlend_innflutt_tbl <- innlend_innflutt_tbl %>%
+#   drop_na() |>
+#   group_by(date, flokkur_2) %>%
+#   mutate(
+#     new_weight = weight / sum(weight),
+#     new_index = new_weight * visitala
+#   ) %>%
+#   summarise(index = sum(new_index)) %>%
+#   group_by(flokkur_2) %>%
+#   mutate(delta = index / lag(index, 12) - 1) %>%
+#   drop_na(delta) %>%
+#   ungroup()
 
 # Frá nóvember 2022
-innlend_innflutt_nov_tbl <- innlend_innflutt_tbl %>%
-  filter(date >= date_from) %>%
-  group_by(flokkur_2) %>%
-  mutate(voxtur = index / index[1] - 1)
-
+# innlend_innflutt_nov_tbl <- innlend_innflutt_tbl %>%
+#   filter(date >= date_from) %>%
+#   group_by(flokkur_2) %>%
+#   mutate(voxtur = index / index[1] - 1)
 
 # 2.3.0 Verðbólga eftir eðli og uppruna -----------------------------------
 
-edli_og_uppruna_raw_tbl <- read_csv2(
+# 2.3.1 eldri ----
+edli_og_uppruna_old_raw_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/efeec1b8-11a5-402c-b747-99fe8ab61bec",
   na = "."
 ) %>%
@@ -133,15 +134,15 @@ edli_og_uppruna_raw_tbl <- read_csv2(
   ) %>%
   drop_na(value)
 
-
-edli_og_uppruna_tbl <- edli_og_uppruna_raw_tbl %>%
+edli_og_uppruna_old_tbl <- edli_og_uppruna_old_raw_tbl %>%
   mutate(
     flokkur = case_when(
-      str_detect(flokkur, "Innlendar vörur") ~ "Innlendar vörur",
-      str_detect(flokkur, "Innfluttar") ~ "Innfluttar vörur",
-      str_detect(flokkur, "Opinber") ~ "Opinber þjónusta",
-      str_detect(flokkur, "Önnur þ") ~ "Önnur þjónusta",
-      TRUE ~ "Húsnæði"
+      str_detect(flokkur, "Innlendar vörur og grænmeti") ~ "Innlendar vörur",
+      str_detect(flokkur, "Innfluttar vörur alls") ~ "Innfluttar vörur",
+      str_detect(flokkur, "Opinber þjónusta") ~ "Opinber þjónusta",
+      str_detect(flokkur, "Önnur þjónusta") ~ "Önnur þjónusta",
+      str_detect(flokkur, "10  Húsnæði") ~ "Húsnæði",
+      TRUE ~ "annad"
     )
   ) %>%
   arrange(date, flokkur) %>%
@@ -161,8 +162,73 @@ edli_og_uppruna_tbl <- edli_og_uppruna_raw_tbl %>%
   drop_na(delta) %>%
   mutate(
     hlutdeild = delta * weight
-  )
+  ) |>
+  filter(!flokkur == "annad")
 
+# 2.3.2 ný útgáfa ----
+edli_og_uppruna_new_raw_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/8f78a07e-2d8c-4a77-950a-d89527370778",
+  na = "."
+) |>
+  drop_na() |>
+  set_names("date", "flokkur", "value", "weight") %>%
+  mutate(
+    value = value / 10,
+    weight = weight / 1000
+  ) %>%
+  mutate(
+    date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
+  ) %>%
+  drop_na(value)
+
+edli_og_uppruna_new_tbl <- edli_og_uppruna_new_raw_tbl |>
+  mutate(
+    flokkur = case_when(
+      str_detect(flokkur, "2a Innlendar vörur") ~ "Innlendar vörur",
+      str_detect(flokkur, "2b Innfluttar vörur") ~ "Innfluttar vörur",
+      str_detect(
+        flokkur,
+        "2c Vörur í blönduðum flokkum"
+      ) ~ "Innlendar og innfluttar",
+      str_detect(flokkur, "5c Opinber þjónusta") ~ "Opinber þjónusta",
+      str_detect(
+        flokkur,
+        "5a Ferðaþjónusta|5b Húsnæði|5d Önnur þjónusta"
+      ) ~ "Önnur þjónusta",
+      str_detect(flokkur, "3 Búvörur") ~ "Búvörur",
+      str_detect(
+        flokkur,
+        "4 Vörur án orku og matvöru"
+      ) ~ "Vörur án orku og matvöru",
+      TRUE ~ "annað"
+    )
+  ) |>
+  arrange(date, flokkur) %>%
+  group_by(flokkur) %>%
+  mutate(
+    delta = value / lag(value, 12) - 1,
+    weight = zoo::rollapply(
+      weight,
+      width = 12,
+      FUN = mean,
+      fill = NA,
+      partial = TRUE,
+      align = "right"
+    )
+  ) %>%
+  ungroup() %>%
+  drop_na(delta) %>%
+  mutate(
+    hlutdeild = delta * weight
+  ) |>
+  filter(!flokkur == "annað")
+
+# 2.3.3 sameina gögn ----
+edli_og_uppruna_tbl <-
+  bind_rows(
+    edli_og_uppruna_old_tbl,
+    edli_og_uppruna_new_tbl |> filter(date >= new_coicop_date_from)
+  )
 
 # Bæti við verðbólgunni
 edli_og_uppruna_tbl <- edli_og_uppruna_tbl %>%
