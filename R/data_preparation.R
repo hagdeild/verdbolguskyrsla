@@ -241,28 +241,57 @@ edli_og_uppruna_tbl <- edli_og_uppruna_tbl %>%
 
 # 2.4.0 Undirliggjandi verðbólga ------------------------------------------
 
-undirliggjandi_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/137a4f3a-738e-4637-b15a-315d533aef39",
+# 2.4.1 eldri ----
+undirliggjandi_old_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/8643c932-380e-4c83-889a-14be1ad99354",
   na = "."
-) %>%
+) |>
   drop_na() |>
   set_names(
     "date",
-    "Vísitala neysluverðs",
     "Kjarnavísitala 1",
     "Kjarnavísitala 2",
     "Kjarnavísitala 4"
-  )
-
-
-undirliggjandi_tbl <- undirliggjandi_tbl %>%
+  ) |>
   mutate(date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))) %>%
   pivot_longer(cols = -date) %>%
   arrange(name, date) %>%
   group_by(name) %>%
   mutate(value = value / lag(value, 12) - 1) %>%
   drop_na() |>
-  filter(date >= date_from)
+  filter(date >= date_from) |>
+  ungroup()
+
+
+# 2.4.2 ný útgáfa ----
+
+undirliggjandi_new_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/f039c5d1-fd5b-4a39-b7d8-d9766d6c4333"
+) |>
+  drop_na() |>
+  set_names(
+    "date",
+    "Kjarnavísitala 1",
+    "Kjarnavísitala 2",
+    "Kjarnavísitala 4",
+    "Kjarnavísitala 5"
+  ) |>
+  mutate(date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))) %>%
+  pivot_longer(cols = -date) %>%
+  arrange(name, date) %>%
+  group_by(name) %>%
+  mutate(value = value / lag(value, 12) - 1) %>%
+  drop_na() |>
+  filter(date >= date_from) |>
+  ungroup()
+
+
+# 2.4.3 sameina ----
+undirliggjandi_tbl <-
+  bind_rows(
+    undirliggjandi_old_tbl |> filter(date < max(undirliggjandi_new_tbl$date)),
+    undirliggjandi_new_tbl
+  )
 
 
 # 3.0.0 - WATERFALL - -----------------------------------------------------
