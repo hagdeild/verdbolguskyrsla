@@ -20,6 +20,8 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    env:
+      FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
     container: ghcr.io/${{ github.repository }}:latest
 
     steps:

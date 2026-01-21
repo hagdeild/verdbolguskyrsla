@@ -9,6 +9,7 @@ library(zoo)
 library(rvest)
 library(readxl)
 library(here)
+library(fredr)
 # library(isocountry)
 # library(OECD)
 
