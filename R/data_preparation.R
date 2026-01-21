@@ -301,18 +301,6 @@ undirliggjandi_tbl <-
 
 # 3.1.0 Vísitölugildi ----
 
-# 3.1.1 eldra ----
-undirflokkar_raw_old_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/ea481531-344b-45ba-b5bf-90f45bb08022",
-  na = ".."
-) %>%
-  janitor::clean_names() %>%
-  fix_date() %>%
-  select(-manudur) %>%
-  set_names("undirflokkur", "visitala", "date")
-
-# 3.1.2 nýtt ----
-
 undirflokkar_raw_new_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/508c7a25-db4b-4701-8fce-c6c6e51d4db1",
   na = "."
@@ -326,39 +314,38 @@ undirflokkar_raw_new_tbl <- read_csv2(
 # 3.1.3 sameina raw undirflokka ----
 
 # Find the overlap date (first month in new data that exists in old data)
-overlap_date <- min(undirflokkar_raw_new_tbl$date)
+# overlap_date <- min(undirflokkar_raw_new_tbl$date)
 
-# Calculate rebasing factors for each undirflokkur
-# Factor = old_visitala / new_visitala at overlap date
-rebase_factors <- undirflokkar_raw_old_tbl %>%
-  filter(date == overlap_date) %>%
-  select(undirflokkur, visitala_old = visitala) %>%
-  inner_join(
-    undirflokkar_raw_new_tbl %>%
-      filter(date == overlap_date) %>%
-      select(undirflokkur, visitala_new = visitala),
-    by = "undirflokkur"
-  ) %>%
-  mutate(factor = visitala_old / visitala_new) %>%
-  select(undirflokkur, factor)
+# # Calculate rebasing factors for each undirflokkur
+# # Factor = old_visitala / new_visitala at overlap date
+# rebase_factors <- undirflokkar_raw_old_tbl %>%
+#   filter(date == overlap_date) %>%
+#   select(undirflokkur, visitala_old = visitala) %>%
+#   inner_join(
+#     undirflokkar_raw_new_tbl %>%
+#       filter(date == overlap_date) %>%
+#       select(undirflokkur, visitala_new = visitala),
+#     by = "undirflokkur"
+#   ) %>%
+#   mutate(factor = visitala_old / visitala_new) %>%
+#   select(undirflokkur, factor)
 
-# Rebase new data and combine
-undirflokkar_raw_tbl <- bind_rows(
-  # Old data up to (but not including) the overlap date
-  undirflokkar_raw_old_tbl %>% filter(date < overlap_date),
-  # New data from overlap date onwards, rebased to old index
-  undirflokkar_raw_new_tbl %>%
-    left_join(rebase_factors, by = "undirflokkur") %>%
-    mutate(
-      factor = replace_na(factor, 1),
-      visitala = visitala * factor
-    ) %>%
-    select(-factor)
-)
-
+# # Rebase new data and combine
+# undirflokkar_raw_tbl <- bind_rows(
+#   # Old data up to (but not including) the overlap date
+#   undirflokkar_raw_old_tbl %>% filter(date < overlap_date),
+#   # New data from overlap date onwards, rebased to old index
+#   undirflokkar_raw_new_tbl %>%
+#     left_join(rebase_factors, by = "undirflokkur") %>%
+#     mutate(
+#       factor = replace_na(factor, 1),
+#       visitala = visitala * factor
+#     ) %>%
+#     select(-factor)
+# )
 
 # Bý til undirflokka án númers og vel þá undirflokka sem ég vil
-undirflokkar_tbl <- undirflokkar_raw_tbl %>%
+undirflokkar_tbl <- undirflokkar_raw_new_tbl %>%
   mutate(
     visitala = as.numeric(visitala),
     numer_flokks = parse_number(undirflokkur),
@@ -382,11 +369,11 @@ manudir_tbl <- tibble(
   man_no = c(3, 12)
 )
 
-# 3.2.1 eldri ----
-undirflokkar_vogir_old_raw_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/dac051cc-1094-449d-b638-b3a95ddf2b86"
-) %>%
-  janitor::clean_names() %>%
+
+undirflokkar_vogir_new_raw_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/cc438998-989e-4a33-b7da-42d5b5edc326"
+) |>
+  janitor::clean_names() |>
   separate(timi, c("manudur", "ar")) |>
   left_join(manudir_tbl) |>
   drop_na(man_no) |>
@@ -396,29 +383,24 @@ undirflokkar_vogir_old_raw_tbl <- read_csv2(
   set_names("date", "undirflokkur", "vog") %>%
   mutate(vog = as.numeric(vog), vog = vog / 10000)
 
+undirflokkar_vogir_new_raw_tbl <-
+  tibble(
+    date = seq.Date(from = as.Date("2025-01-01"), length.out = 12, by = "month")
+  ) |>
+  crossing(
+    undirflokkar_vogir_new_raw_tbl |>
+      select(undirflokkur, vog)
+  )
 
-# 3.2.2 nýtt ----
-undirflokkar_vogir_new_raw_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/cc438998-989e-4a33-b7da-42d5b5edc326"
-) |>
-  janitor::clean_names() |>
-  separate(timi, c("manudur", "ar")) |>
-  left_join(manudir_tbl) |>
-  drop_na(man_no) |>
-  mutate(date = make_date(year = ar, month = 3)) %>%
-  drop_na(date) %>%
-  select(date, undirvisitala, visitala_neysluverds) %>%
-  set_names("date", "undirflokkur", "vog") %>%
-  mutate(vog = as.numeric(vog), vog = vog / 10000)
 
-# 3.2.3 sameina ----
-undirflokkar_vogir_tbl <- bind_rows(
-  undirflokkar_vogir_old_raw_tbl |>
-    filter(date < min(undirflokkar_vogir_new_raw_tbl$date)),
-  undirflokkar_vogir_new_raw_tbl
-)
+# 3.2.3 sameina vogir ----
+# undirflokkar_vogir_tbl <- bind_rows(
+#   undirflokkar_vogir_old_raw_tbl |>
+#     filter(date < min(undirflokkar_vogir_new_raw_tbl$date)),
+#   undirflokkar_vogir_new_raw_tbl
+# )
 
-undirflokkar_vogir_tbl <- undirflokkar_vogir_tbl %>%
+undirflokkar_vogir_tbl <- undirflokkar_vogir_new_raw_tbl %>%
   mutate(
     numer_flokks = parse_number(undirflokkur),
     undirflokkur = str_trim(str_remove_all(undirflokkur, "[:digit:]")),
@@ -433,13 +415,16 @@ undirflokkar_vogir_tbl <- undirflokkar_vogir_tbl %>%
   filter(to_select == "select") %>%
   select(-c(numer_flokks:to_select))
 
-# 3.3.0 Sameina ----
+# 3.3.0 Sameina gögn ----
 undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>%
+  drop_na() |>
   left_join(undirflokkar_vogir_tbl) %>%
+  drop_na() |>
   group_by(undirflokkur) %>%
   fill(vog, .direction = "down") %>%
   drop_na(vog) %>%
-  ungroup()
+  ungroup() |>
+  drop_na(visitala)
 
 # 3.4.0 Úreikningar ----
 undirflokkar_og_vogir_tbl <- undirflokkar_og_vogir_tbl %>%
@@ -448,7 +433,7 @@ undirflokkar_og_vogir_tbl <- undirflokkar_og_vogir_tbl %>%
     verdbolga = visitala / lag(visitala, 12) - 1,
     verdbolga_1m = visitala / lag(visitala) - 1
   ) %>%
-  drop_na() %>%
+  #drop_na() %>%
   ungroup() %>%
   mutate(ahrif = verdbolga * vog, ahrif_1m = verdbolga_1m * vog)
 
@@ -458,15 +443,6 @@ undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>%
   select(undirflokkur, ahrif, ahrif_1m) %>%
   filter(!undirflokkur == "Vísitala neysluverðs") %>%
   arrange(desc(ahrif))
-
-
-# Frá nóvember 2022
-undirflokkar_nov_tbl <- undirflokkar_og_vogir_tbl %>%
-  filter(date >= date_from) %>%
-  group_by(undirflokkur) %>%
-  mutate(haekkun = visitala / visitala[1] - 1, ahrif = haekkun * vog) %>%
-  filter(date == max(date)) %>%
-  select(undirflokkur, ahrif)
 
 
 # 3.5.0 Stöplarit ---------------------------------------------------------
@@ -504,9 +480,119 @@ undirflokkar_1m_tbl <- undirflokkar_tbl %>%
 froop_flokkar_tbl <- read_excel(data_path, sheet = "froop") %>%
   janitor::clean_names()
 
-vnv_vogir_tbl <- undirflokkar_raw_tbl %>%
+# 4.1.0 Eldri flokkun ----
+
+# visitala
+undirflokkar_raw_old_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/ea481531-344b-45ba-b5bf-90f45bb08022",
+  na = ".."
+) %>%
+  janitor::clean_names() %>%
+  fix_date() %>%
+  select(-manudur) %>%
+  set_names("undirflokkur", "visitala", "date")
+
+# vogir
+undirflokkar_vogir_old_raw_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/dac051cc-1094-449d-b638-b3a95ddf2b86"
+) %>%
+  janitor::clean_names() %>%
+  separate(timi, c("manudur", "ar")) |>
+  left_join(manudir_tbl) |>
+  drop_na(man_no) |>
+  mutate(date = make_date(year = ar, month = man_no)) %>%
+  drop_na(date) %>%
+  select(date, undirvisitala, visitala_neysluverds) %>%
+  set_names("date", "undirflokkur", "vog") %>%
+  mutate(vog = as.numeric(vog), vog = vog / 10000)
+
+
+vnv_vogir_old_tbl <- undirflokkar_raw_old_tbl %>%
   drop_na(visitala) %>%
-  left_join(undirflokkar_vogir_raw_tbl) %>%
+  left_join(undirflokkar_vogir_old_raw_tbl) %>%
+  group_by(undirflokkur) %>%
+  fill(vog, .direction = "down") %>%
+  drop_na(vog) %>%
+  ungroup()
+
+
+# Bý til númer flokks
+froop_old_tbl <- vnv_vogir_old_tbl %>%
+  # Númer flokka
+  mutate(
+    numer_flokks = parse_number(undirflokkur),
+    numer_flokks = case_when(
+      is.na(numer_flokks) ~ "0000",
+      nchar(numer_flokks) == 3 ~ paste0("0", numer_flokks),
+      nchar(numer_flokks) == 2 ~ paste0("00", numer_flokks),
+      nchar(numer_flokks) == 1 ~ paste0("000", numer_flokks),
+      TRUE ~ as.character(numer_flokks)
+    )
+  ) %>%
+  filter(numer_flokks %in% froop_flokkar_tbl$froop) %>%
+  # Vogir
+  group_by(date) %>%
+  mutate(vog = vog / sum(vog)) %>%
+  ungroup() %>%
+
+  # Froop vísitala
+  mutate(
+    visitala = as.numeric(visitala),
+    impact = visitala * vog
+  ) %>%
+  group_by(date) %>%
+  summarise(froop = sum(impact)) %>%
+  mutate(infl = froop / lag(froop, 12) - 1) %>%
+  drop_na() %>%
+  select(date, infl, froop) %>%
+  set_names("date", "froop", "froop_index")
+
+
+non_froop_old_tbl <- vnv_vogir_old_tbl %>%
+  # Númer flokka
+  mutate(
+    numer_flokks = parse_number(undirflokkur),
+    numer_flokks = case_when(
+      is.na(numer_flokks) ~ "0000",
+      nchar(numer_flokks) == 3 ~ paste0("0", numer_flokks),
+      nchar(numer_flokks) == 2 ~ paste0("00", numer_flokks),
+      nchar(numer_flokks) == 1 ~ paste0("000", numer_flokks),
+      TRUE ~ as.character(numer_flokks)
+    )
+  ) %>%
+  filter(!numer_flokks %in% froop_flokkar_tbl$froop) %>%
+  # Vogir
+  group_by(date) %>%
+  mutate(vog = vog / sum(vog)) %>%
+  ungroup() %>%
+
+  # Froop vísitala
+  mutate(
+    visitala = as.numeric(visitala),
+    impact = visitala * vog
+  ) %>%
+  group_by(date) %>%
+  summarise(index = sum(impact)) %>%
+  mutate(infl = index / lag(index, 12) - 1) %>%
+  drop_na() %>%
+  select(date, infl, index) %>%
+  set_names("date", "non_froop", "non_froop_index")
+
+# skeiti við vnv
+froop_old_tbl <- froop_old_tbl %>%
+  left_join(non_froop_old_tbl) %>%
+  left_join(
+    vnv_tbl %>%
+      filter(flokkur == "Verðbólga") %>%
+      select(date, verdbolga, visitala)
+  ) |>
+  filter(date >= date_from)
+
+# 4.2.0 ný flokkun ----
+
+vnv_vogir_tbl <- undirflokkar_raw_new_tbl %>%
+  drop_na(visitala) %>%
+  left_join(undirflokkar_vogir_new_raw_tbl) %>%
   group_by(undirflokkur) %>%
   fill(vog, .direction = "down") %>%
   drop_na(vog) %>%
@@ -576,7 +662,7 @@ non_froop_tbl <- vnv_vogir_tbl %>%
   set_names("date", "non_froop", "non_froop_index")
 
 
-# 4.1.0 Skeiti við vnv ----
+# Skeiti við vnv ----
 froop_tbl <- froop_tbl %>%
   left_join(non_froop_tbl) %>%
   left_join(
@@ -585,6 +671,11 @@ froop_tbl <- froop_tbl %>%
       select(date, verdbolga, visitala)
   ) |>
   filter(date >= date_from)
+
+
+# 4.3.0 Sameina eldri og nýrri ----
+froop_final_tbl <- froop_old_tbl |>
+  bind_rows(froop_tbl)
 
 
 # 5.0.0 EUROSTAT - HICP ----
@@ -750,22 +841,22 @@ hicp_valuebox_tbl <- hicp_pbi_tbl %>%
 
 
 # 6.2.0 Húsnæðisverð fyrir power pi ---------------------------------------
-hus_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/9bb1076c-b3ae-4781-96a4-38f83c7973eb"
-)
+# hus_tbl <- read_csv2(
+#   "https://px.hagstofa.is:443/pxis/sq/9bb1076c-b3ae-4781-96a4-38f83c7973eb"
+# )
 
-hus_unnid_tbl <- hus_tbl %>%
-  mutate(Undirvísitala = str_remove(Undirvísitala, "^\\d+\\s*")) %>%
-  set_names("date", "lidur", "visitala") %>%
-  mutate(
-    date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
-  ) %>%
-  arrange(date, lidur) %>%
-  group_by(lidur) %>%
-  mutate(infl = visitala / lag(visitala, 12) - 1) %>%
-  drop_na() %>%
-  ungroup() |>
-  filter(date >= date_from)
+# hus_unnid_tbl <- hus_tbl %>%
+#   mutate(Undirvísitala = str_remove(Undirvísitala, "^\\d+\\s*")) %>%
+#   set_names("date", "lidur", "visitala") %>%
+#   mutate(
+#     date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
+#   ) %>%
+#   arrange(date, lidur) %>%
+#   group_by(lidur) %>%
+#   mutate(infl = visitala / lag(visitala, 12) - 1) %>%
+#   drop_na() %>%
+#   ungroup() |>
+#   filter(date >= date_from)
 
 # 6.3.0 Vextir ------------------------------------------------------------
 
@@ -1272,9 +1363,12 @@ infl_exp_breakeven_tbl <- read_excel(
 # varðandi 12 mánaða og 1 mánaða breytingu
 
 vnv_allir_flokkar_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/d31d5dc3-d44a-4126-9a7f-5c7c71eac9e6"
+  "https://px.hagstofa.is:443/pxis/sq/b303ef24-0d8d-4981-97af-a88b9efe44c1",
+  na = "."
 ) |>
-  set_names("date", "flokkur", "visitala")
+  select(-2) |>
+  set_names("date", "flokkur", "visitala") |>
+  drop_na()
 
 
 # 1) Finna "leaf" kóða (þ.e. kóða sem EKKI eru forskeyti fyrir neinum öðrum kóða)
@@ -1367,7 +1461,7 @@ manudir_tbl <-
   )
 
 vnv_vog_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/b5f484a5-9fe9-4e4a-9162-7af35d97e5b8"
+  "https://px.hagstofa.is:443/pxis/sq/9a02fe80-f780-4752-abd4-1a6e3eb0e7e9"
 ) |>
   janitor::clean_names()
 
@@ -1430,79 +1524,81 @@ infl_umfang_tbl <- infl_umfang_tbl |>
 
 # 13.0.0 Alþjóðlegur samanburður ----
 
-# fredr_set_key(Sys.getenv("FRED_API_KEY"))
+fredr_set_key(Sys.getenv("FRED_API_KEY"))
 
-# # All 38 OECD member country codes
-# oecd_countries <- c(
-#   "AUS",
-#   "AUT",
-#   "BEL",
-#   "CAN",
-#   "CHL",
-#   "COL",
-#   "CRI",
-#   "CZE",
-#   "DNK",
-#   "EST",
-#   "FIN",
-#   "FRA",
-#   "DEU",
-#   "GRC",
-#   "HUN",
-#   "ISL",
-#   "IRL",
-#   "ISR",
-#   "ITA",
-#   "JPN",
-#   "KOR",
-#   "LVA",
-#   "LTU",
-#   "LUX",
-#   "MEX",
-#   "NLD",
-#   "NZL",
-#   "NOR",
-#   "POL",
-#   "PRT",
-#   "SVK",
-#   "SVN",
-#   "ESP",
-#   "SWE",
-#   "CHE",
-#   "TUR",
-#   "GBR",
-#   "USA"
-# )
+# All 38 OECD member country codes
+oecd_countries <- c(
+  "AUS",
+  "AUT",
+  "BEL",
+  "CAN",
+  "CHL",
+  "COL",
+  "CRI",
+  "CZE",
+  "DNK",
+  "EST",
+  "FIN",
+  "FRA",
+  "DEU",
+  "GRC",
+  "HUN",
+  "ISL",
+  "IRL",
+  "ISR",
+  "ITA",
+  "JPN",
+  "KOR",
+  "LVA",
+  "LTU",
+  "LUX",
+  "MEX",
+  "NLD",
+  "NZL",
+  "NOR",
+  "POL",
+  "PRT",
+  "SVK",
+  "SVN",
+  "ESP",
+  "SWE",
+  "CHE",
+  "TUR",
+  "GBR",
+  "USA"
+)
 
-# # Build series IDs
-# series_ids <- paste0(oecd_countries, "CPIALLMINMEI")
+# Build series IDs
+series_ids <- paste0(oecd_countries, "CPIALLMINMEI")
 
-# # Fetch all series (with error handling for any missing)
-# cpi_data_raw_tbl <- map_dfr(
-#   series_ids,
-#   possibly(
-#     ~ {
-#       fredr(
-#         series_id = .x,
-#         observation_start = as.Date("2020-01-01")
-#       ) |>
-#         mutate(country = str_sub(.x, 1, 3))
-#     },
-#     otherwise = NULL
-#   )
-# )
+# Fetch all series (with error handling for any missing)
+cpi_data_raw_tbl <- map_dfr(
+  series_ids,
+  possibly(
+    ~ {
+      fredr(
+        series_id = .x,
+        observation_start = as.Date("2020-01-01")
+      ) |>
+        mutate(country = str_sub(.x, 1, 3))
+    },
+    otherwise = NULL
+  )
+)
 
-# # Clean up
-# cpi_data_tbl <- cpi_data_raw_tbl |>
-#   select(country, date, cpi_index = value)
+# Clean up
+cpi_data_tbl <- cpi_data_raw_tbl |>
+  select(country, date, cpi_index = value)
 
-# # 12 mánaða verðbólga
-# cpi_data_tbl |>
-#   arrange(country, date) |>
-#   group_by(country) |>
-#   mutate(inflation = cpi_index / lag(cpi_index, 12) - 1) |>
-#   #ungroup() |>
-#   filter(date == max(date))
+# 12 mánaða verðbólga
+cpi_data_tbl <- cpi_data_tbl |>
+  arrange(country, date) |>
+  group_by(country) |>
+  mutate(inflation = cpi_index / lag(cpi_index, 12) - 1) |>
+  ungroup() |>
+  rename("iso_3" = "country") |>
+  left_join(vr::heiti_landa |> select(iso_3, land))
+
 
 # x.0.0 Vista ----
 
@@ -1514,7 +1610,7 @@ list(
   # Undirliggjandi
   pbi_inflation_undirliggjandi = undirliggjandi_tbl,
   pbi_inflation_uppruni = edli_og_uppruna_tbl,
-  pbi_inflation_froop = froop_tbl,
+  pbi_inflation_froop = froop_final_tbl,
 
   # Framlag undirliða
   pbi_inflation_waterfall = undirflokkar_latest_tbl,
@@ -1527,7 +1623,7 @@ list(
   pbi_inflation_hicp_valuebox = hicp_valuebox_tbl,
 
   # Húsnæðisverð
-  pbi_inflation_husnaedisverd = hus_unnid_tbl,
+  # pbi_inflation_husnaedisverd = hus_unnid_tbl,
   pbi_inflation_husnaaedisvextir = vextir_tbl,
 
   # Útlán
@@ -1548,7 +1644,10 @@ list(
   top_12m = top_12m_tbl,
 
   # hitakort
-  hitakort = infl_umfang_tbl
+  hitakort = infl_umfang_tbl,
+
+  # Alþjóðlegur samanburður
+  althjodlegur = cpi_data_tbl
 ) |>
 
   write_rds("data/final_data.rds")
