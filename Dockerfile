@@ -20,7 +20,7 @@ RUN R -q -e "install.packages('pak', repos='https://cloud.r-project.org')"
 # Preinstall the R packages you listed (some are in tidyverse already; preinstall anyway for speed)
 # Note: modeltime pulls in timetk + tidymodels
 RUN R -q -e "pak::pkg_install(c( \
-  'modeltime','timetk','tidymodels','plotly','eurostat','XML','httr', \
+  'modeltime','timetk','tidymodels','plotly','eurostat','XML','httr', 'fredr', \
   'openxlsx','zoo','rvest','readxl','here','scales','rmarkdown','knitr','quarto' \
 ))"
 
