@@ -10,8 +10,9 @@ library(rvest)
 library(readxl)
 library(here)
 library(fredr)
-# library(isocountry)
-# library(OECD)
+
+lond_tbl <- read_csv("data/lond.csv") |>
+  select(iso_3, land)
 
 # 1.1.0 Functions ----
 fix_date <- function(data) {
@@ -1598,7 +1599,7 @@ cpi_data_tbl <- cpi_data_tbl |>
   mutate(inflation = cpi_index / lag(cpi_index, 12) - 1) |>
   ungroup() |>
   rename("iso_3" = "country") |>
-  left_join(vr::heiti_landa |> select(iso_3, land))
+  left_join(lond_tbl)
 
 
 # x.0.0 Vista ----

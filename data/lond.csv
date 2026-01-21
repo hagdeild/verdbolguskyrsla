@@ -1,0 +1,190 @@
+country,land,iso_3
+Afghanistan,Afganistan,AFG
+Angola,Angóla,AGO
+Åland Islands,Álandseyjar,ALA
+Albania,Albanía,ALB
+Andorra,Andorra,AND
+United Arab Emirates,Sameinuðu arabísku furstadæmin,ARE
+Argentina,Argentína,ARG
+Armenia,Armenía,ARM
+American Samoa,Samóa,ASM
+Antigua and Barbuda,Antígva og Barbúda,ATG
+Australia,Ástralía,AUS
+Austria,Austurríki,AUT
+Azerbaijan,Aserbaísjan,AZE
+Burundi,Búrúndí,BDI
+Belgium,Belgía,BEL
+Benin,Benín,BEN
+Burkina Faso,Búrkína Fasó,BFA
+Bangladesh,Bangladess,BGD
+Bulgaria,Búlgaría,BGR
+Bahrain,Barein,BHR
+Bahamas,Bahamaeyjar,BHS
+Bosnia and Herzegovina,Bosnía og Hersegóvína,BIH
+Belarus,Hvíta-Rússland,BLR
+Belize,Belís,BLZ
+Bolivia (Plurinational State of),Bólivía,NA
+Brazil,Brasilía,BRA
+Barbados,Barbados,BRB
+Brunei Darussalam,Brúnei,BRN
+Bhutan,Bútan,BTN
+Botswana,Botsvana,BWA
+Central African Republic,Mið-Afríkulýðveldið,CAF
+Canada,Kanada,CAN
+Switzerland,Sviss,CHE
+Chile,Síle,CHL
+China,Kína,CHN
+Cameroon,Kamerún,CMR
+Congo,Kongó,COG
+Colombia,Kólumbía,COL
+Comoros,Kómorur ,COM
+Cabo Verde,Grænhöfðaeyjar,CPV
+Costa Rica,Kosta Ríka,CRI
+Cuba,Kúba,CUB
+Cyprus,Kýpur,CYP
+Czech Republic,Tékkland,NA
+Germany,Þýskaland,DEU
+Djibouti,Djibútí,DJI
+Dominica,Dóminíka,DMA
+Denmark,Danmörk,DNK
+Dominican Republic,Dóminíska lýðveldið,DOM
+Algeria,Alsír,DZA
+Ecuador,Ekvador,ECU
+Egypt,Egyptaland,EGY
+Eritrea,Eritrea,ERI
+Spain,Spánn,ESP
+Estonia,Eistland,EST
+Ethiopia,Eþíópía,ETH
+Finland,Finnland,FIN
+Fiji,Fídjí,FJI
+France,Frakkland,FRA
+Faroe Islands,Færeyjar,FRO
+Gabon,Gabon,GAB
+United Kingdom,Bretland,GBR
+Georgia,Georgía,GEO
+Ghana,Gana,GHA
+Guinea,Gínea,GIN
+Guinea-Bissau,Gínea-Bissaú,GNB
+Equatorial Guinea,Miðbaugs-Gínea,GNQ
+Greece,Grikkland,GRC
+Grenada,Grenada,GRD
+Greenland,Grænland,GRL
+Guatemala,Gvatemala,GTM
+Guyana,Gvæjana,GUY
+Hong Kong,Hong Kong,HKG
+Honduras,Hondúras,HND
+Croatia,Króatía,HRV
+Haiti,Haítí,HTI
+Hungary,Ungverjaland,HUN
+Indonesia,Indónesía,IDN
+India,Indland,IND
+Ireland,Írland,IRL
+Iran,Íran,NA
+Iraq,Írak,IRQ
+Iceland,Ísland,ISL
+Israel,Ísrael,ISR
+Italy,Ítalía,ITA
+Jamaica,Jamaíka,JAM
+Jordan,Jórdanía,JOR
+Japan,Japan,JPN
+Kazakhstan,Kasakstan,KAZ
+Kenya,Kenía,KEN
+Kyrgyzstan,Kirgistan,KGZ
+Cambodia,Kambódía,KHM
+Kiribati,Kíribatí,KIR
+Saint Kitts and Nevis,Sankti Kitts og Nevis,KNA
+Korea,Kórea,NA
+Kuwait,Kúveit,KWT
+Lebanon,Líbanon,LBN
+Liberia,Líbería,LBR
+Libya,Líbía,LBY
+Saint Lucia,Sankti Lúsía,LCA
+Liechtenstein,Liechtenstein,LIE
+Sri Lanka,Srí Lanka,LKA
+Lesotho,Lesótó,LSO
+Lithuania,Litháen,LTU
+Luxembourg,Lúxemborg,LUX
+Latvia,Lettland,LVA
+Morocco,Marokkó,MAR
+Monaco,Mónakó,MCO
+Moldova,Moldóva,NA
+Madagascar,Madagaskar,MDG
+Maldives,Maldívur,MDV
+Mexico,Mexíkó,MEX
+Mali,Malí,MLI
+Malta,Malta,MLT
+Myanmar,Mjanmar,MMR
+Montenegro,Svartfjallaland,MNE
+Mongolia,Mongólía,MNG
+Mozambique,Mósambík,MOZ
+Mauritania,Máritanía,MRT
+Mauritius,Máritíus,MUS
+Malawi,Malaví,MWI
+Malaysia,Malasía,MYS
+Namibia,Namibía,NAM
+Nigeria,Nígería,NGA
+Nicaragua,Níkaragva,NIC
+Netherlands,Holland,NLD
+Norway,Noregur,NOR
+Nepal,Nepal,NPL
+Nauru,Naúrú,NRU
+New Zealand,Nýja Sjáland,NZL
+Oman,Óman,OMN
+Pakistan,Pakistan,PAK
+Panama,Panama,PAN
+Peru,Perú,PER
+Philippines,Filippseyjar,PHL
+Palau,Palaú,PLW
+Papua New Guinea,Papúa Nýja-Gínea,PNG
+Poland,Pólland,POL
+Portugal,Portúgal,PRT
+Paraguay,Paragvæ,PRY
+Qatar,Katar,QAT
+Romania,Rúmenía,ROU
+Russian Federation,Rússland,RUS
+Rwanda,Rúanda,RWA
+Saudi Arabia,Sádi Arabía,SAU
+Sudan,Súdan,SDN
+Senegal,Senegal,SEN
+Singapore,Singapúr,SGP
+Solomon Islands,Salómonseyjar,SLB
+Sierra Leone,Síerra Leóne,SLE
+El Salvador,El Salvador,SLV
+San Marino,San Marínó,SMR
+Somalia,Sómalía,SOM
+Serbia,Serbía,SRB
+South Sudan,Suður-Súdan,SSD
+Sao Tome and Principe,Saó Tóme og Prinsípe,STP
+Suriname,Súrínam,SUR
+Slovakia,Slóvakía,SVK
+Slovenia,Slóvenía,SVN
+Sweden,Svíþjóð,SWE
+Seychelles,Seychelles-eyjar,SYC
+Chad,Tjad,TCD
+Togo,Tógó,TGO
+Thailand,Taíland,THA
+Tajikistan,Tadsíkistan,TJK
+Turkmenistan,Túrkmenistan,TKM
+Timor-Leste,Tímor-Leste,TLS
+Tonga,Tonga,TON
+Trinidad and Tobago,Trínidad og Tóbagó,TTO
+Tunisia,Túnis,TUN
+Turkey,Tyrkland,NA
+Tuvalu,Túvalú,TUV
+Taiwan,Taívan,NA
+Uganda,Úganda,UGA
+Ukraine,Úkraína,UKR
+Uruguay,Úrúgvæ,URY
+United States of America,Bandaríkin,NA
+United States,Bandaríkin,USA
+Uzbekistan,Úsbekistan,UZB
+Venezuela,Venesúela,NA
+Viet Nam,Víetnam,VNM
+Vanuatu,Vanúatú,VUT
+Samoa,Samóa,WSM
+Yemen,Jemen,YEM
+South Africa,Suður Afríka,ZAF
+Zambia,Sambía,ZMB
+Zimbabwe,Simbabve,ZWE
+Russia,Rússland,NA
+Macedonia,Makedónía,NA
