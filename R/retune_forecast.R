@@ -64,14 +64,18 @@ full_vnv_tbl <- full_vnv_tbl |>
 fc_best_ls <- get_univariate_forecasts(
   data = vnv_tbl,
   horizon = 3,
-  slice_limit = 10,
-  ensembles = NULL
+  slice_limit = 4,
+  ensemble = TRUE
 )
 
 fc_best_ls$Accuracy
 
-(fc_best_ls$tscv |>
-  filter(resample == "resample_4", .index >= "2020-01-01") |>
+# (fc_best_ls$tscv |>
+#   filter(resample == "resample_5", .index >= "2020-01-01") |>
+#   ggplot(aes(.index, growth, col = name)) +
+#   geom_line()) |>
+#   plotly::ggplotly()
+
+fc_best_ls$future_fc |>
   ggplot(aes(.index, growth, col = name)) +
-  geom_line()) |>
-  plotly::ggplotly()
+  geom_line()
