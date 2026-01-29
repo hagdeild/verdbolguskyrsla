@@ -32,7 +32,7 @@ new_coicop_date_from <- "2026-01-01"
 
 # 2.1.0 Verðbólga með og án húsnæðis --------------------------------------
 vnv_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/da187c8c-c71f-4c34-be66-004d46474f8a"
+  "https://px.hagstofa.is:443/pxis/sq/6dd6d9a9-ff2f-4379-a78f-7fc800e09ea9"
 ) %>%
   janitor::clean_names()
 
@@ -304,7 +304,7 @@ undirliggjandi_tbl <-
 # 3.1.0 Vísitölugildi ----
 
 undirflokkar_raw_new_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/508c7a25-db4b-4701-8fce-c6c6e51d4db1",
+  "https://px.hagstofa.is:443/pxis/sq/810ad986-60c1-471e-8f52-18f467e25ea2",
   na = "."
 ) |>
   janitor::clean_names() %>%
@@ -420,7 +420,8 @@ undirflokkar_vogir_tbl <- undirflokkar_vogir_new_raw_tbl %>%
 # 3.3.0 Sameina gögn ----
 undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>%
   drop_na() |>
-  left_join(undirflokkar_vogir_tbl) %>%
+  filter(date == max(date))
+left_join(undirflokkar_vogir_tbl) %>%
   drop_na() |>
   group_by(undirflokkur) %>%
   fill(vog, .direction = "down") %>%
