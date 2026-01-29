@@ -388,7 +388,7 @@ vr_layout(p5)
 ```{r waterfall_12m, fig.width = 16, fig.height = 8}
 
 waterfall_plot(
-  data_ls$pbi_inflation_waterfall,
+  data_ls$pbi_inflation_waterfall |> drop_na(),
   ahrif,
   title = "Framlag undirliða seinustu 12 mánuði",
   flip = TRUE
@@ -400,7 +400,7 @@ waterfall_plot(
 
 ```{r, waterfal_1m, fig.width = 16, fig.height = 8}
 waterfall_plot(
-  data_ls$pbi_inflation_waterfall,
+  data_ls$pbi_inflation_waterfall |> drop_na(),
   ahrif_1m,
   title = "Framlag undirliða seinustu 12 mánuði",
   flip = TRUE
@@ -468,6 +468,7 @@ data_ls$hitakort |>
 
 ```{r, undirflokkar_1m, fig.width = 16, fig.height = 8}
 data_ls$phi_inflation_undirflokkar_1m |>
+    drop_na() |> 
   mutate(
     merking = percent(value, accuracy = 0.1),
     merking_pos = if_else(value >= 0, value + 0.0075, value -0.0075)
@@ -846,19 +847,19 @@ vr_layout(p9)
 ## Row
 
 ```{r, husnaedis_lidur_vnv}
-p10 <- data_ls$pbi_inflation_husnaedisverd |> 
-    ggplot(aes(date, infl, col = lidur)) +
-    geom_line() +
-    theme_minimal() +
-    labs(
-        x = NULL,
-        y = NULL,
-        title = "Húsnæði, hitit og rafmagn"
-    ) +
-    scale_color_manual(values = vr_litir) +
-    scale_y_continuous(labels = percent)
+# p10 <- data_ls$pbi_inflation_husnaedisverd |> 
+#     ggplot(aes(date, infl, col = lidur)) +
+#     geom_line() +
+#     theme_minimal() +
+#     labs(
+#         x = NULL,
+#         y = NULL,
+#         title = "Húsnæði, hitit og rafmagn"
+#     ) +
+#     scale_color_manual(values = vr_litir) +
+#     scale_y_continuous(labels = percent)
 
-vr_layout(p10)
+# vr_layout(p10)
 ```
 
 ```{r, vextir_fasteignalana}

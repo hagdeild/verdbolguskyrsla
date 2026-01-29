@@ -387,7 +387,7 @@ undirflokkar_vogir_new_raw_tbl <- read_csv2(
 
 undirflokkar_vogir_new_raw_tbl <-
   tibble(
-    date = seq.Date(from = as.Date("2025-01-01"), length.out = 12, by = "month")
+    date = seq.Date(from = as.Date("2025-01-01"), length.out = 13, by = "month")
   ) |>
   crossing(
     undirflokkar_vogir_new_raw_tbl |>
@@ -420,8 +420,7 @@ undirflokkar_vogir_tbl <- undirflokkar_vogir_new_raw_tbl %>%
 # 3.3.0 Sameina gögn ----
 undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>%
   drop_na() |>
-  filter(date == max(date))
-left_join(undirflokkar_vogir_tbl) %>%
+  left_join(undirflokkar_vogir_tbl) %>%
   drop_na() |>
   group_by(undirflokkur) %>%
   fill(vog, .direction = "down") %>%
@@ -844,22 +843,23 @@ hicp_valuebox_tbl <- hicp_pbi_tbl %>%
 
 
 # 6.2.0 Húsnæðisverð fyrir power pi ---------------------------------------
-# hus_tbl <- read_csv2(
-#   "https://px.hagstofa.is:443/pxis/sq/9bb1076c-b3ae-4781-96a4-38f83c7973eb"
-# )
+hus_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/abf64b4f-48c4-49e9-8a42-78d7f3432ba7"
+) |>
+  select(-3)
 
-# hus_unnid_tbl <- hus_tbl %>%
-#   mutate(Undirvísitala = str_remove(Undirvísitala, "^\\d+\\s*")) %>%
-#   set_names("date", "lidur", "visitala") %>%
-#   mutate(
-#     date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
-#   ) %>%
-#   arrange(date, lidur) %>%
-#   group_by(lidur) %>%
-#   mutate(infl = visitala / lag(visitala, 12) - 1) %>%
-#   drop_na() %>%
-#   ungroup() |>
-#   filter(date >= date_from)
+hus_unnid_tbl <- hus_tbl %>%
+  mutate(Undirvísitala = str_remove(Undirvísitala, "^\\d+\\s*")) %>%
+  set_names("date", "lidur", "visitala") %>%
+  mutate(
+    date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
+  ) %>%
+  arrange(date, lidur) %>%
+  group_by(lidur) %>%
+  mutate(infl = visitala / lag(visitala, 12) - 1) %>%
+  drop_na() %>%
+  ungroup() |>
+  filter(date >= date_from)
 
 # 6.3.0 Vextir ------------------------------------------------------------
 
@@ -1366,7 +1366,7 @@ infl_exp_breakeven_tbl <- read_excel(
 # varðandi 12 mánaða og 1 mánaða breytingu
 
 vnv_allir_flokkar_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/b303ef24-0d8d-4981-97af-a88b9efe44c1",
+  "https://px.hagstofa.is:443/pxis/sq/a399e31c-2d62-47a3-b33c-6b54403c31d8",
   na = "."
 ) |>
   select(-2) |>
@@ -1444,6 +1444,7 @@ top_12m_tbl <- infl_allir_flokkar_tbl |>
 
 
 # 12.0.0 Umfang verðhækkana ----
+
 manudir_tbl <-
   tibble(
     manudur = c(
@@ -1463,18 +1464,131 @@ manudir_tbl <-
     man_no = 1:12
   )
 
-vnv_vog_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/9a02fe80-f780-4752-abd4-1a6e3eb0e7e9"
+# 12.1.0 eldri ----
+
+vnv_allir_flokkar_old_tbl <-
+  read_csv2(
+    "https://px.hagstofa.is:443/pxis/sq/73fd14fd-ab13-44ff-8f69-b888199b5d8f"
+  ) |>
+  set_names("date", "flokkur", "visitala") |>
+  drop_na()
+
+
+# 1) Finna "leaf" kóða (þ.e. kóða sem EKKI eru forskeyti fyrir neinum öðrum kóða)
+cpi_leaf_old <- vnv_allir_flokkar_old_tbl %>%
+  mutate(
+    code = stringr::str_extract(flokkur, "^\\d+") # ná í tölukóðann fremst (ef til er)
+  )
+
+codes_old_tbl <- cpi_leaf_old %>%
+  filter(!is.na(code)) %>%
+  distinct(code)
+
+leaf_codes_old <- codes_old_tbl %>%
+  mutate(
+    has_child = purrr::map_lgl(
+      code,
+      ~ any(
+        codes_old_tbl$code != .x & stringr::str_starts(codes_old_tbl$code, .x)
+      )
+    )
+  ) %>%
+  filter(!has_child) %>%
+  pull(code)
+
+# 2) Sía á leaf-kóða og fjarlægja tölukóðann úr heitinu
+cpi_detailed_old <- cpi_leaf_old %>%
+  filter(!is.na(code), code %in% leaf_codes_old) %>%
+  mutate(
+    flokkur = stringr::str_remove(flokkur, "^\\d+\\s+"),
+    flokkur = case_when(
+      code == "01221" ~ "Vatn (drykkjarvörur)",
+      code == "0443" ~ "Vatn (innan heimilis)",
+      TRUE ~ flokkur
+    )
+  ) %>%
+  select(date, flokkur, visitala) |>
+  mutate(visitala = as.numeric(visitala))
+
+
+# 12.1.1 vogir old ----
+
+vnv_vog_old_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/ab5cf065-2286-4011-bdbe-ec5185dd6364"
 ) |>
   janitor::clean_names()
 
-vnv_vog_tbl <- vnv_vog_tbl |>
+vnv_vog_old_tbl <- vnv_vog_old_tbl |>
   separate_wider_delim(timi, delim = " ", names = c("manudur", "ar")) |>
   left_join(manudir_tbl) |>
   mutate(date = make_date(ar, man_no)) |>
   select(date, undirvisitala, visitala_neysluverds) |>
   set_names("date", "flokkur", "vog") |>
-  mutate(flokkur = str_remove(flokkur, "^\\d+\\s*"))
+  mutate(flokkur = str_remove(flokkur, "^\\d+\\s*")) |>
+  drop_na()
+
+
+# 12.1.2 umfang ----
+infl_umfang_old_tbl <- cpi_detailed_old |>
+  mutate(date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))) |>
+  arrange(date, flokkur) |>
+  group_by(flokkur) |>
+  mutate(
+    infl = visitala / lag(visitala, 12) - 1
+  ) |>
+  ungroup() |>
+  drop_na()
+
+
+infl_umfang_old_tbl <- infl_umfang_old_tbl |>
+  left_join(
+    vnv_vog_old_tbl
+  ) |>
+  group_by(flokkur) |>
+  fill(vog, .direction = "down") |>
+  filter(date >= "2020-01-01") |>
+  mutate(
+    vog = as.numeric(vog),
+    haekkanir = case_when(
+      infl < 0 ~ "Verðlækkun",
+      infl < 0.025 ~ "0-2,5%",
+      infl < 0.05 ~ "2,5-5%",
+      infl < 0.075 ~ "5-7,5%",
+      infl < 0.1 ~ "7,5%-10%",
+      TRUE ~ "Meira en 10%"
+    )
+  ) |>
+  group_by(date) |>
+  mutate(vog = vog / sum(vog, na.rm = TRUE)) |>
+  group_by(date, haekkanir) |>
+  summarise(vaegi = sum(vog, na.rm = TRUE)) |>
+  ungroup()
+
+
+infl_umfang_old_tbl <- infl_umfang_old_tbl |>
+  mutate(
+    haekkanir = factor(
+      haekkanir,
+      levels = c(
+        "Meira en 10%",
+        "7,5%-10%",
+        "5-7,5%",
+        "2,5-5%",
+        "0-2,5%",
+        "Verðlækkun"
+      )
+    )
+  )
+
+
+# 12.2.0 nýrri ----
+
+vnv_vog_tbl <- undirflokkar_vogir_new_raw_tbl |>
+  set_names("date", "flokkur", "vog") |>
+  mutate(
+    flokkur = str_trim(str_remove_all(flokkur, "[:digit:]"))
+  )
+
 
 infl_umfang_tbl <- cpi_detailed |>
   mutate(date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))) |>
@@ -1488,7 +1602,9 @@ infl_umfang_tbl <- cpi_detailed |>
 
 
 infl_umfang_tbl <- infl_umfang_tbl |>
-  left_join(vnv_vog_tbl) |>
+  left_join(
+    vnv_vog_tbl
+  ) |>
   group_by(flokkur) |>
   fill(vog, .direction = "down") |>
   filter(date >= "2020-01-01") |>
@@ -1524,6 +1640,10 @@ infl_umfang_tbl <- infl_umfang_tbl |>
     )
   )
 
+
+# 12.3.0 Sameina umfang ----
+infl_umfang_tbl <- infl_umfang_tbl |>
+  bind_rows(infl_umfang_old_tbl)
 
 # 13.0.0 Alþjóðlegur samanburður ----
 
@@ -1626,7 +1746,7 @@ list(
   pbi_inflation_hicp_valuebox = hicp_valuebox_tbl,
 
   # Húsnæðisverð
-  # pbi_inflation_husnaedisverd = hus_unnid_tbl,
+  pbi_inflation_husnaedisverd = hus_unnid_tbl,
   pbi_inflation_husnaaedisvextir = vextir_tbl,
 
   # Útlán
