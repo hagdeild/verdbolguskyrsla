@@ -842,7 +842,27 @@ hicp_valuebox_tbl <- hicp_pbi_tbl %>%
   pivot_wider(names_from = country, values_from = infl)
 
 
-# 6.2.0 Húsnæðisverð fyrir power pi ---------------------------------------
+# 6.0.0 HÚSNÆÐISVERÐ ----
+# 6.1.0 eldri ----
+hus_eldri_tbl <-
+  read_csv2(
+    "https://px.hagstofa.is:443/pxis/sq/34cafc5e-5977-4ea3-a5ce-1ea804fe506c"
+  )
+
+hus_unnid_eldri_tbl <- hus_eldri_tbl %>%
+  mutate(Undirvísitala = str_remove(Undirvísitala, "^\\d+\\s*")) %>%
+  set_names("date", "lidur", "visitala") %>%
+  mutate(
+    date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
+  ) %>%
+  arrange(date, lidur) %>%
+  group_by(lidur) %>%
+  mutate(infl = visitala / lag(visitala, 12) - 1) %>%
+  drop_na() %>%
+  ungroup() |>
+  filter(date >= date_from)
+
+# 6.2.0 nýrri ----
 hus_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/abf64b4f-48c4-49e9-8a42-78d7f3432ba7"
 ) |>
@@ -860,6 +880,12 @@ hus_unnid_tbl <- hus_tbl %>%
   drop_na() %>%
   ungroup() |>
   filter(date >= date_from)
+
+# sameina
+hus_unnid_tbl <- bind_rows(
+  hus_unnid_eldri_tbl,
+  hus_unnid_tbl
+)
 
 # 6.3.0 Vextir ------------------------------------------------------------
 
