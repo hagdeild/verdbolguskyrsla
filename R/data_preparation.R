@@ -926,6 +926,7 @@ vextir_tbl <- vextir_tbl %>%
 # 7.1.0 Útlánastabbi ----
 
 # Innlánsstofnanir
+print("Útlán innlánsstofnana")
 bankakerfi_tbl <- read_xlsx(data_path, "bank_stabbi") %>%
   slice(6, 9) %>%
   select(-c(1, 2)) %>%
@@ -945,6 +946,8 @@ bankakerfi_tbl <- read_xlsx(data_path, "bank_stabbi") %>%
 
 
 # Lífeyrissjóðir
+print("Útlán lífeyrissjóða")
+
 lifeyrissjodir_tbl <- read_xlsx(data_path, "lif_stabbi") %>%
   slice(16, 19) %>%
   select(-1) %>%
@@ -965,6 +968,8 @@ lifeyrissjodir_tbl <- read_xlsx(data_path, "lif_stabbi") %>%
 
 
 # Lánasjóðir ríkisins
+print("Útlán lánasjóða ríkisins")
+
 lsj_tbl <- read_xlsx(data_path, "lanasjodir_stabbi") %>%
   slice(16, 19) %>%
   select(-1) %>%
@@ -1004,6 +1009,8 @@ utlan_stada_tbl <- bankakerfi_tbl %>%
 # 7.2.0 Ný útlán ----
 
 # Lífeyrissjóðir
+print("Ný útlán lífeyrissjóða")
+
 lif_ny_utlan <- read_excel(data_path, "lif_ny_utlan") |>
   slice(4, 5) |>
   select(-c(1)) |>
@@ -1023,6 +1030,7 @@ lif_ny_utlan <- read_excel(data_path, "lif_ny_utlan") |>
 
 
 # Innlánsstofnanir
+print("Ný útlán innlánsstofnana")
 banki_ny_utlan_tbl <- read_excel(data_path, "bank_ny_utlan") |>
   slice(72, 73, 110, 111) |>
   select(-c(1)) |>
