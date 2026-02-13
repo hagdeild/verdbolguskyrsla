@@ -1,4 +1,4 @@
-# 1.0.0 SETUP -------------------------------------------------------------
+# 1.0.0 SETUP ----
 
 library(tidyverse)
 library(eurostat)
@@ -30,7 +30,7 @@ new_coicop_date_from <- "2026-01-01"
 
 # 2.0.0 Verðbólga ----
 
-# 2.1.0 Verðbólga með og án húsnæðis --------------------------------------
+# 2.1.0 Verðbólga með og án húsnæðis ----
 vnv_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/6dd6d9a9-ff2f-4379-a78f-7fc800e09ea9"
 ) %>%
@@ -72,8 +72,11 @@ valuebox_verdbolga <- vnv_tbl %>%
   filter(date == max(date)) %>%
   select(verdbolga, milli_manada, hradi, hradi_diff)
 
+verdbolga_latest <- vnv_tbl |>
+  filter(date == max(date), flokkur == "Verðbólga") |>
+  pull(verdbolga)
 
-# 2.2.0 Innlend og erlend verðbólga ---------------------------------------
+# 2.2.0 Innlend og erlend verðbólga ----
 
 # innlend_innflutt_old_tbl <- read_csv2(
 #   "https://px.hagstofa.is:443/pxis/sq/efeec1b8-11a5-402c-b747-99fe8ab61bec",
@@ -118,7 +121,7 @@ valuebox_verdbolga <- vnv_tbl %>%
 #   group_by(flokkur_2) %>%
 #   mutate(voxtur = index / index[1] - 1)
 
-# 2.3.0 Verðbólga eftir eðli og uppruna -----------------------------------
+# 2.3.0 Verðbólga eftir eðli og uppruna ----
 
 # 2.3.1 eldri ----
 edli_og_uppruna_old_raw_tbl <- read_csv2(
@@ -241,7 +244,7 @@ edli_og_uppruna_tbl <- edli_og_uppruna_tbl %>%
   filter(date >= date_from)
 
 
-# 2.4.0 Undirliggjandi verðbólga ------------------------------------------
+# 2.4.0 Undirliggjandi verðbólga ----
 
 # 2.4.1 eldri ----
 undirliggjandi_old_tbl <- read_csv2(
@@ -296,7 +299,7 @@ undirliggjandi_tbl <-
   )
 
 
-# 3.0.0 - WATERFALL - -----------------------------------------------------
+# 3.0.0 - WATERFALL - ----
 
 # Based on this: https://www.r-bloggers.com/2019/05/basic-waterfall-graphs-in-r/
 # https://rpubs.com/techanswers88/waterfall-chart-ggplot
@@ -373,7 +376,8 @@ manudir_tbl <- tibble(
 
 
 undirflokkar_vogir_new_raw_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/cc438998-989e-4a33-b7da-42d5b5edc326"
+  "https://px.hagstofa.is:443/pxis/sq/2286b3f4-1752-4750-b6d2-d8ee0db8a074"
+  #"https://px.hagstofa.is:443/pxis/sq/cc438998-989e-4a33-b7da-42d5b5edc326"
 ) |>
   janitor::clean_names() |>
   separate(timi, c("manudur", "ar")) |>
@@ -383,17 +387,27 @@ undirflokkar_vogir_new_raw_tbl <- read_csv2(
   drop_na(date) %>%
   select(date, undirvisitala, visitala_neysluverds) %>%
   set_names("date", "undirflokkur", "vog") %>%
-  mutate(vog = as.numeric(vog), vog = vog / 10000)
+  mutate(vog = as.numeric(vog), vog = vog / 10000) |>
+  arrange(date, undirflokkur)
 
-undirflokkar_vogir_new_raw_tbl <-
-  tibble(
-    date = seq.Date(from = as.Date("2025-01-01"), length.out = 13, by = "month")
+undirflokkar_vogir_new_raw_tbl <- undirflokkar_vogir_new_raw_tbl |>
+  mutate(date = date %m+% months(1)) |>
+  right_join(
+    crossing(
+      date = seq.Date(
+        from = as.Date("2025-01-01"),
+        to = max(undirflokkar_raw_new_tbl$date),
+        by = "month"
+      ),
+      undirflokkur = unique(undirflokkar_vogir_new_raw_tbl$undirflokkur)
+    ),
+    by = c("date", "undirflokkur")
   ) |>
-  crossing(
-    undirflokkar_vogir_new_raw_tbl |>
-      select(undirflokkur, vog)
-  )
-
+  arrange(undirflokkur, date) |>
+  group_by(undirflokkur) |>
+  fill(vog, .direction = "down") |>
+  ungroup() |>
+  drop_na(vog)
 
 # 3.2.3 sameina vogir ----
 # undirflokkar_vogir_tbl <- bind_rows(
@@ -447,7 +461,7 @@ undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>%
   arrange(desc(ahrif))
 
 
-# 3.5.0 Stöplarit ---------------------------------------------------------
+# 4.0.0 STÖPLARIT UNDIRFLOKKA ----
 
 undirflokkar_12m_tbl <- undirflokkar_tbl %>%
   arrange(undirflokkur, date) %>%
@@ -462,6 +476,9 @@ undirflokkar_12m_tbl <- undirflokkar_tbl %>%
   pivot_longer(cols = -"Vísitala neysluverðs") |>
   set_names("verdbolga", "name", "value")
 
+if (all(is.na(undirflokkar_12m_tbl$verdbolga))) {
+  undirflokkar_12m_tbl$verdbolga <- verdbolga_latest
+}
 
 undirflokkar_1m_tbl <- undirflokkar_tbl %>%
   arrange(undirflokkur, date) %>%
@@ -477,12 +494,12 @@ undirflokkar_1m_tbl <- undirflokkar_tbl %>%
   set_names("verdbolga", "name", "value")
 
 
-# 4.0.0 FROOP ----
+# 5.0.0 FROOP ----
 
 froop_flokkar_tbl <- read_excel(data_path, sheet = "froop") %>%
   janitor::clean_names()
 
-# 4.1.0 Eldri flokkun ----
+# 5.1.0 Eldri flokkun ----
 
 # visitala
 undirflokkar_raw_old_tbl <- read_csv2(
@@ -590,7 +607,7 @@ froop_old_tbl <- froop_old_tbl %>%
   ) |>
   filter(date >= date_from)
 
-# 4.2.0 ný flokkun ----
+# 5.2.0 ný flokkun ----
 
 vnv_vogir_tbl <- undirflokkar_raw_new_tbl %>%
   drop_na(visitala) %>%
@@ -675,12 +692,12 @@ froop_tbl <- froop_tbl %>%
   filter(date >= date_from)
 
 
-# 4.3.0 Sameina eldri og nýrri ----
+# 5.3.0 Sameina eldri og nýrri ----
 froop_final_tbl <- froop_old_tbl |>
   bind_rows(froop_tbl)
 
 
-# 5.0.0 EUROSTAT - HICP ----
+# 6.0.0 EUROSTAT - HICP ----
 
 hicp_raw_tbl <- get_eurostat(
   id = "prc_hicp_midx",
@@ -762,7 +779,7 @@ hicp_pbi_tbl <- hicp_infl_tbl %>%
   filter(date >= date_from)
 
 
-# 5.2.0 By Coicip ----
+# 6.1.0 By Coicip ----
 coicop_flokkar_tbl <- tibble(
   coicop = paste0(
     "CP",
@@ -842,8 +859,8 @@ hicp_valuebox_tbl <- hicp_pbi_tbl %>%
   pivot_wider(names_from = country, values_from = infl)
 
 
-# 6.0.0 HÚSNÆÐISVERÐ ----
-# 6.1.0 eldri ----
+# 7.0.0 HÚSNÆÐISVERÐ ----
+# 7.1.0 eldri ----
 hus_eldri_tbl <-
   read_csv2(
     "https://px.hagstofa.is:443/pxis/sq/34cafc5e-5977-4ea3-a5ce-1ea804fe506c"
@@ -862,7 +879,7 @@ hus_unnid_eldri_tbl <- hus_eldri_tbl %>%
   ungroup() |>
   filter(date >= date_from)
 
-# 6.2.0 nýrri ----
+# 7.2.0 nýrri ----
 hus_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/abf64b4f-48c4-49e9-8a42-78d7f3432ba7"
 ) |>
@@ -887,7 +904,7 @@ hus_unnid_tbl <- bind_rows(
   hus_unnid_tbl
 )
 
-# 6.3.0 Vextir ------------------------------------------------------------
+# 7.3.0 Vextir ----
 
 # Vextir bankanna
 vextir_tbl <- readxl::read_excel(data_path, sheet = "vextir") |>
@@ -899,7 +916,7 @@ vextir_tbl <- readxl::read_excel(data_path, sheet = "vextir") |>
   filter(date >= date_from)
 
 
-# 6.3.1 Meginvextir ----
+# 7.3.1 Meginvextir ----
 print("Hleð inn meginvexti")
 
 meginvextir_tbl <- read_excel(data_path, sheet = "meginvextir") %>%
@@ -921,9 +938,9 @@ vextir_tbl <- vextir_tbl %>%
   select(date, everything())
 
 
-# 7.0.0 ÚTLÁN ----
+# 8.0.0 ÚTLÁN ----
 
-# 7.1.0 Útlánastabbi ----
+# 8.1.0 Útlánastabbi ----
 
 # Innlánsstofnanir
 print("Útlán innlánsstofnana")
@@ -1006,7 +1023,7 @@ utlan_stada_tbl <- bankakerfi_tbl %>%
   ungroup()
 
 
-# 7.2.0 Ný útlán ----
+# 8.2.0 Ný útlán ----
 
 # Lífeyrissjóðir
 print("Ný útlán lífeyrissjóða")
@@ -1065,7 +1082,7 @@ ny_utlan_tbl <- ny_utlan_tbl %>%
   filter(date >= date_from)
 
 
-# 8.0.0 GENGI ----
+# 9.0.0 GENGI ----
 print("Sæki upplýsingar um gengi af heimasíðu Seðlabankans")
 
 get_si_gengi <- function(gjaldmidill) {
@@ -1116,7 +1133,7 @@ gengi_tbl <- get_si_gengi("eur") %>%
   filter(date >= date_from)
 
 
-# 9.0.0 INNGRIP SEÐLABANKANS Á GJALDEYRISMARKAÐ ----
+# 10.0.0 INNGRIP SEÐLABANKANS Á GJALDEYRISMARKAÐ ----
 inngrip_si_tbl <- read_xlsx(data_path, "inngrip_si") |>
   janitor::clean_names() |>
   select(date_reverse, velta_i_isk, fe_buy_m_kr, fe_sell_m_kr) |>
@@ -1146,7 +1163,7 @@ inngrip_si_tbl <- inngrip_si_tbl |>
   ) |>
   filter(date >= date_from)
 
-# 10.0.0 VERÐBÓLGUVÆNTINGAR -----------------------------------------------
+# 11.0.0 VERÐBÓLGUVÆNTINGAR ----
 
 get_infl_exp <- function(exp_path, rows, sheet_name, date_from) {
   read_excel(exp_path, sheet = sheet_name) |>
@@ -1241,18 +1258,27 @@ infl_exp_breakeven_tbl <- read_excel(
   filter(date >= date_from)
 
 
-# # 10.1.0 Skuldabréfamarkaðurinn --------------------------------------------
+# # 11.1.0 Skuldabréfamarkaðurinn ----
 # print("Skuldabréfamarkaðurinn")
 
-# combine_interpolate_bonds <- function(overdtryggd_tbl, verdtryggd_tbl, method = "linear") {
-
+# combine_interpolate_bonds <- function(
+#   overdtryggd_tbl,
+#   verdtryggd_tbl,
+#   method = "linear"
+# ) {
 #   # Create sequence of monthly maturities
-#   date_seq <- seq(min(overdtryggd_tbl$maturity), max(overdtryggd_tbl$maturity), by = "month")
+#   date_seq <- seq(
+#     min(overdtryggd_tbl$maturity),
+#     max(overdtryggd_tbl$maturity),
+#     by = "month"
+#   )
 
 #   # Define interpolation function based on chosen method
 #   interpolate_yield <- function(maturity, yield, xout, method) {
 #     if (method == "linear") {
-#       return(approx(maturity, yield, xout = xout, method = "linear", rule = 2)$y)
+#       return(
+#         approx(maturity, yield, xout = xout, method = "linear", rule = 2)$y
+#       )
 #     } else if (method == "spline") {
 #       return(spline(maturity, yield, xout = xout, method = "natural")$y)
 #     } else {
@@ -1261,23 +1287,43 @@ infl_exp_breakeven_tbl <- read_excel(
 #   }
 
 #   # Apply interpolation
-#   indexed_yield <- interpolate_yield(verdtryggd_tbl$maturity, verdtryggd_tbl$yield, date_seq, method)
-#   non_indexed_yield <- interpolate_yield(overdtryggd_tbl$maturity, overdtryggd_tbl$yield, date_seq, method)
+#   indexed_yield <- interpolate_yield(
+#     verdtryggd_tbl$maturity,
+#     verdtryggd_tbl$yield,
+#     date_seq,
+#     method
+#   )
+#   non_indexed_yield <- interpolate_yield(
+#     overdtryggd_tbl$maturity,
+#     overdtryggd_tbl$yield,
+#     date_seq,
+#     method
+#   )
 
 #   # Create interpolated yield tables
 #   indexed_tbl <- tibble(maturity = date_seq, yield = indexed_yield)
 #   non_indexed_tbl <- tibble(maturity = date_seq, yield = non_indexed_yield)
 
 #   # Join datasets and calculate break-even inflation
-#   combined_tbl <- inner_join(indexed_tbl, non_indexed_tbl, by = "maturity", suffix = c("_indexed", "_non_indexed")) %>%
-#     mutate(break_even_inflation = (1 + yield_non_indexed) / (1 + yield_indexed) - 1) %>%
+#   combined_tbl <- inner_join(
+#     indexed_tbl,
+#     non_indexed_tbl,
+#     by = "maturity",
+#     suffix = c("_indexed", "_non_indexed")
+#   ) %>%
+#     mutate(
+#       break_even_inflation = (1 + yield_non_indexed) / (1 + yield_indexed) - 1
+#     ) %>%
 #     select(maturity, break_even_inflation)
 
 #   return(combined_tbl)
 # }
 
-# combine_interpolate_bonds_multiple_days <- function(overdtryggd, verdtryggd, method = "linear") {
-
+# combine_interpolate_bonds_multiple_days <- function(
+#   overdtryggd,
+#   verdtryggd,
+#   method = "linear"
+# ) {
 #   # Ensure we have valid dates
 #   unique_dates <- unique(c(overdtryggd$date, verdtryggd$date))
 
@@ -1285,16 +1331,22 @@ infl_exp_breakeven_tbl <- read_excel(
 #   nested_data <- tibble(date = unique_dates) %>%
 #     mutate(
 #       overd_data = map(date, ~ filter(overdtryggd, date == .x) %>% drop_na()),
-#       verd_data  = map(date, ~ filter(verdtryggd, date == .x) %>% drop_na())
+#       verd_data = map(date, ~ filter(verdtryggd, date == .x) %>% drop_na())
 #     )
 
 #   # Apply function to each nested date
 #   results <- nested_data %>%
 #     mutate(
-#       interpolated = map2(overd_data, verd_data, ~ {
-#         if (nrow(.x) == 0 || nrow(.y) == 0) return(NULL) # Handle missing cases
-#         combine_interpolate_bonds(.x, .y, method = method)
-#       })
+#       interpolated = map2(
+#         overd_data,
+#         verd_data,
+#         ~ {
+#           if (nrow(.x) == 0 || nrow(.y) == 0) {
+#             return(NULL)
+#           } # Handle missing cases
+#           combine_interpolate_bonds(.x, .y, method = method)
+#         }
+#       )
 #     ) %>%
 #     unnest(interpolated) %>%
 #     select(date, maturity, break_even_inflation)
@@ -1302,7 +1354,7 @@ infl_exp_breakeven_tbl <- read_excel(
 #   return(results)
 # }
 
-# # 10.1.1 Söguleg gögn ------------------------------------------------------
+# # 11.1.1 Söguleg gögn ----
 
 # # * RIKB ----
 # rikb_files <- list.files(paste0(base_path, "/00_data/skuldabref/"), pattern = "rikb_")
@@ -1395,7 +1447,7 @@ infl_exp_breakeven_tbl <- read_excel(
 # combined_bonds_over_time <- combined_bonds_over_time %>%
 #   mutate(index = as.numeric(as_factor(as.character(date))))
 
-# 11.0.0 Top 10 listinn ----
+# 12.0.0 Top 10 listinn ----
 # Fínasta skipting hvers flokks. Finna svo top og botn 10 flokkana
 # varðandi 12 mánaða og 1 mánaða breytingu
 
@@ -1477,7 +1529,7 @@ top_12m_tbl <- infl_allir_flokkar_tbl |>
   select(flokkur, infl_12m)
 
 
-# 12.0.0 Umfang verðhækkana ----
+# 13.0.0 Umfang verðhækkana ----
 
 manudir_tbl <-
   tibble(
@@ -1498,7 +1550,7 @@ manudir_tbl <-
     man_no = 1:12
   )
 
-# 12.1.0 eldri ----
+# 13.1.0 eldri ----
 
 vnv_allir_flokkar_old_tbl <-
   read_csv2(
@@ -1545,7 +1597,7 @@ cpi_detailed_old <- cpi_leaf_old %>%
   mutate(visitala = as.numeric(visitala))
 
 
-# 12.1.1 vogir old ----
+# 13.1.1 vogir old ----
 
 vnv_vog_old_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/ab5cf065-2286-4011-bdbe-ec5185dd6364"
@@ -1562,7 +1614,7 @@ vnv_vog_old_tbl <- vnv_vog_old_tbl |>
   drop_na()
 
 
-# 12.1.2 umfang ----
+# 13.1.2 umfang ----
 infl_umfang_old_tbl <- cpi_detailed_old |>
   mutate(date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))) |>
   arrange(date, flokkur) |>
@@ -1615,7 +1667,7 @@ infl_umfang_old_tbl <- infl_umfang_old_tbl |>
   )
 
 
-# 12.2.0 nýrri ----
+# 13.2.0 nýrri ----
 
 vnv_vog_tbl <- undirflokkar_vogir_new_raw_tbl |>
   set_names("date", "flokkur", "vog") |>
@@ -1675,11 +1727,11 @@ infl_umfang_tbl <- infl_umfang_tbl |>
   )
 
 
-# 12.3.0 Sameina umfang ----
+# 13.3.0 Sameina umfang ----
 infl_umfang_tbl <- infl_umfang_tbl |>
   bind_rows(infl_umfang_old_tbl)
 
-# 13.0.0 Alþjóðlegur samanburður ----
+# 14.0.0 Alþjóðlegur samanburður ----
 
 fredr_set_key(Sys.getenv("FRED_API_KEY"))
 

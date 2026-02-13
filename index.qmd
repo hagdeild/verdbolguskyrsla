@@ -18,6 +18,11 @@ library(plotly)
 data_ls <- read_rds("data/final_data.rds")
 fc_ls   <- read_rds("data/spar.rds")
 
+verdbolga_total_value <- data_ls$pbi_inflation_verdbolga_valuebox$verdbolga 
+
+# Text size
+text_size <- 16
+
 # Litir
 vr_litir <- c("#00305c", "#028fbc", "#eec215", "#d64550", "#4fb94f", "#7d5ba6", "#e07b39", "#3a8e8e")
 valuebox_litir <- c("#2E7D6E", "#E57373", "#F9A825")
@@ -68,7 +73,8 @@ waterfall_plot <- function(
   bar_width = 0.6,
   pad_frac = 0.02,
   base_size = 12,
-  flip = FALSE                    
+  flip = FALSE,
+  total_value = NULL
 ) {
   df <- data %>%
     transmute(
@@ -96,7 +102,7 @@ waterfall_plot <- function(
       label = sprintf(paste0("%.", label_digits, "f%%"), value * 100)
     )
 
-  total_val <- sum(df$value, na.rm = TRUE)
+  total_val <- if (!is.null(total_value)) total_value else sum(df$value, na.rm = TRUE)
   total_row <- tibble(
     category = total_bar_title,
     value    = total_val,
@@ -138,6 +144,7 @@ waterfall_plot <- function(
     labs(x = NULL, y = NULL, title = title) +
     theme_minimal(base_size = base_size) +
     theme(
+      text = element_text(size = text_size),
       plot.margin = margin(8, 8, 8, 8)
     ) +
     coord_cartesian(clip = "off")
@@ -152,6 +159,7 @@ waterfall_plot <- function(
       ) +
       coord_flip() +
       theme(
+        text = element_text(size = text_size),
         axis.text.x = element_text(size = 9),
         axis.text.y = element_text(size = 9)
       )
@@ -163,8 +171,9 @@ waterfall_plot <- function(
         expand = c(0.01, 0)
       ) +
       theme(
+        text = element_text(size = text_size),
         axis.text.y = element_blank(),
-        axis.text.x = element_text(angle = 90, hjust = 1, size = 9)  
+        axis.text.x = element_text(angle = 90, hjust = 1, size = 9)
       )
   }
 
@@ -270,6 +279,7 @@ p1 <- data_ls$pbi_inflation_verdbolga |>
         title = "Verðbólga"
     ) +
     theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     scale_color_manual(values = vr_litir) +
     scale_y_continuous(labels = percent)
     
@@ -290,9 +300,10 @@ p2 <- data_ls$pbi_inflation_verdbolga |>
         title = "Verðbólga milli mánaða"
     ) +
     theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     scale_y_continuous(labels = percent)
-    
-ggplotly(p2) 
+
+ggplotly(p2)
 ```
 
 # Undirliggjandi verðbólga
@@ -311,6 +322,7 @@ p3 <- data_ls$pbi_inflation_undirliggjandi |>
         title = "Undirliggjandi verðbólga"
     ) +
     theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     scale_color_manual(values = vr_litir) +
     scale_y_continuous(labels = percent)
 
@@ -327,6 +339,7 @@ p4 <- data_ls$pbi_inflation_uppruni |>
         title = "Verðbólga eftir uppruna"
     ) +
     theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     scale_color_manual(values = vr_litir) +
     scale_y_continuous(labels = percent)
 
@@ -377,6 +390,7 @@ p5 <- ggplot(froop_tbl, aes(date, value, col = name)) +
   geom_line() +
   labs(x = NULL, y = NULL, title = "Verðbólga eftir því hvort vara er keypt oft eða ekki") +
   theme_minimal() +
+  theme(text = element_text(size = text_size)) +
   scale_color_manual(values = vr_litir) +
   scale_y_continuous(labels = percent)
 
@@ -391,7 +405,8 @@ waterfall_plot(
   data_ls$pbi_inflation_waterfall |> drop_na(),
   ahrif,
   title = "Framlag undirliða seinustu 12 mánuði",
-  flip = TRUE
+  flip = TRUE,
+  total_value = verdbolga_total_value
 )
 
 ```
@@ -403,7 +418,8 @@ waterfall_plot(
   data_ls$pbi_inflation_waterfall |> drop_na(),
   ahrif_1m,
   title = "Framlag undirliða seinasta mánuð",
-  flip = TRUE
+  flip = TRUE,
+  label_digits = 2
 )
 
 ```
@@ -411,24 +427,24 @@ waterfall_plot(
 
 ```{r, undirflokkar_12m, fig.width = 16, fig.height = 8}
 # Undirflokkar 12m
-# data_ls$phi_inflation_undirflokkar |> 
-#     mutate(
-#         merking = percent(value, accuracy = 0.1),
-#         merking_pos = if_else(value >= 0, value + 0.0075, value -0.0075)
-#         ) |> 
-#     ggplot(aes(fct_reorder(name, -value),  value)) + 
-#     geom_col(fill = vr_litir[1]) + 
-#     geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
-#     geom_text(aes(y = merking_pos, label = merking)) + 
-#     labs(
-#         x = NULL,
-#         y = NULL,
-#         title = "12 mánaða verðbólga undirliða"
-#     ) +
-#     theme_minimal() +
-#     coord_cartesian(clip = "off") +
-#     coord_flip() +
-#     scale_y_continuous(label = percent)
+data_ls$phi_inflation_undirflokkar |> 
+    mutate(
+        merking = percent(value, accuracy = 0.1),
+        merking_pos = if_else(value >= 0, value + 0.0075, value -0.0075)
+        ) |> 
+    ggplot(aes(fct_reorder(name, -value),  value)) + 
+    geom_col(fill = vr_litir[1]) + 
+    geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
+    geom_text(aes(y = merking_pos, label = merking)) + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "12 mánaða verðbólga undirliða"
+    ) +
+    theme_minimal() +
+    coord_cartesian(clip = "off") +
+    coord_flip() +
+    scale_y_continuous(label = percent)
 
 ```
 
@@ -453,6 +469,7 @@ data_ls$hitakort |>
     scale_fill_manual(values = inflation_colors) +
     theme_minimal() +
     theme(
+        text = element_text(size = text_size),
         legend.title = element_blank()
     ) +
     labs(
@@ -479,6 +496,7 @@ data_ls$phi_inflation_undirflokkar_1m |>
   geom_text(aes(y = merking_pos, label = merking)) + 
   labs(x = NULL, y = NULL, title = "1 mánaða verðbólga undirliða") +
   theme_minimal() +
+  theme(text = element_text(size = text_size)) +
   coord_cartesian(clip = "off") +
   coord_flip() +
   scale_y_continuous(label = percent)
@@ -497,14 +515,15 @@ p_top10_12m <- data_ls$top_12m |>
     ggplot(aes(fct_reorder(flokkur, infl_12m), infl_12m)) +
     geom_col(fill = valuebox_litir[2]) +
     geom_text(aes(label = merking, y = merking_pos)) + 
-    theme_minimal() + 
+    theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     labs(
         x = NULL,
         y = NULL,
         title = "Mestu hækkanir seinustu 12 mánuði"
-    ) + 
+    ) +
     scale_y_continuous(labels = percent) + 
-    coord_flip()
+    coord_flip(ylim = c(NA_real_, 0.4))
 
 vr_layout(p_top10_12m)
 
@@ -520,12 +539,13 @@ p_botn_12m <- data_ls$botn_12m |>
     ggplot(aes(fct_reorder(flokkur, infl_12m), infl_12m)) +
     geom_col(fill = valuebox_litir[1]) +
     geom_text(aes(label = merking, y = merking_pos)) + 
-    theme_minimal() + 
+    theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     labs(
         x = NULL,
         y = NULL,
         title = "Mestu lækkanir seinustu 12 mánuði"
-    ) + 
+    ) +
     scale_y_continuous(labels = percent) + 
     coord_flip()
 
@@ -544,14 +564,15 @@ p_top10_1m <- data_ls$top_1m |>
     ggplot(aes(fct_reorder(flokkur, infl_1m), infl_1m)) +
     geom_col(fill = valuebox_litir[2]) +
     geom_text(aes(label = merking, y = merking_pos)) + 
-    theme_minimal() + 
+    theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     labs(
         x = NULL,
         y = NULL,
         title = "Mestu hækkanir milli mánaða"
-    ) + 
+    ) +
     scale_y_continuous(labels = percent) + 
-    coord_flip()
+    coord_flip(ylim = c(NA_real_, 0.4))
 
 vr_layout(p_top10_1m)
 
@@ -566,12 +587,13 @@ p_botn_1m <- data_ls$botn_1m |>
     ggplot(aes(fct_reorder(flokkur, infl_1m), infl_1m)) +
     geom_col(fill = valuebox_litir[1]) +
     geom_text(aes(label = merking, y = merking_pos)) + 
-    theme_minimal() + 
+    theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     labs(
         x = NULL,
         y = NULL,
         title = "Mestu lækkanir milli mánaða"
-    ) + 
+    ) +
     scale_y_continuous(labels = percent) + 
     coord_flip()
 
@@ -757,6 +779,7 @@ p6 <- data_ls$pbi_inflation_hicp |>
     ggplot(aes(date, infl, col = country)) + 
     geom_line() +
     theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     scale_y_continuous(labels = percent) +
     scale_color_manual(values = vr_litir) +
     labs(
@@ -776,6 +799,7 @@ p7 <- data_ls$pbi_inflation_hicp |>
     ggplot(aes(date, infl_3m, col = country)) + 
     geom_line() +
     theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     scale_y_continuous(labels = percent) +
     scale_color_manual(values = vr_litir) +
     labs(
@@ -804,6 +828,7 @@ p8 <- data_ls$pbi_inflation_hicp_undirflokkar |>
     geom_text(position = position_nudge(y = 0.005)) + 
     scale_fill_manual(values = vr_litir) +
     theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     labs(
         x = NULL,
         y = NULL,
@@ -829,6 +854,7 @@ p9 <- data_ls$pbi_inflation_hicp_undirflokkar |>
     geom_text(position = position_nudge(y = 0.005)) + 
     scale_fill_manual(values = vr_litir) +
     theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     labs(
         x = NULL,
         y = NULL,
@@ -851,6 +877,7 @@ p10 <- data_ls$pbi_inflation_husnaedisverd |>
     ggplot(aes(date, infl, col = lidur)) +
     geom_line() +
     theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     labs(
         x = NULL,
         y = NULL,
@@ -867,7 +894,8 @@ p11 <- data_ls$pbi_inflation_husnaaedisvextir |>
     pivot_longer(cols = -date) |> 
     ggplot(aes(date, value, col = name)) + 
     geom_line() + 
-    theme_minimal() + 
+    theme_minimal() +
+    theme(text = element_text(size = text_size)) +
     labs(
         x = NULL,
         y = NULL,
@@ -891,7 +919,8 @@ p12 <- data_ls$pbi_inflation_utlan_ny |>
         y = NULL,
         title = "Ný útlán lífeyrissjóða og innlánsstofnana"
     ) +
-    theme_minimal()
+    theme_minimal() +
+    theme(text = element_text(size = text_size))
 
 vr_layout(p12)
 ```
@@ -908,7 +937,8 @@ p13 <- data_ls$pbi_inflation_utlanastabbi |>
     ) +
     scale_y_continuous(labels = percent) + 
     scale_fill_manual(values = vr_litir) +
-    theme_minimal()
+    theme_minimal() +
+    theme(text = element_text(size = text_size))
 
 vr_layout(p13)
 ```
@@ -927,8 +957,9 @@ p14 <- data_ls$pbi_inflation_vaentingar |>
         title = "Verðbólguvæntingar"
     ) +
     scale_y_continuous(labels = percent) + 
-    scale_color_manual(values = vr_litir) + 
-    theme_minimal()
+    scale_color_manual(values = vr_litir) +
+    theme_minimal() +
+    theme(text = element_text(size = text_size))
 
 vr_layout(p14)
 ```
@@ -943,8 +974,9 @@ p15 <- data_ls$pbi_inflation_vaentingar_skuldabrefamarkadur |>
         title = "Verðbólguálaga á skuldabréfamarkaði"
     ) +
     scale_y_continuous(labels = percent) + 
-    scale_color_manual(values = vr_litir) + 
-    theme_minimal()
+    scale_color_manual(values = vr_litir) +
+    theme_minimal() +
+    theme(text = element_text(size = text_size))
 
 vr_layout(p15)
 ```
@@ -962,8 +994,9 @@ p16 <- data_ls$pbi_inflation_gengi |>
         title = "Gengi gjaldmiðla"
     ) +
     scale_y_continuous(labels = percent) + 
-    scale_color_manual(values = vr_litir) + 
-    theme_minimal()
+    scale_color_manual(values = vr_litir) +
+    theme_minimal() +
+    theme(text = element_text(size = text_size))
 
 vr_layout(p16)
 ```
@@ -981,8 +1014,9 @@ p17_a <- inngrip_use_tbl |>
         y = NULL
         #title = "Gengi Evru"
     ) +
-    scale_color_manual(values = vr_litir) + 
-    theme_minimal()
+    scale_color_manual(values = vr_litir) +
+    theme_minimal() +
+    theme(text = element_text(size = text_size))
 
 p17_b <- inngrip_use_tbl |> 
     ggplot(aes(date, inngrip)) + 
@@ -993,9 +1027,10 @@ p17_b <- inngrip_use_tbl |>
         #title = "Kaup seðlabankans á gjaldeyrismarkaði, hlutfall af heildarveltu"
     ) +
     scale_y_continuous(labels = percent) + 
-    scale_color_manual(values = vr_litir) + 
-    theme_minimal()
-    
+    scale_color_manual(values = vr_litir) +
+    theme_minimal() +
+    theme(text = element_text(size = text_size))
+
 p17_a_plotly <- ggplotly(p17_a)
 p17_b_plotly <- ggplotly(p17_b)
 
@@ -1161,6 +1196,7 @@ p18 <- fc_ls$verdbolguspa |>
   labs(x = NULL, y = NULL, title = "Verðbólguspá", color = "Uppruni") +
   scale_y_continuous(labels = scales::percent) +
   theme_minimal() +
+  theme(text = element_text(size = text_size)) +
   scale_color_manual(values = cols_all, breaks = breaks_all, drop = FALSE)
 
 vr_layout <- function(plot) {
