@@ -425,34 +425,6 @@ waterfall_plot(
 ```
 
 
-```{r, undirflokkar_12m, fig.width = 16, fig.height = 8}
-# Undirflokkar 12m
-if(all(is.na(data_ls$phi_inflation_undirflokkar$verdbolga))) {
-    data_ls$phi_inflation_undirflokkar$verdbolga <- verdbolga_total_value
-}
-
-data_ls$phi_inflation_undirflokkar |> 
-    mutate(
-        merking = percent(value, accuracy = 0.1),
-        merking_pos = if_else(value >= 0, value + 0.0075, value -0.0075)
-        ) |> 
-    drop_na() |> 
-    ggplot(aes(fct_reorder(name, -value),  value)) + 
-    geom_col(fill = vr_litir[1]) + 
-    geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
-    geom_text(aes(y = merking_pos, label = merking)) + 
-    labs(
-        x = NULL,
-        y = NULL,
-        title = "12 mánaða verðbólga allra 2ja stafa undirliða"
-    ) +
-    theme_minimal() +
-    coord_cartesian(clip = "off") +
-    coord_flip() +
-    scale_y_continuous(label = percent)
-
-```
-
 
 # Hitakort
 
@@ -486,10 +458,11 @@ data_ls$hitakort |>
 
 ```
 
-# Undirflokkar 1m
+# Undirflokkar
 
+## Row
 ```{r, undirflokkar_1m, fig.width = 16, fig.height = 8}
-data_ls$phi_inflation_undirflokkar_1m |>
+p_undir_1 <- data_ls$phi_inflation_undirflokkar_1m |>
     drop_na() |> 
   mutate(
     merking = percent(value, accuracy = 0.1),
@@ -509,7 +482,44 @@ data_ls$phi_inflation_undirflokkar_1m |>
   coord_flip() +
   scale_y_continuous(label = percent)
 
+vr_layout(p_undir_1)
 ```
+
+
+
+```{r, undirflokkar_12m, fig.width = 16, fig.height = 8}
+# Undirflokkar 12m
+if(all(is.na(data_ls$phi_inflation_undirflokkar$verdbolga))) {
+    data_ls$phi_inflation_undirflokkar$verdbolga <- verdbolga_total_value
+}
+
+p_undir_2 <- data_ls$phi_inflation_undirflokkar |> 
+    mutate(
+        merking = percent(value, accuracy = 0.1),
+        merking_pos = if_else(value >= 0, value + 0.0075, value -0.0075)
+        ) |> 
+    drop_na() |> 
+    ggplot(aes(fct_reorder(name, -value),  value)) + 
+    geom_col(fill = vr_litir[1]) + 
+    geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
+    geom_text(aes(y = merking_pos, label = merking)) + 
+    labs(
+        x = NULL,
+        y = NULL,
+        title = "12 mánaða verðbólga allra 2ja stafa undirliða"
+    ) +
+    theme_minimal() +
+    theme(
+    text = element_text(size = text_size),
+    plot.title.position = "plot"
+    ) +
+    coord_cartesian(clip = "off") +
+    coord_flip() +
+    scale_y_continuous(label = percent)
+
+vr_layout(p_undir_2)
+```
+
 
 # Top 10 listinn
 
