@@ -307,7 +307,8 @@ undirliggjandi_tbl <-
 # 3.1.0 Vísitölugildi ----
 
 undirflokkar_raw_new_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/810ad986-60c1-471e-8f52-18f467e25ea2",
+  "https://px.hagstofa.is:443/pxis/sq/70a2529f-327f-485e-9264-12977837bbae",
+  # "https://px.hagstofa.is:443/pxis/sq/810ad986-60c1-471e-8f52-18f467e25ea2",
   na = "."
 ) |>
   janitor::clean_names() %>%
