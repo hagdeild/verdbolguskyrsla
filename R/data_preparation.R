@@ -882,9 +882,9 @@ hus_unnid_eldri_tbl <- hus_eldri_tbl %>%
 
 # 7.2.0 nýrri ----
 hus_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/abf64b4f-48c4-49e9-8a42-78d7f3432ba7"
+  "https://px.hagstofa.is:443/pxis/sq/81e52150-17d5-45a9-9d1d-7f6735b00ef6"
 ) |>
-  select(-3)
+  select(-2)
 
 hus_unnid_tbl <- hus_tbl %>%
   mutate(Undirvísitala = str_remove(Undirvísitala, "^\\d+\\s*")) %>%
@@ -1453,7 +1453,7 @@ infl_exp_breakeven_tbl <- read_excel(
 # varðandi 12 mánaða og 1 mánaða breytingu
 
 vnv_allir_flokkar_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/a399e31c-2d62-47a3-b33c-6b54403c31d8",
+  "https://px.hagstofa.is:443/pxis/sq/aa943ac2-3b2f-46e8-8e57-99d3517cf4db",
   na = "."
 ) |>
   select(-2) |>
