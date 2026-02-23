@@ -31,6 +31,8 @@ new_coicop_date_from <- "2026-01-01"
 # 2.0.0 Verðbólga ----
 
 # 2.1.0 Verðbólga með og án húsnæðis ----
+print("Verðbólga með og án húsænðis")
+
 vnv_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/6dd6d9a9-ff2f-4379-a78f-7fc800e09ea9"
 ) %>%
@@ -124,6 +126,8 @@ verdbolga_latest <- vnv_tbl |>
 # 2.3.0 Verðbólga eftir eðli og uppruna ----
 
 # 2.3.1 eldri ----
+print("Verðbólga eftir eðli og uppruna - eldri")
+
 edli_og_uppruna_old_raw_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/efeec1b8-11a5-402c-b747-99fe8ab61bec",
   na = "."
@@ -171,6 +175,8 @@ edli_og_uppruna_old_tbl <- edli_og_uppruna_old_raw_tbl %>%
   filter(!flokkur == "annad")
 
 # 2.3.2 ný útgáfa ----
+print("Verðbólga eftir eðli og uppruna - ný útgáfa")
+
 edli_og_uppruna_new_raw_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/8f78a07e-2d8c-4a77-950a-d89527370778",
   na = "."
@@ -229,6 +235,8 @@ edli_og_uppruna_new_tbl <- edli_og_uppruna_new_raw_tbl |>
   filter(!flokkur == "annað")
 
 # 2.3.3 sameina gögn ----
+print("Verðbólga eftir eðli og uppruna - sameina")
+
 edli_og_uppruna_tbl <-
   bind_rows(
     edli_og_uppruna_old_tbl,
@@ -247,6 +255,8 @@ edli_og_uppruna_tbl <- edli_og_uppruna_tbl %>%
 # 2.4.0 Undirliggjandi verðbólga ----
 
 # 2.4.1 eldri ----
+print("Undirliggjandi verðbólga - eldri")
+
 undirliggjandi_old_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/8643c932-380e-4c83-889a-14be1ad99354",
   na = "."
@@ -269,6 +279,7 @@ undirliggjandi_old_tbl <- read_csv2(
 
 
 # 2.4.2 ný útgáfa ----
+print("Undirliggjandi verðbólga - ný útgáfa")
 
 undirliggjandi_new_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/f039c5d1-fd5b-4a39-b7d8-d9766d6c4333"
@@ -292,6 +303,8 @@ undirliggjandi_new_tbl <- read_csv2(
 
 
 # 2.4.3 sameina ----
+print("Undirliggjandi verðbólga - sameina")
+
 undirliggjandi_tbl <-
   bind_rows(
     undirliggjandi_old_tbl |> filter(date < max(undirliggjandi_new_tbl$date)),
@@ -305,6 +318,9 @@ undirliggjandi_tbl <-
 # https://rpubs.com/techanswers88/waterfall-chart-ggplot
 
 # 3.1.0 Vísitölugildi ----
+
+print("waterfall - vísitölugildi")
+
 
 undirflokkar_raw_new_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/70a2529f-327f-485e-9264-12977837bbae",
@@ -351,6 +367,10 @@ undirflokkar_raw_new_tbl <- read_csv2(
 # )
 
 # Bý til undirflokka án númers og vel þá undirflokka sem ég vil
+
+print("waterfall - undirflokkar án númers")
+
+
 undirflokkar_tbl <- undirflokkar_raw_new_tbl %>%
   mutate(
     visitala = as.numeric(visitala),
@@ -369,6 +389,9 @@ undirflokkar_tbl <- undirflokkar_raw_new_tbl %>%
 
 
 # 3.2.0 Vogir ----
+
+print("waterfall - vogir")
+
 
 manudir_tbl <- tibble(
   manudur = c("Mars", "Desember"),
@@ -417,6 +440,9 @@ undirflokkar_vogir_new_raw_tbl <- undirflokkar_vogir_new_raw_tbl |>
 #   undirflokkar_vogir_new_raw_tbl
 # )
 
+print("waterfall - sameina vogir")
+
+
 undirflokkar_vogir_tbl <- undirflokkar_vogir_new_raw_tbl %>%
   mutate(
     numer_flokks = parse_number(undirflokkur),
@@ -433,6 +459,10 @@ undirflokkar_vogir_tbl <- undirflokkar_vogir_new_raw_tbl %>%
   select(-c(numer_flokks:to_select))
 
 # 3.3.0 Sameina gögn ----
+
+print("waterfall - sameina öll gögn")
+
+
 undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>%
   drop_na() |>
   left_join(undirflokkar_vogir_tbl) %>%
@@ -444,6 +474,10 @@ undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>%
   drop_na(visitala)
 
 # 3.4.0 Úreikningar ----
+
+print("waterfall - final útreikningar")
+
+
 undirflokkar_og_vogir_tbl <- undirflokkar_og_vogir_tbl %>%
   group_by(undirflokkur) %>%
   mutate(
@@ -463,6 +497,9 @@ undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>%
 
 
 # 4.0.0 STÖPLARIT UNDIRFLOKKA ----
+
+print("stöplarit undirflokka")
+
 
 undirflokkar_12m_tbl <- undirflokkar_tbl %>%
   arrange(undirflokkur, date) %>%
@@ -496,11 +533,14 @@ undirflokkar_1m_tbl <- undirflokkar_tbl %>%
 
 
 # 5.0.0 FROOP ----
+print("Froop")
 
 froop_flokkar_tbl <- read_excel(data_path, sheet = "froop") %>%
   janitor::clean_names()
 
 # 5.1.0 Eldri flokkun ----
+
+print("Froop - eldri")
 
 # visitala
 undirflokkar_raw_old_tbl <- read_csv2(
@@ -610,6 +650,8 @@ froop_old_tbl <- froop_old_tbl %>%
 
 # 5.2.0 ný flokkun ----
 
+print("froop - ný útgáfa")
+
 vnv_vogir_tbl <- undirflokkar_raw_new_tbl %>%
   drop_na(visitala) %>%
   left_join(undirflokkar_vogir_new_raw_tbl) %>%
@@ -683,6 +725,7 @@ non_froop_tbl <- vnv_vogir_tbl %>%
 
 
 # Skeiti við vnv ----
+print("Froop - bæti vnv við")
 froop_tbl <- froop_tbl %>%
   left_join(non_froop_tbl) %>%
   left_join(
@@ -699,6 +742,8 @@ froop_final_tbl <- froop_old_tbl |>
 
 
 # 6.0.0 EUROSTAT - HICP ----
+
+print("EUROSTAT - HICP")
 
 hicp_raw_tbl <- get_eurostat(
   id = "prc_hicp_midx",
@@ -781,6 +826,7 @@ hicp_pbi_tbl <- hicp_infl_tbl %>%
 
 
 # 6.1.0 By Coicip ----
+
 coicop_flokkar_tbl <- tibble(
   coicop = paste0(
     "CP",
@@ -861,7 +907,10 @@ hicp_valuebox_tbl <- hicp_pbi_tbl %>%
 
 
 # 7.0.0 HÚSNÆÐISVERÐ ----
+
 # 7.1.0 eldri ----
+print("Húsnæðisverð - eldri gögn")
+
 hus_eldri_tbl <-
   read_csv2(
     "https://px.hagstofa.is:443/pxis/sq/34cafc5e-5977-4ea3-a5ce-1ea804fe506c"
@@ -881,6 +930,8 @@ hus_unnid_eldri_tbl <- hus_eldri_tbl %>%
   filter(date >= date_from)
 
 # 7.2.0 nýrri ----
+print("Húsnæðisverð - nýrri gögn")
+
 hus_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/81e52150-17d5-45a9-9d1d-7f6735b00ef6"
 ) |>
@@ -906,6 +957,7 @@ hus_unnid_tbl <- bind_rows(
 )
 
 # 7.3.0 Vextir ----
+print("Vextir bankanna")
 
 # Vextir bankanna
 vextir_tbl <- readxl::read_excel(data_path, sheet = "vextir") |>
@@ -940,6 +992,8 @@ vextir_tbl <- vextir_tbl %>%
 
 
 # 8.0.0 ÚTLÁN ----
+
+print("Útlán")
 
 # 8.1.0 Útlánastabbi ----
 
@@ -1135,6 +1189,9 @@ gengi_tbl <- get_si_gengi("eur") %>%
 
 
 # 10.0.0 INNGRIP SEÐLABANKANS Á GJALDEYRISMARKAÐ ----
+
+print("Inngrip seðlabankans")
+
 inngrip_si_tbl <- read_xlsx(data_path, "inngrip_si") |>
   janitor::clean_names() |>
   select(date_reverse, velta_i_isk, fe_buy_m_kr, fe_sell_m_kr) |>
@@ -1165,6 +1222,8 @@ inngrip_si_tbl <- inngrip_si_tbl |>
   filter(date >= date_from)
 
 # 11.0.0 VERÐBÓLGUVÆNTINGAR ----
+
+print("Verðbólguvæntingar")
 
 get_infl_exp <- function(exp_path, rows, sheet_name, date_from) {
   read_excel(exp_path, sheet = sheet_name) |>
@@ -1452,6 +1511,8 @@ infl_exp_breakeven_tbl <- read_excel(
 # Fínasta skipting hvers flokks. Finna svo top og botn 10 flokkana
 # varðandi 12 mánaða og 1 mánaða breytingu
 
+print("Top 10 listinn")
+
 vnv_allir_flokkar_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/aa943ac2-3b2f-46e8-8e57-99d3517cf4db",
   na = "."
@@ -1531,6 +1592,8 @@ top_12m_tbl <- infl_allir_flokkar_tbl |>
 
 
 # 13.0.0 Umfang verðhækkana ----
+
+print("Umfang verðhækkana - heatmap")
 
 manudir_tbl <-
   tibble(
