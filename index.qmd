@@ -18,7 +18,8 @@ library(plotly)
 data_ls <- read_rds("data/final_data.rds")
 fc_ls   <- read_rds("data/spar.rds")
 
-verdbolga_total_value <- data_ls$pbi_inflation_verdbolga_valuebox$verdbolga 
+verdbolga_total_value <- data_ls$pbi_inflation_verdbolga_valuebox$verdbolga
+verdbolga_milli_manada <- data_ls$pbi_inflation_verdbolga_valuebox$milli_manada
 
 # Text size
 text_size <- 16
@@ -45,8 +46,8 @@ inflation_colors <- c(
 ```{r, hjalparfoll}
 
 # VR plot layout
-vr_layout <- function(plot) {
-  plotly::ggplotly(plot) |>
+vr_layout <- function(plot, title_x = NULL, textposition = NULL, tooltip = NULL) {
+  p <- plotly::ggplotly(plot, tooltip = tooltip) |>
     plotly::layout(
       legend = list(
         title = list(text = ""),
@@ -56,6 +57,42 @@ vr_layout <- function(plot) {
         xanchor = "center"
       )
     )
+  if (!is.null(textposition)) {
+    text_traces <- which(sapply(p$x$data, function(tr) {
+      !is.null(tr$mode) && grepl("text", tr$mode)
+    }))
+    if (length(text_traces) > 0) {
+      for (i in seq_along(text_traces)) {
+        pos <- textposition[min(i, length(textposition))]
+        p <- plotly::style(p, textposition = pos, traces = text_traces[i])
+      }
+    }
+  }
+  if (!is.null(title_x)) {
+    title_text <- if (is.null(plot$labels$title)) "" else plot$labels$title
+
+    # ggplotly often stores the ggplot title as an annotation anchored to "paper".
+    # Remove that annotation and set a real Plotly layout title anchored to container.
+    if (!is.null(p$x$layout$annotations) && nzchar(title_text)) {
+      p$x$layout$annotations <- Filter(function(ann) {
+        ann_text <- if (is.null(ann$text)) "" else as.character(ann$text)
+        is_title_text <- grepl(title_text, ann_text, fixed = TRUE)
+        is_top_noarrow <- isFALSE(ann$showarrow) && !is.null(ann$y) && isTRUE(ann$y > 1)
+        !(is_title_text || is_top_noarrow)
+      }, p$x$layout$annotations)
+    }
+
+    p <- plotly::layout(
+      p,
+      title = list(
+        text = title_text,
+        x = title_x,
+        xanchor = "left",
+        xref = "container"
+      )
+    )
+  }
+  p
 }
 
 
@@ -292,8 +329,10 @@ p2 <- data_ls$pbi_inflation_verdbolga |>
         flokkur == "Verðbólga",
         date >= date_back_year
         ) |> 
-    ggplot(aes(date, milli_manada)) + 
-    geom_col(fill = vr_litir[1]) + 
+    mutate(merking = percent(milli_manada, accuracy = 0.01)) |>
+    ggplot(aes(date, milli_manada, label = merking,
+               text = paste0("date: ", date, "\nmerking: ", merking))) +
+    geom_col(fill = vr_litir[1]) +
     labs(
         x = NULL,
         y = NULL,
@@ -303,7 +342,26 @@ p2 <- data_ls$pbi_inflation_verdbolga |>
     theme(text = element_text(size = text_size)) +
     scale_y_continuous(labels = percent)
 
-ggplotly(p2)
+p2_plotly <- plotly::ggplotly(p2, tooltip = "text")
+# Add text labels directly via plotly with outside positioning and contrasting colors
+for (i in seq_along(p2_plotly$x$data)) {
+  tr <- p2_plotly$x$data[[i]]
+  if (!is.null(tr$type) && tr$type == "bar") {
+    p2_plotly$x$data[[i]]$text <- p2$data$merking
+    p2_plotly$x$data[[i]]$textposition <- "outside"
+    p2_plotly$x$data[[i]]$textfont <- list(color = vr_litir[1])
+  }
+}
+p2_plotly |>
+  plotly::layout(
+    legend = list(
+      title = list(text = ""),
+      orientation = "h",
+      y = -0.2,
+      x = 0.5,
+      xanchor = "center"
+    )
+  )
 ```
 
 # Undirliggjandi verðbólga
@@ -406,8 +464,10 @@ waterfall_plot(
   ahrif,
   title = "Framlag undirliða seinustu 12 mánuði",
   flip = TRUE,
-  total_value = verdbolga_total_value
-)
+  total_value = verdbolga_total_value,
+  label_digits = 2
+) +
+    scale_y_continuous(labels = percent)
 
 ```
 
@@ -415,12 +475,14 @@ waterfall_plot(
 
 ```{r, waterfal_1m, fig.width = 16, fig.height = 8}
 waterfall_plot(
-  data_ls$pbi_inflation_waterfall |> drop_na(),
+  data_ls$phi_inflation_undirflokkar_1m |> set_names("date", "undirflokkur", "ahrif_1m") |> mutate(ahrif_1m = ahrif_1m/100),
   ahrif_1m,
   title = "Framlag undirliða seinasta mánuð",
   flip = TRUE,
-  label_digits = 2
-)
+  label_digits = 2,
+  total_value = verdbolga_milli_manada
+) +
+    scale_y_continuous(labels = percent)
 
 ```
 
@@ -462,27 +524,31 @@ data_ls$hitakort |>
 
 ## Row
 ```{r, undirflokkar_1m, fig.width = 16, fig.height = 8}
-p_undir_1 <- data_ls$phi_inflation_undirflokkar_1m |>
-    drop_na() |> 
-  mutate(
-    merking = percent(value, accuracy = 0.1),
-    merking_pos = if_else(value >= 0, value + 0.0075, value -0.0075)
-    ) |>
+p_undir_1 <- data_ls$pbi_inflation_stoplarit_1m |>
+  drop_na() |>
+  mutate(merking = percent(value, accuracy = 0.1)) |>
   ggplot(aes(fct_reorder(name, -value), value)) +
   geom_col(fill = vr_litir[1]) +
-  geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
-  geom_text(aes(y = merking_pos, label = merking)) + 
+  geom_hline(yintercept = verdbolga_milli_manada, col = vr_litir[2]) +
+  geom_text(data = ~filter(.x, value >= 0),
+            aes(y = value, label = merking),
+            hjust = 1.05) +      # keep positive labels inside bar end
+  geom_text(data = ~filter(.x, value < 0),
+            aes(y = value, label = merking),
+            hjust = -0.05) +
   labs(x = NULL, y = NULL, title = "1 mánaða verðbólga allra 2ja stafa undirliða") +
   theme_minimal() +
   theme(
     text = element_text(size = text_size),
     plot.title.position = "plot"
-    ) +
-  coord_cartesian(clip = "off") +
-  coord_flip() +
-  scale_y_continuous(label = percent)
+  ) +
+  coord_flip(clip = "off") +
+  scale_y_continuous(
+    labels = percent,
+    expand = expansion(mult = c(0.02, 0.12))
+  )
 
-vr_layout(p_undir_1)
+vr_layout(p_undir_1, textposition = c("middle right", "middle left"), title_x = 0)
 ```
 
 
@@ -501,7 +567,7 @@ p_undir_2 <- data_ls$phi_inflation_undirflokkar |>
     drop_na() |> 
     ggplot(aes(fct_reorder(name, -value),  value)) + 
     geom_col(fill = vr_litir[1]) + 
-    geom_hline(aes(yintercept = verdbolga), col = vr_litir[2]) +
+    geom_hline(aes(yintercept = verdbolga_total_value), col = vr_litir[2]) +
     geom_text(aes(y = merking_pos, label = merking)) + 
     labs(
         x = NULL,
@@ -517,7 +583,7 @@ p_undir_2 <- data_ls$phi_inflation_undirflokkar |>
     coord_flip() +
     scale_y_continuous(label = percent)
 
-vr_layout(p_undir_2)
+vr_layout(p_undir_2, title_x = 0)
 ```
 
 
@@ -543,7 +609,7 @@ p_top10_12m <- data_ls$top_12m |>
     scale_y_continuous(labels = percent) + 
     coord_flip(ylim = c(NA_real_, 0.4))
 
-vr_layout(p_top10_12m)
+vr_layout(p_top10_12m, title_x = 0)
 
 ```
 
@@ -567,7 +633,7 @@ p_botn_12m <- data_ls$botn_12m |>
     scale_y_continuous(labels = percent) + 
     coord_flip()
 
-vr_layout(p_botn_12m)
+vr_layout(p_botn_12m, title_x = 0)
 ```
 
 
@@ -592,7 +658,7 @@ p_top10_1m <- data_ls$top_1m |>
     scale_y_continuous(labels = percent) + 
     coord_flip(ylim = c(NA_real_, 0.4))
 
-vr_layout(p_top10_1m)
+vr_layout(p_top10_1m, title_x = 0)
 
 ```
 
@@ -615,7 +681,7 @@ p_botn_1m <- data_ls$botn_1m |>
     scale_y_continuous(labels = percent) + 
     coord_flip()
 
-vr_layout(p_botn_1m)
+vr_layout(p_botn_1m, title_x = 0)
 ```
 
 
@@ -1217,13 +1283,13 @@ p18 <- fc_ls$verdbolguspa |>
   theme(text = element_text(size = text_size)) +
   scale_color_manual(values = cols_all, breaks = breaks_all, drop = FALSE)
 
-vr_layout <- function(plot) {
-  plotly::ggplotly(plot, tooltip = "text") |>
-    plotly::layout(
-      legend = list(title = list(text = ""), orientation = "h",
-                    y = -0.2, x = 0.5, xanchor = "center")
-    )
-}
+# vr_layout <- function(plot) {
+#   plotly::ggplotly(plot, tooltip = "text") |>
+#     plotly::layout(
+#       legend = list(title = list(text = ""), orientation = "h",
+#                     y = -0.2, x = 0.5, xanchor = "center")
+#     )
+# }
 
 vr_layout(p18)
 ```

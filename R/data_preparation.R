@@ -392,23 +392,21 @@ undirflokkar_tbl <- undirflokkar_raw_new_tbl %>%
 
 print("waterfall - vogir")
 
-
 manudir_tbl <- tibble(
   manudur = c("Mars", "Desember"),
   man_no = c(3, 12)
 )
 
+# Nýjar vogir
+# desember 2025 á við 2026
 
 undirflokkar_vogir_new_raw_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/2286b3f4-1752-4750-b6d2-d8ee0db8a074"
-  #"https://px.hagstofa.is:443/pxis/sq/cc438998-989e-4a33-b7da-42d5b5edc326"
+  "https://px.hagstofa.is:443/pxis/sq/95692056-2ee8-43c6-82fa-9479ac9d6534"
 ) |>
   janitor::clean_names() |>
   separate(timi, c("manudur", "ar")) |>
   left_join(manudir_tbl) |>
-  drop_na(man_no) |>
   mutate(date = make_date(year = ar, month = man_no)) %>%
-  drop_na(date) %>%
   select(date, undirvisitala, visitala_neysluverds) %>%
   set_names("date", "undirflokkur", "vog") %>%
   mutate(vog = as.numeric(vog), vog = vog / 10000) |>
@@ -419,7 +417,7 @@ undirflokkar_vogir_new_raw_tbl <- undirflokkar_vogir_new_raw_tbl |>
   right_join(
     crossing(
       date = seq.Date(
-        from = as.Date("2025-01-01"),
+        from = as.Date("2026-01-01"),
         to = max(undirflokkar_raw_new_tbl$date),
         by = "month"
       ),
@@ -442,7 +440,6 @@ undirflokkar_vogir_new_raw_tbl <- undirflokkar_vogir_new_raw_tbl |>
 
 print("waterfall - sameina vogir")
 
-
 undirflokkar_vogir_tbl <- undirflokkar_vogir_new_raw_tbl %>%
   mutate(
     numer_flokks = parse_number(undirflokkur),
@@ -462,31 +459,26 @@ undirflokkar_vogir_tbl <- undirflokkar_vogir_new_raw_tbl %>%
 
 print("waterfall - sameina öll gögn")
 
-
 undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>%
   drop_na() |>
-  left_join(undirflokkar_vogir_tbl) %>%
+  arrange(date, undirflokkur) |>
+  group_by(undirflokkur) |>
+  mutate(
+    verdbolga = visitala / lag(visitala, 12) - 1,
+    verdbolga_1m = visitala / lag(visitala, 1) - 1
+  ) |>
   drop_na() |>
+  left_join(undirflokkar_vogir_tbl) %>%
   group_by(undirflokkur) %>%
   fill(vog, .direction = "down") %>%
   drop_na(vog) %>%
   ungroup() |>
-  drop_na(visitala)
+  drop_na(visitala) |>
+  mutate(ahrif = verdbolga * vog, ahrif_1m = verdbolga_1m * vog)
 
 # 3.4.0 Úreikningar ----
 
 print("waterfall - final útreikningar")
-
-
-undirflokkar_og_vogir_tbl <- undirflokkar_og_vogir_tbl %>%
-  group_by(undirflokkur) %>%
-  mutate(
-    verdbolga = visitala / lag(visitala, 12) - 1,
-    verdbolga_1m = visitala / lag(visitala) - 1
-  ) %>%
-  #drop_na() %>%
-  ungroup() %>%
-  mutate(ahrif = verdbolga * vog, ahrif_1m = verdbolga_1m * vog)
 
 # Verð að splitta þeim upp og sameina aftur til að fá final verðbólgu neðst
 undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>%
@@ -494,6 +486,22 @@ undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>%
   select(undirflokkur, ahrif, ahrif_1m) %>%
   filter(!undirflokkur == "Vísitala neysluverðs") %>%
   arrange(desc(ahrif))
+
+
+# 3.5.0 Milli mánaða - tilbúin gögn frá Hagstofu ----
+ahrif_a_visitolu_1m_tbl <-
+  read_csv2(
+    "https://px.hagstofa.is:443/pxis/sq/825f985f-8623-42f2-be9d-0d60e5ec1bbd"
+  ) |>
+  select(-2) |>
+  set_names("date", "name", "value") |>
+  mutate(
+    value = as.numeric(value),
+    date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
+  ) |>
+  filter(date == max(date)) |>
+  filter(str_detect(name, "^\\d{3}\\s")) |>
+  mutate(name = str_remove(name, "^\\d+\\s+"))
 
 
 # 4.0.0 STÖPLARIT UNDIRFLOKKA ----
@@ -1888,7 +1896,8 @@ list(
   # Framlag undirliða
   pbi_inflation_waterfall = undirflokkar_latest_tbl,
   phi_inflation_undirflokkar = undirflokkar_12m_tbl,
-  phi_inflation_undirflokkar_1m = undirflokkar_1m_tbl,
+  phi_inflation_undirflokkar_1m = ahrif_a_visitolu_1m_tbl,
+  pbi_inflation_stoplarit_1m = undirflokkar_1m_tbl,
 
   # HICP
   pbi_inflation_hicp = hicp_pbi_tbl,
