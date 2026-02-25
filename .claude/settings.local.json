@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.cbrates.com)",
+      "Bash(curl -s \"https://www.cbrates.com/\")",
+      "WebFetch(domain:www.nationalbanken.dk)"
+    ]
+  }
+}

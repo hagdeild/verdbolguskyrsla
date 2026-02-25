@@ -11,6 +11,7 @@ format:
 library(tidyverse)
 library(scales)
 library(plotly)
+library(gt)
 
 ```
 
@@ -975,6 +976,80 @@ vr_layout(p9)
 
 # Alþjóðlegur samanburður
 
+## Row
+
+```{r, althjodlegur_samanburdur_plot}
+altjodlegar_upplysingar_tbl <- data_ls$althjodlegur
+
+p_altjod <- altjodlegar_upplysingar_tbl |>
+  mutate(country = fct_reorder(country, real_policy_rate)) |>
+  pivot_longer(cols = c(rate_numeric, cpi_yoy), 
+               names_to = "measure", values_to = "value") |>
+  ggplot(aes(x = value, y = country, colour = measure)) +
+  geom_point(size = 3) +
+  geom_segment(
+    data = altjodlegar_upplysingar_tbl |> 
+      mutate(country = fct_reorder(country, real_policy_rate)),
+    aes(x = cpi_yoy, xend = rate_numeric, 
+        y = country, yend = country),
+    colour = "grey60", inherit.aes = FALSE
+  ) +
+  scale_x_continuous(labels = scales::percent_format(accuracy = 0.1)) +
+  scale_colour_manual(
+    values = c("rate_numeric" = "#2563eb", "cpi_yoy" = "#dc2626"),
+    labels = c("rate_numeric" = "Stýrivextir", "cpi_yoy" = "Verðbólga (12m)")
+  ) +
+  labs(
+    title = "Stýrivextir og verðbólga — alþjóðlegur samanburður",
+    x = NULL, y = NULL, colour = NULL
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(legend.position = "top")
+
+p_altjod_out <- vr_layout(p_altjod, tooltip_percent = TRUE)
+label_map <- c("rate_numeric" = "Stýrivextir", "cpi_yoy" = "Verðbólga (12m)")
+for (i in seq_along(p_altjod_out$x$data)) {
+  tr <- p_altjod_out$x$data[[i]]
+  if (!is.null(tr$name) && tr$name %in% names(label_map)) {
+    p_altjod_out$x$data[[i]]$name <- label_map[[tr$name]]
+  }
+  if (!is.null(tr$text)) {
+    tt <- tr$text
+    tt <- gsub("rate_numeric", "Stýrivextir", tt, fixed = TRUE)
+    tt <- gsub("cpi_yoy", "Verðbólga (12m)", tt, fixed = TRUE)
+    p_altjod_out$x$data[[i]]$text <- tt
+  }
+  if (!is.null(tr$hovertext)) {
+    ht <- tr$hovertext
+    ht <- gsub("rate_numeric", "Stýrivextir", ht, fixed = TRUE)
+    ht <- gsub("cpi_yoy", "Verðbólga (12m)", ht, fixed = TRUE)
+    p_altjod_out$x$data[[i]]$hovertext <- ht
+  }
+}
+p_altjod_out
+```
+
+
+```{r, althjodlegur_samanburdur_tafla}
+
+altjodlegar_upplysingar_tbl |>
+  arrange(desc(real_policy_rate)) |>
+  gt() |>
+  fmt_percent(columns = c(rate_numeric, cpi_yoy, real_policy_rate, yield_10y), 
+              decimals = 2) |>
+  cols_label(
+    country = "Land",
+    rate_numeric = "Stýrivextir",
+    cpi_yoy = "Verðbólga",
+    real_policy_rate = "Raunstýrivextir",
+    yield_10y = "10 ára ávöxtunarkrafa"
+  ) |>
+  tab_header(title = "Alþjóðlegur vaxtasamanburður") |>
+  data_color(
+    columns = real_policy_rate,
+    palette = c("#dc2626", "white", "#2563eb")
+  )
+```
 
 # Húsnæðismarkaðurinn
 
