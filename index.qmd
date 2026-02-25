@@ -46,7 +46,7 @@ inflation_colors <- c(
 ```{r, hjalparfoll}
 
 # VR plot layout
-vr_layout <- function(plot, title_x = NULL, textposition = NULL, tooltip = NULL) {
+vr_layout <- function(plot, title_x = NULL, textposition = NULL, tooltip = "all", tooltip_percent = FALSE) {
   p <- plotly::ggplotly(plot, tooltip = tooltip) |>
     plotly::layout(
       legend = list(
@@ -57,6 +57,30 @@ vr_layout <- function(plot, title_x = NULL, textposition = NULL, tooltip = NULL)
         xanchor = "center"
       )
     )
+  # Format numbers in default tooltip
+  if (identical(tooltip, "all")) {
+    fmt_one <- function(t) {
+      if (is.na(t) || !nzchar(t)) return(t)
+      # Match decimal numbers that are NOT dates (dates look like 2025-01-15)
+      # Target: numbers with a decimal point preceded by ": " or standalone
+      m <- gregexpr("-?[0-9]*\\.[0-9]{3,}", t, perl = TRUE)
+      regmatches(t, m) <- lapply(regmatches(t, m), function(nums) {
+        vals <- as.numeric(nums)
+        if (tooltip_percent) {
+          sprintf("%.2f%%", vals * 100)
+        } else {
+          sprintf("%.2f", vals)
+        }
+      })
+      t
+    }
+    for (i in seq_along(p$x$data)) {
+      tt <- p$x$data[[i]]$text
+      if (!is.null(tt)) {
+        p$x$data[[i]]$text <- vapply(tt, fmt_one, character(1), USE.NAMES = FALSE)
+      }
+    }
+  }
   if (!is.null(textposition)) {
     text_traces <- which(sapply(p$x$data, function(tr) {
       !is.null(tr$mode) && grepl("text", tr$mode)
@@ -320,7 +344,7 @@ p1 <- data_ls$pbi_inflation_verdbolga |>
     scale_color_manual(values = vr_litir) +
     scale_y_continuous(labels = percent)
     
-vr_layout(p1)
+vr_layout(p1, tooltip_percent = TRUE)
 ```
 
 ```{r, verðbólga-mom}
@@ -384,7 +408,7 @@ p3 <- data_ls$pbi_inflation_undirliggjandi |>
     scale_color_manual(values = vr_litir) +
     scale_y_continuous(labels = percent)
 
-vr_layout(p3)
+vr_layout(p3, tooltip_percent = TRUE)
 ```
 
 ```{r, verðbólga eftir uppruna}
@@ -401,7 +425,7 @@ p4 <- data_ls$pbi_inflation_uppruni |>
     scale_color_manual(values = vr_litir) +
     scale_y_continuous(labels = percent)
 
-vr_layout(p4)
+vr_layout(p4, tooltip_percent = TRUE)
 ```
 
 ## Row
@@ -452,7 +476,7 @@ p5 <- ggplot(froop_tbl, aes(date, value, col = name)) +
   scale_color_manual(values = vr_litir) +
   scale_y_continuous(labels = percent)
 
-vr_layout(p5)
+vr_layout(p5, tooltip_percent = TRUE)
 ```
 
 # Framlag undirliða 12m
@@ -548,7 +572,7 @@ p_undir_1 <- data_ls$pbi_inflation_stoplarit_1m |>
     expand = expansion(mult = c(0.02, 0.12))
   )
 
-vr_layout(p_undir_1, textposition = c("middle right", "middle left"), title_x = 0)
+vr_layout(p_undir_1, textposition = c("middle right", "middle left"), title_x = 0, tooltip_percent = TRUE)
 ```
 
 
@@ -583,7 +607,7 @@ p_undir_2 <- data_ls$phi_inflation_undirflokkar |>
     coord_flip() +
     scale_y_continuous(label = percent)
 
-vr_layout(p_undir_2, title_x = 0)
+vr_layout(p_undir_2, title_x = 0, tooltip_percent = TRUE)
 ```
 
 
@@ -609,7 +633,7 @@ p_top10_12m <- data_ls$top_12m |>
     scale_y_continuous(labels = percent) + 
     coord_flip(ylim = c(NA_real_, 0.4))
 
-vr_layout(p_top10_12m, title_x = 0)
+vr_layout(p_top10_12m, title_x = 0, tooltip_percent = TRUE)
 
 ```
 
@@ -633,7 +657,7 @@ p_botn_12m <- data_ls$botn_12m |>
     scale_y_continuous(labels = percent) + 
     coord_flip()
 
-vr_layout(p_botn_12m, title_x = 0)
+vr_layout(p_botn_12m, title_x = 0, tooltip_percent = TRUE)
 ```
 
 
@@ -658,7 +682,7 @@ p_top10_1m <- data_ls$top_1m |>
     scale_y_continuous(labels = percent) + 
     coord_flip(ylim = c(NA_real_, 0.4))
 
-vr_layout(p_top10_1m, title_x = 0)
+vr_layout(p_top10_1m, title_x = 0, tooltip_percent = TRUE)
 
 ```
 
@@ -681,7 +705,7 @@ p_botn_1m <- data_ls$botn_1m |>
     scale_y_continuous(labels = percent) + 
     coord_flip()
 
-vr_layout(p_botn_1m, title_x = 0)
+vr_layout(p_botn_1m, title_x = 0, tooltip_percent = TRUE)
 ```
 
 
@@ -872,7 +896,7 @@ p6 <- data_ls$pbi_inflation_hicp |>
         title = "12 mánaða verðbólga"
     )
 
-vr_layout(p6)
+vr_layout(p6, tooltip_percent = TRUE)
 ```
 
 ```{r, hicp_3m}
@@ -970,7 +994,7 @@ p10 <- data_ls$pbi_inflation_husnaedisverd |>
     scale_color_manual(values = vr_litir) +
     scale_y_continuous(labels = percent)
 
-vr_layout(p10)
+vr_layout(p10, tooltip_percent = TRUE)
 ```
 
 ```{r, vextir_fasteignalana}
@@ -988,7 +1012,7 @@ p11 <- data_ls$pbi_inflation_husnaaedisvextir |>
     scale_y_continuous(labels = percent) + 
     scale_color_manual(values = vr_litir)
 
-vr_layout(p11)
+vr_layout(p11, tooltip_percent = TRUE)
 ```
 
 ## Row
@@ -1045,7 +1069,7 @@ p14 <- data_ls$pbi_inflation_vaentingar |>
     theme_minimal() +
     theme(text = element_text(size = text_size))
 
-vr_layout(p14)
+vr_layout(p14, tooltip_percent = TRUE)
 ```
 
 ```{r, verðbólguvæntingar_skuldabréf}
@@ -1062,7 +1086,7 @@ p15 <- data_ls$pbi_inflation_vaentingar_skuldabrefamarkadur |>
     theme_minimal() +
     theme(text = element_text(size = text_size))
 
-vr_layout(p15)
+vr_layout(p15, tooltip_percent = TRUE)
 ```
 
 ## Row
