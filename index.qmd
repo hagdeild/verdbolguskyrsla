@@ -424,7 +424,8 @@ p4 <- data_ls$pbi_inflation_uppruni |>
     theme_minimal() +
     theme(text = element_text(size = text_size)) +
     scale_color_manual(values = vr_litir) +
-    scale_y_continuous(labels = percent)
+    scale_y_continuous(labels = percent) +
+    geom_vline(xintercept = as.Date("2025-12-01"), lwd = 0.3, linetype = "dashed")
 
 vr_layout(p4, tooltip_percent = TRUE)
 ```

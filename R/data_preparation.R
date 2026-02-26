@@ -157,22 +157,23 @@ edli_og_uppruna_old_tbl <- edli_og_uppruna_old_raw_tbl %>%
   arrange(date, flokkur) %>%
   group_by(flokkur) %>%
   mutate(
-    delta = value / lag(value, 12) - 1,
-    weight = zoo::rollapply(
-      weight,
-      width = 12,
-      FUN = mean,
-      fill = NA,
-      partial = FALSE,
-      align = "right"
-    )
+    delta = value / lag(value, 12) - 1
+    # weight = zoo::rollapply(
+    #   weight,
+    #   width = 12,
+    #   FUN = mean,
+    #   fill = NA,
+    #   partial = FALSE,
+    #   align = "right"
+    # )
   ) %>%
   ungroup() %>%
   drop_na(delta) %>%
-  mutate(
-    hlutdeild = delta * weight
-  ) |>
-  filter(!flokkur == "annad")
+  # mutate(
+  #   hlutdeild = delta * weight
+  # ) |>
+  filter(!flokkur == "annad") |>
+  select(-weight)
 
 # 2.3.2 ný útgáfa ----
 print("Verðbólga eftir eðli og uppruna - ný útgáfa")
@@ -205,7 +206,7 @@ edli_og_uppruna_new_tbl <- edli_og_uppruna_new_raw_tbl |>
       str_detect(
         flokkur,
         "5a Ferðaþjónusta|5b Húsnæði|5d Önnur þjónusta"
-      ) ~ "Önnur þjónusta",
+      ) ~ "Ferðaþjónusta, húsnæði og önnur þjónusta",
       str_detect(flokkur, "3 Búvörur") ~ "Búvörur",
       str_detect(
         flokkur,
@@ -215,23 +216,25 @@ edli_og_uppruna_new_tbl <- edli_og_uppruna_new_raw_tbl |>
     )
   ) |>
   arrange(date, flokkur) %>%
-  group_by(flokkur) %>%
+  group_by(flokkur, date) %>%
+  summarise(value = sum(value * weight) / sum(weight))
+
+edli_og_uppruna_new_tbl <- edli_og_uppruna_new_tbl |>
+  group_by(flokkur) |>
   mutate(
-    delta = value / lag(value, 12) - 1,
-    weight = zoo::rollapply(
-      weight,
-      width = 12,
-      FUN = mean,
-      fill = NA,
-      partial = TRUE,
-      align = "right"
-    )
+    #value = mean(value),
+    delta = value / lag(value, 12) - 1
+    # weight = zoo::rollapply(
+    #   weight,
+    #   width = 12,
+    #   FUN = mean,
+    #   fill = NA,
+    #   partial = TRUE,
+    #   align = "right"
+    # )
   ) %>%
   ungroup() %>%
   drop_na(delta) %>%
-  mutate(
-    hlutdeild = delta * weight
-  ) |>
   filter(!flokkur == "annað")
 
 # 2.3.3 sameina gögn ----
@@ -239,7 +242,11 @@ print("Verðbólga eftir eðli og uppruna - sameina")
 
 edli_og_uppruna_tbl <-
   bind_rows(
-    edli_og_uppruna_old_tbl,
+    edli_og_uppruna_old_tbl |>
+      filter(
+        flokkur %in% unique(edli_og_uppruna_new_tbl$flokkur),
+        date < max(edli_og_uppruna_new_tbl$date)
+      ),
     edli_og_uppruna_new_tbl |> filter(date >= new_coicop_date_from)
   )
 
