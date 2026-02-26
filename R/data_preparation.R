@@ -179,14 +179,14 @@ edli_og_uppruna_old_tbl <- edli_og_uppruna_old_raw_tbl %>%
 print("Verðbólga eftir eðli og uppruna - ný útgáfa")
 
 edli_og_uppruna_new_raw_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/8f78a07e-2d8c-4a77-950a-d89527370778",
+  "https://px.hagstofa.is:443/pxis/sq/d6e828c2-eafb-45b4-b5ce-73e7c5f0c32d",
   na = "."
 ) |>
   drop_na() |>
   set_names("date", "flokkur", "value", "weight") %>%
   mutate(
-    value = value / 10,
-    weight = weight / 1000
+    value = value / 10
+    #weight = weight / 1000
   ) %>%
   mutate(
     date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
@@ -245,7 +245,7 @@ edli_og_uppruna_tbl <-
     edli_og_uppruna_old_tbl |>
       filter(
         flokkur %in% unique(edli_og_uppruna_new_tbl$flokkur),
-        date < max(edli_og_uppruna_new_tbl$date)
+        date < new_coicop_date_from
       ),
     edli_og_uppruna_new_tbl |> filter(date >= new_coicop_date_from)
   )
