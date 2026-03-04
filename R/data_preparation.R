@@ -10,6 +10,8 @@ library(rvest)
 library(readxl)
 library(here)
 library(fredr)
+library(modeltime)
+library(tidymodels)
 
 lond_tbl <- read_csv("data/lond.csv") |>
   select(iso_3, land)
@@ -1813,7 +1815,7 @@ infl_umfang_tbl <- infl_umfang_tbl |>
 # 14.0.0 Alþjóðlegur samanburður ----
 altjodlegar_upplysingar_tbl <- read_csv("data/altjodlegar.csv")
 
-# x.0.0 Vista ----
+# 15.0.0 Vista ----
 
 list(
   # Verðbólga
@@ -1865,3 +1867,143 @@ list(
 ) |>
 
   write_rds("data/final_data.rds")
+
+
+
+# * -----
+# 16.0.0 SPÁR ----
+
+date_from <- floor_date(today() - years(5), "month")
+
+# 16.1.1 data ----
+data_raw_tbl <- read_csv2(
+  "https://px.hagstofa.is:443/pxis/sq/cc5a0596-bf1a-4a88-872a-485896d53ed6"
+) %>%
+  set_names("date", "vnv", "vnvh") %>%
+  mutate(
+    date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7)),
+    vnv = vnv / 10,
+    vnvh = vnvh / 10
+  ) %>%
+  drop_na() %>%
+  mutate(id = "id") %>%
+  filter(date >= "2003-01-01") %>%
+  arrange(date)
+
+
+level_roc1_max <- data_raw_tbl %>%
+  filter(date == max(date)) %>%
+  pull(vnv)
+
+data_path <- here("data/verdbolguskyrsla_data.xlsx")
+spar_annarra_tbl <- readxl::read_excel(data_path, "spar") |>
+  mutate(date = date(date))
+
+spar_bankar_tbl <- spar_annarra_tbl |>
+  select(-Seðlabankinn) |>
+  pivot_longer(cols = -c(date)) |>
+  drop_na()
+
+spar_si_tbl <- spar_annarra_tbl |>
+  select(date, Seðlabankinn)
+
+# 16.2.0 Models ----
+
+# 16.2.1 short term forecast ----
+short_data_tbl <- data_raw_tbl %>%
+  select(date, vnv) %>%
+  mutate(vnv = log(vnv))
+
+stl_log_mtbl <- seasonal_reg() %>%
+  set_engine("stlm_arima") %>%
+  fit(vnv ~ date, data = short_data_tbl) %>%
+  modeltime_table()
+
+fc_short_tbl <- stl_log_mtbl %>%
+  modeltime_forecast(
+    h = 3,
+    actual_data = short_data_tbl
+  )
+
+short_forecast_12m_tbl <- fc_short_tbl %>%
+  mutate(
+    .value = exp(.value),
+    .value = .value / lag(.value, 12) - 1
+  ) %>%
+  filter(.key != "actual") %>%
+  select(.index, .value) %>%
+  set_names("date", "value") %>%
+  mutate(name = "Skammtíma")
+
+
+# 16.2.2 long term forecast ---
+
+long_term_data_tbl <- data_raw_tbl %>%
+  mutate(vnv = vnv / lag(vnv, 12) - 1) %>%
+  drop_na()
+
+fc_long_tbl <- arima_reg() %>%
+  set_engine("auto_arima") %>%
+  fit(vnv ~ date, data = long_term_data_tbl) %>%
+  modeltime_table() %>%
+  modeltime_forecast(
+    h = 12,
+    actual_data = long_term_data_tbl,
+    keep_data = TRUE
+  )
+
+fc_long_tbl <- fc_long_tbl %>%
+  select(date, .key, .value) %>%
+  left_join(data_raw_tbl %>% select(date, vnv)) %>%
+  mutate(
+    fc_vnv = lag(vnv, 12) * (1 + .value),
+    fc_1m = fc_vnv / lag(fc_vnv) - 1
+  )
+
+
+# 16.3.0 Valuebox ---
+
+short_1m <- fc_short_tbl %>%
+  mutate(.value = exp(.value)) %>%
+  mutate(diff = .value / lag(.value) - 1) %>%
+  filter(.key != "actual") %>%
+  slice_head(n = 1) %>%
+  pull(diff)
+
+
+fc_valuebox_tbl <- tibble(
+  spa_12m = percent(short_forecast_12m_tbl$value[1], accuracy = 0.01),
+  spa_1m = percent(short_1m, accuracy = 0.01)
+)
+
+
+# 16.4.0 Save ----
+
+# Bæti skammtímaspá við
+fc_tbl <- fc_long_tbl %>%
+  mutate(name = if_else(.key == "actual", "Söguleg", "Langtíma")) %>%
+  select(date, .value, name) %>%
+  rename("value" = ".value") %>%
+  bind_rows(short_forecast_12m_tbl) %>%
+  as_tibble() |>
+  filter(date >= date_from)
+
+
+# Bæti við spám annarra greiningaraðila
+fc_tbl <- fc_tbl |>
+  bind_rows(spar_bankar_tbl) |>
+  left_join(spar_si_tbl)
+
+
+list(
+  "verdbolguspa" = fc_tbl,
+  "verdbolguspa_valuebox" = fc_valuebox_tbl
+) |>
+  write_rds("data/spar.rds")
+
+
+
+# 17.0.0 GIT PUSH ----
+system("git add data/")
+system('git commit -m "Auto update data"')
+system("git push origin main")
