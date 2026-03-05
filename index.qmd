@@ -1412,7 +1412,7 @@ verdbolguspar_tbl <- verdbolguspar_tbl |>
 
 
 # sviðsmyndir
-svidsmyndir_tbl <- read_csv("c:/Users/vidar/Documents/Rwd/hagrannsoknir/output/oliuverd/scenarios.csv") |>
+svidsmyndir_tbl <- read_csv("data/greiningar/oliuverd_scenarios.csv") |>
   select(month, cumulative_pct, shock_pct, duration)
 
 svidsmyndir_tbl <- svidsmyndir_tbl |>
@@ -1470,7 +1470,7 @@ Olíuverð hefur hækkað skarpt frá 27. febrúar. Tunnan af brent olíu var um
 
 
 ```{r, greining_oil_price_chart}
-oliuverd_tbl <- read_csv("data/oliuverd.csv")
+oliuverd_tbl <- read_csv("data/greiningar/oliuverd.csv")
 
 p_oil <- oliuverd_tbl |> 
   filter(date >= "2025-06-01") |> 

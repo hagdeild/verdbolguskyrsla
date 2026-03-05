@@ -1940,8 +1940,8 @@ fc_medium_tbl <- fc_medium_tbl %>%
 
 short_forecast_12m_tbl <- fc_medium_tbl %>%
   filter(.key != "actual") %>%
-  select(date, .value) %>%
-  set_names("date", "value") %>%
+  select(date, .value, fc_vnv) %>%
+  set_names("date", "value", "fc_vnv") %>%
   mutate(name = "Skammtíma")
 
 
@@ -2017,7 +2017,7 @@ fc_valuebox_tbl <- tibble(
 # Bæti skammtímaspá við
 fc_tbl <- fc_long_tbl %>%
   mutate(name = if_else(.key == "actual", "Söguleg", "Langtíma")) %>%
-  select(date, .value, name) %>%
+  select(date, .value, name, fc_vnv) %>%
   rename("value" = ".value") %>%
   bind_rows(short_forecast_12m_tbl) %>%
   as_tibble() |>
