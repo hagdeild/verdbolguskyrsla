@@ -1399,9 +1399,43 @@ vr_layout(p18)
 
 ### Hækkun olíuverðs og verðbólga
 
+#### Column {width="25%"}
+
+::: {.card}
+Olíuverð hefur hækkað skarpt frá 26. febrúar. Tunnan af brent olíu var um 71 dollari en er nú um 83 sem er hækkun uppá tæp 15%. Enn er óljóst um framhaldið. Verður hækkunin tímabundin eða mun hún vara í lengri tíma.
+
+Í greiningunni er stuðst við tölfræðilíkan sérhannað til að svara því hvernig verðbólga á Íslandi gæti þróast m.v. ólíkar forsendur olíuverðs á heimsmarkaði. Líkanði tekur tillit til annarra þátta á borð við gengi krónunnar og atvinnuleysi.
+
+Greiningin sýnir mismunandi sviðsmyndir eftir því hve lengi hækkunin varir auk þess hve mikil hækkunin er. Gert er ráð fyrir að öll hækkunin komi fram í mars.
+
+:::
+
+
+```{r, greining_oil_price_chart}
+oliuverd_tbl <- read_csv("data/greiningar/oliuverd.csv")
+
+p_oil <- oliuverd_tbl |> 
+  filter(date >= "2026-02-26") |> 
+  mutate(
+    price = price / price[1] - 1
+    ) |> 
+  ggplot(aes(date, price)) +
+  geom_line() + 
+  theme_minimal() +
+  scale_y_continuous(label = percent) + 
+  labs(x = NULL, y = NULL, title = "Heimsmarkasðverð á olíu (Brent) frá 26. febrúar 2026")
+
+vr_layout(p_oil)
+```
+
+
+
 #### Column {width="75%"}
 
 ```{r, greining_oliuverd}
+
+blue_palette <- c("#c6dbef", "#9ecae1", "#6baed6", "#3182bd", "#08519c")
+
 verdbolguspar_tbl <- fc_ls |>
   pluck("verdbolguspa")
 
@@ -1440,15 +1474,25 @@ spar_udpate_tbl <- bind_rows(soguleg_tbl, baseline_tbl, skammtima_tbl)
 
 
 p_greining_oliuverd <- spar_udpate_tbl |>
+  mutate(
+    duration = 
+      case_when(
+        duration == "1 month" ~ "Tímabundin hækkun í 1 mánuð",
+        duration == "2 month" ~ "Tímabundin hækkun í 2 mánuði",
+        duration == "3 month" ~ "Tímabundin hækkun í 3 mánuði",
+        TRUE ~ "Varanleg hækkun"
+      )
+  ) |> 
   filter(date >= "2024-01-01") |>
   ggplot(aes(date, svidsmyndir, col = shock_pct, linetype = shock_pct)) +
   geom_line() +
   scale_linetype_manual(values = c("Grunnspá" = "dashed", "Söguleg" = "solid", "+10%" = "solid", "+15%" = "solid", "+20%" = "solid", "+30%" = "solid")) +
-  scale_color_manual(values = c("Söguleg" = "black", setNames(vr_litir[1:5], c("Grunnspá", "+10%", "+15%", "+20%", "+30%")))) +
+  scale_color_manual(values = c("Söguleg" = "black", "Grunnspá" = "black", setNames(blue_palette[2:5], c("+10%", "+15%", "+20%", "+30%")))) +
   facet_wrap(~duration) +
-  theme_minimal() +
+  #theme_minimal() +
   theme(
-    legend.title = element_blank()
+    legend.title = element_blank(),
+    text = element_text(size = text_size)
   ) +
   labs(x = NULL, y = NULL) +
   scale_y_continuous(labels = percent)
@@ -1456,31 +1500,4 @@ p_greining_oliuverd <- spar_udpate_tbl |>
 
 vr_layout(p_greining_oliuverd, tooltip_percent = TRUE)
 ```
-
-
-#### Column {width="25%"}
-
-::: {.card}
-Olíuverð hefur hækkað skarpt frá 27. febrúar. Tunnan af brent olíu var um 71 dollari en er nú um 83 sem er hækkun uppá 17%. Enn er óljóst um framhaldið. Verður hækkunin tímabundin eða mun hún vara í mánuði.
-
-Í greiningunni er stuðst við tölfræðilíkan sérhannað til að svara því hvernig verðbólga á Íslandi gæti þróast m.v. ólíkar forsendur olíuverðs á heimsmarkaði. 
-
-
-:::
-
-
-```{r, greining_oil_price_chart}
-oliuverd_tbl <- read_csv("data/greiningar/oliuverd.csv")
-
-p_oil <- oliuverd_tbl |> 
-  filter(date >= "2025-06-01") |> 
-  ggplot(aes(date, price)) +
-  geom_line() + 
-  theme_minimal() +
-  labs(x = NULL, y = NULL, title = "Heimsmarkasðverð á olíu (Brent)")
-
-vr_layout(p_oil)
-```
-
-
 
