@@ -39,36 +39,45 @@ spar_si_tbl <- spar_annarra_tbl |>
   select(date, Seðlabankinn)
 
 
-# 2.0.0 Models ------------------------------------------------------------
+# 2.0.0 Models ----
 
-# 2.1.0 Short term forecast -----------------------------------------------
-short_data_tbl <- data_raw_tbl %>%
-  select(date, vnv) %>%
-  mutate(vnv = log(vnv))
+# 2.1.0 Medium term forecast ----
+medium_data_tbl <- data_raw_tbl %>%
+  mutate(vnv = vnv / lag(vnv, 12) - 1) %>%
+  drop_na()
 
-stl_log_mtbl <- seasonal_reg() %>%
-  set_engine("stlm_arima") %>%
-  fit(vnv ~ date, data = short_data_tbl) %>%
+medium_mtbl <- temporal_hierarchy(
+  use_model = "arima",
+  combination_method = "struc"
+) %>%
+  set_engine("thief") %>%
+  fit(vnv ~ date, data = medium_data_tbl) %>%
   modeltime_table()
 
-fc_short_tbl <- stl_log_mtbl %>%
+fc_medium_tbl <- medium_mtbl %>%
   modeltime_forecast(
-    h = 3,
-    actual_data = short_data_tbl
+    h = 6,
+    actual_data = medium_data_tbl,
+    keep_data = TRUE
   )
 
-short_forecast_12m_tbl <- fc_short_tbl %>%
+
+fc_medium_tbl <- fc_medium_tbl %>%
+  select(date, .key, .value) %>%
+  left_join(data_raw_tbl %>% select(date, vnv)) %>%
   mutate(
-    .value = exp(.value),
-    .value = .value / lag(.value, 12) - 1
-  ) %>%
+    fc_vnv = lag(vnv, 12) * (1 + .value),
+    fc_1m = fc_vnv / lag(fc_vnv) - 1
+  )
+
+short_forecast_12m_tbl <- fc_medium_tbl %>%
   filter(.key != "actual") %>%
-  select(.index, .value) %>%
+  select(date, .value) %>%
   set_names("date", "value") %>%
   mutate(name = "Skammtíma")
 
 
-# 2.2.0 Long term forecast ------------------------------------------------
+# 2.2.0 Long term forecast ----
 
 long_term_data_tbl <- data_raw_tbl %>%
   mutate(vnv = vnv / lag(vnv, 12) - 1) %>%
@@ -117,12 +126,10 @@ fc_long_tbl <- fc_long_tbl %>%
 #   filter(date == min(date)) %>%
 #   pull(fc_1m)
 
-short_1m <- fc_short_tbl %>%
-  mutate(.value = exp(.value)) %>%
-  mutate(diff = .value / lag(.value) - 1) %>%
+short_1m <- fc_medium_tbl |>
   filter(.key != "actual") %>%
   slice_head(n = 1) %>%
-  pull(diff)
+  pull(fc_1m)
 
 # spa_naesta_manadar_1m <- if_else(
 #   short_1m < spa_1m,
