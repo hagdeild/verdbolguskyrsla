@@ -1869,13 +1869,12 @@ list(
   write_rds("data/final_data.rds")
 
 
-
 # * -----
 # 16.0.0 SPÁR ----
 
 date_from <- floor_date(today() - years(5), "month")
 
-# 16.1.1 data ----
+# 1.1.0 Data ----
 data_raw_tbl <- read_csv2(
   "https://px.hagstofa.is:443/pxis/sq/cc5a0596-bf1a-4a88-872a-485896d53ed6"
 ) %>%
@@ -1907,36 +1906,46 @@ spar_bankar_tbl <- spar_annarra_tbl |>
 spar_si_tbl <- spar_annarra_tbl |>
   select(date, Seðlabankinn)
 
-# 16.2.0 Models ----
 
-# 16.2.1 short term forecast ----
-short_data_tbl <- data_raw_tbl %>%
-  select(date, vnv) %>%
-  mutate(vnv = log(vnv))
+# 2.0.0 Models ----
 
-stl_log_mtbl <- seasonal_reg() %>%
-  set_engine("stlm_arima") %>%
-  fit(vnv ~ date, data = short_data_tbl) %>%
+# 2.1.0 Medium term forecast ----
+medium_data_tbl <- data_raw_tbl %>%
+  mutate(vnv = vnv / lag(vnv, 12) - 1) %>%
+  drop_na()
+
+medium_mtbl <- temporal_hierarchy(
+  use_model = "arima",
+  combination_method = "struc"
+) %>%
+  set_engine("thief") %>%
+  fit(vnv ~ date, data = medium_data_tbl) %>%
   modeltime_table()
 
-fc_short_tbl <- stl_log_mtbl %>%
+fc_medium_tbl <- medium_mtbl %>%
   modeltime_forecast(
-    h = 3,
-    actual_data = short_data_tbl
+    h = 6,
+    actual_data = medium_data_tbl,
+    keep_data = TRUE
   )
 
-short_forecast_12m_tbl <- fc_short_tbl %>%
+
+fc_medium_tbl <- fc_medium_tbl %>%
+  select(date, .key, .value) %>%
+  left_join(data_raw_tbl %>% select(date, vnv)) %>%
   mutate(
-    .value = exp(.value),
-    .value = .value / lag(.value, 12) - 1
-  ) %>%
+    fc_vnv = lag(vnv, 12) * (1 + .value),
+    fc_1m = fc_vnv / lag(fc_vnv) - 1
+  )
+
+short_forecast_12m_tbl <- fc_medium_tbl %>%
   filter(.key != "actual") %>%
-  select(.index, .value) %>%
+  select(date, .value) %>%
   set_names("date", "value") %>%
   mutate(name = "Skammtíma")
 
 
-# 16.2.2 long term forecast ---
+# 2.2.0 Long term forecast ----
 
 long_term_data_tbl <- data_raw_tbl %>%
   mutate(vnv = vnv / lag(vnv, 12) - 1) %>%
@@ -1961,23 +1970,49 @@ fc_long_tbl <- fc_long_tbl %>%
   )
 
 
-# 16.3.0 Valuebox ---
+# 3.0.0 Valuebox ----------------------------------------------------------
 
-short_1m <- fc_short_tbl %>%
-  mutate(.value = exp(.value)) %>%
-  mutate(diff = .value / lag(.value) - 1) %>%
+# 3.1.0 12 mánaða spá -----------------------------------------------------
+# spa_12m <- fc_long_tbl %>%
+#   filter(.key == "prediction") %>%
+#   filter(date == min(date)) %>%
+#   pull(.value)
+
+# short_12m <- short_forecast_12m_tbl %>%
+#   filter(date == min(date)) %>%
+#   pull(value)
+
+# spa_naesta_manadar <- if_else(
+#   short_12m < spa_12m,
+#   paste0(percent(short_12m, 0.1), " - ", percent(spa_12m, 0.1)),
+#   paste0(percent(spa_12m, 0.1), " - ", percent(short_12m, 0.1))
+# )
+
+# 3.2.0 Spá næsta mánaðar -------------------------------------------------
+# spa_1m <- fc_tbl %>%
+#   filter(.key == "prediction") %>%
+#   filter(date == min(date)) %>%
+#   pull(fc_1m)
+
+short_1m <- fc_medium_tbl |>
   filter(.key != "actual") %>%
   slice_head(n = 1) %>%
-  pull(diff)
+  pull(fc_1m)
 
+# spa_naesta_manadar_1m <- if_else(
+#   short_1m < spa_1m,
+#   paste0(percent(short_1m, 0.01), " - ", percent(spa_1m, 0.01)),
+#   paste0(percent(spa_1m, 0.01), " - ", percent(short_1m, 0.01))
+# )
 
+# 3.5.0 Valuebox --------------.--------------------------------------------
 fc_valuebox_tbl <- tibble(
   spa_12m = percent(short_forecast_12m_tbl$value[1], accuracy = 0.01),
   spa_1m = percent(short_1m, accuracy = 0.01)
 )
 
 
-# 16.4.0 Save ----
+# 4.0.0 SAVE --------------------------------------------------------------
 
 # Bæti skammtímaspá við
 fc_tbl <- fc_long_tbl %>%
@@ -2000,7 +2035,6 @@ list(
   "verdbolguspa_valuebox" = fc_valuebox_tbl
 ) |>
   write_rds("data/spar.rds")
-
 
 
 # 17.0.0 GIT PUSH ----

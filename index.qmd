@@ -1,5 +1,4 @@
 ---
-title: "Verðbólgugreining"
 format:
     dashboard:
         theme: flatly
@@ -1393,3 +1392,95 @@ p18 <- fc_ls$verdbolguspa |>
 
 vr_layout(p18)
 ```
+
+# Greiningar
+
+## Row {.tabset}
+
+### Hækkun olíuverðs og verðbólga
+
+#### Column {width="75%"}
+
+```{r, greining_oliuverd}
+verdbolguspar_tbl <- fc_ls |>
+  pluck("verdbolguspa")
+
+
+verdbolguspar_tbl <- verdbolguspar_tbl |>
+  select(-Seðlabankinn) |>
+  filter(name %in% c("Söguleg", "Skammtíma"))
+
+
+# sviðsmyndir
+svidsmyndir_tbl <- read_csv("c:/Users/vidar/Documents/Rwd/hagrannsoknir/output/oliuverd/scenarios.csv") |>
+  select(month, cumulative_pct, shock_pct, duration)
+
+svidsmyndir_tbl <- svidsmyndir_tbl |>
+  mutate(cumulative_pct_converted = (exp(cumulative_pct / 100) - 1))
+
+# 2.0.0 GREINING ----
+
+soguleg_tbl <- verdbolguspar_tbl |>
+  filter(name == "Söguleg") |>
+  cross_join(distinct(svidsmyndir_tbl, duration)) |>
+  mutate(shock_pct = "Söguleg", svidsmyndir = value)
+
+baseline_tbl <- verdbolguspar_tbl |>
+  filter(name == "Skammtíma") |>
+  cross_join(distinct(svidsmyndir_tbl, duration)) |>
+  mutate(shock_pct = "Grunnspá", svidsmyndir = value)
+
+skammtima_tbl <- verdbolguspar_tbl |>
+  filter(name == "Skammtíma") |>
+  mutate(month = row_number() - 1L) |>
+  left_join(svidsmyndir_tbl, by = "month") |>
+  mutate(svidsmyndir = value + cumulative_pct_converted)
+
+spar_udpate_tbl <- bind_rows(soguleg_tbl, baseline_tbl, skammtima_tbl)
+
+
+p_greining_oliuverd <- spar_udpate_tbl |>
+  filter(date >= "2024-01-01") |>
+  ggplot(aes(date, svidsmyndir, col = shock_pct, linetype = shock_pct)) +
+  geom_line() +
+  scale_linetype_manual(values = c("Grunnspá" = "dashed", "Söguleg" = "solid", "+10%" = "solid", "+15%" = "solid", "+20%" = "solid", "+30%" = "solid")) +
+  scale_color_manual(values = c("Söguleg" = "black", setNames(vr_litir[1:5], c("Grunnspá", "+10%", "+15%", "+20%", "+30%")))) +
+  facet_wrap(~duration) +
+  theme_minimal() +
+  theme(
+    legend.title = element_blank()
+  ) +
+  labs(x = NULL, y = NULL) +
+  scale_y_continuous(labels = percent)
+
+
+vr_layout(p_greining_oliuverd, tooltip_percent = TRUE)
+```
+
+
+#### Column {width="25%"}
+
+::: {.card}
+Olíuverð hefur hækkað skarpt frá 27. febrúar. Tunnan af brent olíu var um 71 dollari en er nú um 83 sem er hækkun uppá 17%. Enn er óljóst um framhaldið. Verður hækkunin tímabundin eða mun hún vara í mánuði.
+
+Í greiningunni er stuðst við tölfræðilíkan sérhannað til að svara því hvernig verðbólga á Íslandi gæti þróast m.v. ólíkar forsendur olíuverðs á heimsmarkaði. 
+
+
+:::
+
+
+```{r, greining_oil_price_chart}
+oliuverd_tbl <- read_csv("data/oliuverd.csv")
+
+p_oil <- oliuverd_tbl |> 
+  filter(date >= "2025-06-01") |> 
+  ggplot(aes(date, price)) +
+  geom_line() + 
+  theme_minimal() +
+  labs(x = NULL, y = NULL, title = "Heimsmarkasðverð á olíu (Brent)")
+
+vr_layout(p_oil)
+```
+
+
+
