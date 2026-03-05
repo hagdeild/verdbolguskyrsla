@@ -31,9 +31,6 @@ jobs:
       - name: Run data preparation
         run: Rscript R/data_preparation.R
 
-      - name: Run verdbolguspa
-        run: Rscript R/verdbolguspa.R
-
       - name: Render site
         run: quarto render .
 
