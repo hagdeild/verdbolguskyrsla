@@ -6,7 +6,7 @@ brent_yahoo <- getSymbols(
   "BZ=F",
   src = "yahoo",
   from = as.Date("2020-01-01"),
-  to = Sys.Date(),
+  to = Sys.Date() + 1,
   auto.assign = FALSE
 ) |>
   as_tibble(rownames = "date") |>
@@ -17,4 +17,4 @@ brent_yahoo <- getSymbols(
   filter(!is.na(price))
 
 brent_yahoo |>
-  write_csv("data/oliuverd.csv")
+  write_csv("data/greiningar/oliuverd.csv")

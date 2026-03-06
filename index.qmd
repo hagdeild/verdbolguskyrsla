@@ -1437,20 +1437,16 @@ vr_layout(p_oil)
 blue_palette <- c("#c6dbef", "#9ecae1", "#6baed6", "#3182bd", "#08519c")
 
 verdbolguspar_tbl <- fc_ls |>
-  pluck("verdbolguspa")
-
-
-verdbolguspar_tbl <- verdbolguspar_tbl |>
-  select(-Seðlabankinn) |>
+  pluck("verdbolguspa") |> 
+  select(-c(fc_vnv, Seðlabankinn)) |> 
   filter(name %in% c("Söguleg", "Skammtíma"))
 
 
 # sviðsmyndir
-svidsmyndir_tbl <- read_csv("data/greiningar/oliuverd_scenarios.csv") |>
-  select(month, cumulative_pct, shock_pct, duration)
-
-svidsmyndir_tbl <- svidsmyndir_tbl |>
-  mutate(cumulative_pct_converted = (exp(cumulative_pct / 100) - 1))
+svidsmyndir_tbl <- read_csv("data/greiningar/oliuverd_scenarios_var.csv") |>
+  select(month, cum_cpi, shock_label, duration) |> 
+  rename("shock_pct" = "shock_label") |> 
+  mutate(cum_cpi = cum_cpi / 100)
 
 # 2.0.0 GREINING ----
 
@@ -1468,20 +1464,28 @@ skammtima_tbl <- verdbolguspar_tbl |>
   filter(name == "Skammtíma") |>
   mutate(month = row_number() - 1L) |>
   left_join(svidsmyndir_tbl, by = "month") |>
-  mutate(svidsmyndir = value + cumulative_pct_converted)
+  mutate(svidsmyndir = value + cum_cpi)
 
 spar_udpate_tbl <- bind_rows(soguleg_tbl, baseline_tbl, skammtima_tbl)
 
 
 p_greining_oliuverd <- spar_udpate_tbl |>
+  filter(!duration == "Permanent") |> 
   mutate(
     duration = 
       case_when(
         duration == "1 month" ~ "Tímabundin hækkun í 1 mánuð",
-        duration == "2 month" ~ "Tímabundin hækkun í 2 mánuði",
-        duration == "3 month" ~ "Tímabundin hækkun í 3 mánuði",
-        TRUE ~ "Varanleg hækkun"
-      )
+        duration == "2 months" ~ "Tímabundin hækkun í 2 mánuði",
+        duration == "3 months" ~ "Tímabundin hækkun í 3 mánuði",
+        TRUE ~ "Hækkun varir næstu 6 mánuði"
+      ),
+      duration =
+        factor(
+          duration,
+          levels =
+            c("Tímabundin hækkun í 1 mánuð", "Tímabundin hækkun í 2 mánuði",
+            "Tímabundin hækkun í 3 mánuði", "Hækkun varir næstu 6 mánuði")
+            )
   ) |> 
   filter(date >= "2024-01-01") |>
   ggplot(aes(date, svidsmyndir, col = shock_pct, linetype = shock_pct)) +
