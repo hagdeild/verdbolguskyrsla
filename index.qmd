@@ -1423,7 +1423,7 @@ p_oil <- oliuverd_tbl |>
   geom_line() + 
   theme_minimal() +
   scale_y_continuous(label = percent) + 
-  labs(x = NULL, y = NULL, title = "Heimsmarkasðverð á olíu (Brent) frá 26. febrúar 2026")
+  labs(x = NULL, y = NULL, title = "Heimsmarkasðverð á olíu frá 26. febrúar 2026")
 
 vr_layout(p_oil)
 ```
