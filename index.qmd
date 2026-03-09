@@ -1421,6 +1421,7 @@ p_oil <- oliuverd_tbl |>
     ) |> 
   ggplot(aes(date, price)) +
   geom_line() + 
+  geom_point() + 
   theme_minimal() +
   scale_y_continuous(label = percent) + 
   labs(x = NULL, y = NULL, title = "Heimsmarkasðverð á olíu frá 26. febrúar 2026")
