@@ -6,8 +6,8 @@ library(vr)
 
 # Update bonds
 schedule_r_script(
-  rscript = "R/update_bonds.R",
-  taskname =  "verdbolgu_update_bonds",
+  rscript = "R/althjodleg_data.R",
+  taskname =  "verdbolgu_update_althjodleg",
   schedule = "DAILY",
   starttime = "16:00"
 )
