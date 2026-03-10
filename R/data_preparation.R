@@ -969,7 +969,7 @@ hus_unnid_tbl <- hus_tbl %>%
 
 # sameina
 hus_unnid_tbl <- bind_rows(
-  hus_unnid_eldri_tbl,
+  hus_unnid_eldri_tbl |> filter(lidur %in% unique(hus_unnid_tbl$lidur)),
   hus_unnid_tbl
 )
 

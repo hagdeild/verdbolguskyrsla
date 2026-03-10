@@ -25,8 +25,11 @@ verdbolga_milli_manada <- data_ls$pbi_inflation_verdbolga_valuebox$milli_manada
 text_size <- 16
 
 # Litir
-vr_litir <- c("#00305c", "#028fbc", "#eec215", "#d64550", "#4fb94f", "#7d5ba6", "#e07b39", "#3a8e8e")
-valuebox_litir <- c("#2E7D6E", "#E57373", "#F9A825")
+#vr_litir <- c("#00305c", "#028fbc", "#eec215", "#d64550", "#4fb94f", "#7d5ba6", "#e07b39", "#3a8e8e")
+vr_litir <- c("#0072b1", "#54b6e9", "#00a073", "#f0e142", "#e59e23", "#d65e18", "#D64550")
+
+valuebox_litir <- c("#00B894", "#FF6B6B", "#FDCB6E") #c("#2E7D6E", "#E57373", "#F9A825")
+
 
 # Date
 date_back_year <- floor_date(today(), "year") - months(12)
@@ -1056,7 +1059,7 @@ altjodlegar_upplysingar_tbl |>
 ## Row
 
 ```{r, husnaedis_lidur_vnv}
-p10 <- data_ls$pbi_inflation_husnaedisverd |> 
+p10 <- data_ls$pbi_inflation_husnaedisverd |>
     ggplot(aes(date, infl, col = lidur)) +
     geom_line() +
     theme_minimal() +
@@ -1323,7 +1326,7 @@ list(
 
 ```{r verðbólguspá}
 fc_litir <- c(
-    vr_litir[c(8, 7, 3)],
+    vr_litir[2:4],
     # Landsbankinn
     "#00436c",
     # Íslandsbanki
@@ -1342,24 +1345,6 @@ cols_all <- c(setNames(fc_litir, name_levels),
 
 breaks_all <- c(name_levels, "Seðlabankinn")
 
-# p18 <- fc_ls$verdbolguspa |>
-#   ggplot(aes(date, value)) +
-#   geom_line(aes(color = name)) +
-#   geom_point(aes(y = `Seðlabankinn`, color = "Seðlabankinn"),
-#              na.rm = TRUE) +
-#   labs(
-#     x = NULL, y = NULL,
-#     title = "Verðbólguspá",
-#     color = "Uppruni"
-#   ) +
-#   scale_y_continuous(labels = percent) +
-#   theme_minimal() +
-#   scale_color_manual(values = cols_all,
-#                      breaks = breaks_all,
-#                      drop = FALSE)
-
-
-# vr_layout(p18)
 
 p18 <- fc_ls$verdbolguspa |>
   mutate(
@@ -1382,13 +1367,6 @@ p18 <- fc_ls$verdbolguspa |>
   theme(text = element_text(size = text_size)) +
   scale_color_manual(values = cols_all, breaks = breaks_all, drop = FALSE)
 
-# vr_layout <- function(plot) {
-#   plotly::ggplotly(plot, tooltip = "text") |>
-#     plotly::layout(
-#       legend = list(title = list(text = ""), orientation = "h",
-#                     y = -0.2, x = 0.5, xanchor = "center")
-#     )
-# }
 
 vr_layout(p18)
 ```
