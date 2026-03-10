@@ -1,4 +1,11 @@
-# 14.1.0 Stýrivextir ----
+# Scrape cbrates, trading economics for policy rates and 10 year yield
+
+# 1.0.0 SETUP ----
+library(tidyverse)
+library(rvest)
+
+
+# 2.0.0 STÝRIVEXTIR ----
 # Scrape central bank rates from cbrates.com
 scrape_cbrates <- function() {
   page <- read_html("https://www.cbrates.com/")
@@ -71,7 +78,7 @@ cb_rates <- cb_rates |>
   mutate(rate_numeric = rate_numeric / 100)
 
 
-# 14.1.1 danmörk ----
+# 2.1.0 Danmörk ----
 
 # ==============================================================================
 # Get Denmark's current-account rate from Danmarks Nationalbank
@@ -150,7 +157,8 @@ denmark_rate <- get_denmark_rate()
 cb_rates <- cb_rates |>
   bind_rows(denmark_rate)
 
-# 14.2.0 Verðbólga ----
+
+# 3.2.0 VERÐBÓLGA ----
 
 scrape_te_inflation <- function() {
   url <- "https://tradingeconomics.com/country-list/inflation-rate-"
@@ -227,16 +235,81 @@ althjodleg_verdbolga_tbl <- all_inflation |>
   mutate(cpi_yoy = cpi_yoy / 100)
 
 
-# 14.3.0 10-year bond rates ----
+# 3.0.0 10-year bond rates ----
 
 # ==============================================================================
 # Scrape 10Y government bond yields from Trading Economics
 # The /bonds page has multiple tables: Major10Y, Europe, America, Asia, etc.
 # We parse td/th cells directly to avoid html_table() type-guessing issues.
 # ==============================================================================
-
 # Bond data is scraped locally with R/update_bonds.R and saved to data/te_bonds.csv
-all_bonds <- read_csv("data/te_bonds.csv", show_col_types = FALSE)
+# all_bonds <- read_csv("data/te_bonds.csv", show_col_types = FALSE)
+
+scrape_te_bonds <- function() {
+  page <- read_html(
+    httr::GET(
+      "https://tradingeconomics.com/bonds",
+      httr::user_agent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      )
+    )
+  )
+
+  # Grab ALL tables, then parse row by row using td/th
+  tables <- page |> html_elements("table")
+
+  map_dfr(tables, function(tbl) {
+    rows <- tbl |> html_elements("tr")
+
+    map_dfr(rows, function(row) {
+      cells <- row |> html_elements("td, th") |> html_text2() |> str_squish()
+
+      # Skip header rows or rows with too few cells
+      if (length(cells) < 3) {
+        return(NULL)
+      }
+
+      # First non-empty cell is country, second numeric-looking cell is yield
+      # The table structure is: (flag) | Country | Yield | Day | Weekly | ...
+      # Country is typically in position 1 or 2, yield right after
+      country <- cells[cells != "" & !str_detect(cells, "^[0-9.\\-]+$")][1]
+
+      # Find the first numeric value (the yield)
+      nums <- suppressWarnings(as.numeric(cells))
+      yield <- nums[!is.na(nums)][1]
+
+      if (is.na(country) || is.na(yield)) {
+        return(NULL)
+      }
+
+      # Skip header-like rows
+      if (country %in% c("Major10Y", "Europe", "America", "Asia", "Africa")) {
+        return(NULL)
+      }
+
+      tibble(country = country, yield_10y = yield)
+    })
+  }) |>
+    distinct(country, .keep_all = TRUE)
+}
+
+# Mapping: Trading Economics name -> your cbrates.com name
+te_to_cbrates <- tribble(
+  ~te_name         , ~country               ,
+  "United States"  , "USA (Fed)"            ,
+  "United Kingdom" , "United Kingdom (BoE)" ,
+  "Germany"        , "Eurozone (ECB)"       ,
+  "Canada"         , "Canada (BoC)"         ,
+  "Iceland"        , "Iceland"              ,
+  "Poland"         , "Poland"               ,
+  "Sweden"         , "Sweden"               ,
+  "Switzerland"    , "Switzerland (SNB)"    ,
+  "New Zealand"    , "New Zealand"          ,
+  "Norway"         , "Norway"
+)
+
+# Run
+all_bonds <- scrape_te_bonds()
 
 # Mapping: Trading Economics name -> your cbrates.com name
 te_to_cbrates <- tribble(
