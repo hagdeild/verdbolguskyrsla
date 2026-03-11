@@ -246,14 +246,15 @@ althjodleg_verdbolga_tbl <- all_inflation |>
 # all_bonds <- read_csv("data/te_bonds.csv", show_col_types = FALSE)
 
 scrape_te_bonds <- function() {
-  page <- read_html(
-    httr::GET(
-      "https://tradingeconomics.com/bonds",
-      httr::user_agent(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-      )
-    )
-  )
+
+  resp <- httr2::request("https://tradingeconomics.com/bonds") |>
+  httr2::req_headers(
+    `User-Agent` = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+    Accept = "text/html"
+  ) |>
+  httr2::req_perform()
+
+  page <- resp |> httr2::resp_body_string() |> read_html()
 
   # Grab ALL tables, then parse row by row using td/th
   tables <- page |> html_elements("table")
