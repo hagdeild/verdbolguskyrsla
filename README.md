@@ -24,3 +24,7 @@ https://gagnabanki.is/report/fxturnover
 
 ## Verðbólguvæntingar á mismunandi mælikvarða
 https://sedlabanki.is/peningastefna/verdbolguvaentingar-a-mismunandi-maelikvarda/
+
+
+## Vextir bankanna
+https://sedlabanki.is/gagnatorg/vextir/
