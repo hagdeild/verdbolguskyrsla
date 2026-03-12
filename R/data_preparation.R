@@ -12,6 +12,7 @@ library(here)
 library(fredr)
 library(modeltime)
 library(tidymodels)
+library(httr2)
 
 lond_tbl <- read_csv("data/lond.csv") |>
   select(iso_3, land)
@@ -762,27 +763,69 @@ froop_final_tbl <- froop_old_tbl |>
 
 print("EUROSTAT - HICP")
 
-hicp_raw_tbl <- get_eurostat(
-  id = "prc_hicp_midx",
-  filters = list(
-    geo = c("IS", "DK", "NO", "FI", "SE", "EU27_2020"),
-    coicop = c(
-      paste0("CP0", 0:9),
-      "CP10",
-      "CP11",
-      "CP12",
-      "TOT_X_NRG",
-      "SERV",
-      "GD",
-      "FOOD"
-    ),
-    unit = "I15",
-    freq = "M"
-  ),
-  time_format = "date",
-  cache = FALSE
-) %>%
-  as_tibble()
+
+coicops <- c(
+  "TOTAL",
+  "TOT_X_NRG",
+  "SERV",
+  "GD",
+  "FOOD"
+)
+
+geos <- c("IS", "DK", "NO", "FI", "SE", "EU27_2020")
+
+fetch_hicp_minr <- function(geo) {
+  url <- paste0(
+    "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/prc_hicp_minr",
+    "?format=JSON",
+    "&geo=",
+    geo,
+    "&unit=I25",
+    "&freq=M",
+    "&",
+    paste0("coicop18=", coicops, collapse = "&")
+  )
+
+  resp <- request(url) %>%
+    req_perform() %>%
+    resp_body_json()
+
+  dim_ids <- resp$id
+  sizes <- unlist(resp$size)
+
+  # Build ordered labels for each dimension
+  dim_labels <- map(
+    dim_ids,
+    ~ {
+      cats <- resp$dimension[[.x]]$category
+      idx <- order(unlist(cats$index))
+      names(cats$label)[idx]
+    }
+  ) %>%
+    set_names(dim_ids)
+
+  # Create full grid (row-major order matches Eurostat indexing)
+  grid <- expand_grid(!!!map(dim_labels, ~.x))
+
+  # Compute linear index for each row
+  grid$idx <- seq_len(nrow(grid)) - 1L
+
+  # Map sparse values by position index
+  vals <- rep(NA_real_, nrow(grid))
+  for (key in names(resp$value)) {
+    pos <- as.integer(key) + 1L
+    vals[pos] <- resp$value[[key]]
+  }
+  grid$value <- vals
+  grid$idx <- NULL
+
+  filter(grid, !is.na(value))
+}
+
+hicp_raw_tbl <- map(geos, fetch_hicp_minr) %>%
+  bind_rows() %>%
+  mutate(time = as.Date(paste0(time, "-01"))) |>
+  rename("coicop" = "coicop18")
 
 
 if (class(unique(hicp_raw_tbl$time)) == "Date") {
@@ -791,8 +834,7 @@ if (class(unique(hicp_raw_tbl$time)) == "Date") {
     rename(
       "date" = "time",
       "flokkur" = "coicop",
-      "svaedi" = "geo",
-      "value" = "values"
+      "svaedi" = "geo"
     )
 } else {
   hicp_tbl <- hicp_raw_tbl %>%
@@ -800,8 +842,7 @@ if (class(unique(hicp_raw_tbl$time)) == "Date") {
     select(-c(time, unit, freq)) %>%
     rename(
       "flokkur" = "coicop",
-      "svaedi" = "geo",
-      "value" = "values"
+      "svaedi" = "geo"
     )
 }
 
@@ -818,7 +859,7 @@ hicp_infl_tbl <- hicp_tbl %>%
 
 # Finn minnsta samnefnara í date
 max_date_hicp <- hicp_infl_tbl %>%
-  filter(flokkur == "CP00") %>%
+  filter(flokkur == "TOTAL") %>%
   group_by(svaedi) %>%
   filter(date == max(date)) %>%
   ungroup() %>%
@@ -837,66 +878,12 @@ land_tbl <- tibble(
 )
 
 hicp_pbi_tbl <- hicp_infl_tbl %>%
-  filter(flokkur == "CP00") %>%
+  filter(flokkur == "TOTAL") %>%
   left_join(land_tbl) |>
   filter(date >= date_from)
 
 
 # 6.1.0 By Coicip ----
-
-coicop_flokkar_tbl <- tibble(
-  coicop = paste0(
-    "CP",
-    c("01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12")
-  ),
-  flokkur = c(
-    "Matur og drykkjarvörur",
-    "Áfengi og tóbak",
-    "Föt og skór",
-    "Húsnæði, hiti og rafmagn",
-    "Húsgögn, heimilisbúnaður o.fl.",
-    "Heilsa",
-    "Ferðir og flutningar",
-    "Póstur og sími",
-    "Tómstundir og menning",
-    "Menntun",
-    "Hótel og veitingastaðir",
-    "Aðrar vörur og þjónusta"
-  )
-)
-
-coicop_inflation_tbl <- hicp_raw_tbl %>%
-  filter(
-    coicop %in%
-      paste0(
-        "CP",
-        c(
-          "01",
-          "02",
-          "03",
-          "04",
-          "05",
-          "06",
-          "07",
-          "08",
-          "09",
-          "10",
-          "11",
-          "12"
-        )
-      )
-  ) %>%
-  filter(
-    geo %in% c("IS", "EU27_2020"),
-    unit == "I15",
-    freq == "M"
-  ) %>%
-  arrange(coicop, geo, time) %>%
-  group_by(coicop, geo) %>%
-  mutate(inflation = values / lag(values, 12) - 1) %>%
-  left_join(coicop_flokkar_tbl) %>%
-  rename("date" = "time")
-
 
 # HICP undirflokkar - power bi
 hicp_undirflokkar_tbl <- hicp_infl_tbl %>%

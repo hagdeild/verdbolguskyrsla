@@ -3,6 +3,7 @@
 # 1.0.0 SETUP ----
 library(tidyverse)
 library(rvest)
+library(chromote)
 
 
 # 2.0.0 STÝRIVEXTIR ----
@@ -160,23 +161,52 @@ cb_rates <- cb_rates |>
 
 # 3.2.0 VERÐBÓLGA ----
 
-scrape_te_inflation <- function() {
-  url <- "https://tradingeconomics.com/country-list/inflation-rate-"
-
-  # Trading Economics blocks default rvest user-agent, so we spoof a browser
-  page <- read_html(
-    httr::GET(
-      url,
-      httr::user_agent(
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-      )
-    )
+scrape_te_page <- function(b, url) {
+  # Inject stealth script BEFORE navigation so it runs on page load
+  b$Page$addScriptToEvaluateOnNewDocument(
+    source = "
+      Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+      Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+      Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+      window.chrome = {runtime: {}};
+    "
   )
+  b$Page$navigate(url)
 
-  # Extract the table using td, th selectors
+  # Wait for table data to load
+  loaded <- FALSE
+  for (i in 1:15) {
+    Sys.sleep(2)
+    check <- b$Runtime$evaluate(
+      "document.querySelectorAll('table td').length"
+    )$result$value
+    if (!is.null(check) && check > 10) {
+      loaded <- TRUE
+      break
+    }
+  }
+  if (!loaded) Sys.sleep(5)
+
+  html_text <- b$Runtime$evaluate(
+    "document.documentElement.outerHTML"
+  )$result$value
+
+  read_html(html_text)
+}
+
+scrape_te_inflation <- function(b) {
+  page <- scrape_te_page(b, "https://tradingeconomics.com/country-list/inflation-rate-")
+
+  # Debug: save HTML to inspect if table is missing
+  writeLines(as.character(page), "data/debug_te_inflation.html")
+
   tbl <- page |>
     html_element("table") |>
     html_table()
+
+  if (is.null(tbl) || inherits(tbl, "xml_missing")) {
+    stop("No <table> found on inflation page. Check data/debug_te_inflation.html")
+  }
 
   tbl |>
     as_tibble() |>
@@ -218,8 +248,35 @@ te_to_cbrates <- tribble(
   "Denmark"        , "Denmark"              ,
 )
 
+# Launch shared headless Chrome for Trading Economics scraping
+te_chrome <- Chromote$new(
+  browser = Chrome$new(
+    args = c(
+      "--disable-blink-features=AutomationControlled",
+      "--window-size=1920,1080",
+      "--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+      "--disable-features=AutomationControlled",
+      "--disable-infobars"
+    )
+  )
+)
+te_session <- te_chrome$new_session()
+
+# Override user-agent via CDP (more reliable than command-line flag)
+te_session$Network$setUserAgentOverride(
+  userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
+)
+
+# Hide automation signals from bot detection
+te_session$Runtime$evaluate("
+  Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+  Object.defineProperty(navigator, 'plugins', {get: () => [1, 2, 3, 4, 5]});
+  Object.defineProperty(navigator, 'languages', {get: () => ['en-US', 'en']});
+  window.chrome = {runtime: {}};
+")
+
 # Run
-all_inflation <- scrape_te_inflation()
+all_inflation <- scrape_te_inflation(te_session)
 
 althjodleg_verdbolga_tbl <- all_inflation |>
   filter(country %in% my_countries) |>
@@ -245,18 +302,12 @@ althjodleg_verdbolga_tbl <- all_inflation |>
 # Bond data is scraped locally with R/update_bonds.R and saved to data/te_bonds.csv
 # all_bonds <- read_csv("data/te_bonds.csv", show_col_types = FALSE)
 
-scrape_te_bonds <- function() {
+scrape_te_bonds <- function(b) {
+  page <- scrape_te_page(b, "https://tradingeconomics.com/bonds")
 
-  resp <- httr2::request("https://tradingeconomics.com/bonds") |>
-  httr2::req_headers(
-    `User-Agent` = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-    Accept = "text/html"
-  ) |>
-  httr2::req_perform()
+  # Debug: save HTML to inspect if table is missing
+  writeLines(as.character(page), "data/debug_te_bonds.html")
 
-  page <- resp |> httr2::resp_body_string() |> read_html()
-
-  # Grab ALL tables, then parse row by row using td/th
   tables <- page |> html_elements("table")
 
   map_dfr(tables, function(tbl) {
@@ -265,25 +316,18 @@ scrape_te_bonds <- function() {
     map_dfr(rows, function(row) {
       cells <- row |> html_elements("td, th") |> html_text2() |> str_squish()
 
-      # Skip header rows or rows with too few cells
-      if (length(cells) < 3) {
-        return(NULL)
-      }
+      if (length(cells) < 3) return(NULL)
 
-      # First non-empty cell is country, second numeric-looking cell is yield
-      # The table structure is: (flag) | Country | Yield | Day | Weekly | ...
-      # Country is typically in position 1 or 2, yield right after
+      # Country name: first non-empty, non-numeric cell
       country <- cells[cells != "" & !str_detect(cells, "^[0-9.\\-]+$")][1]
 
-      # Find the first numeric value (the yield)
+      # First numeric value is the yield
       nums <- suppressWarnings(as.numeric(cells))
       yield <- nums[!is.na(nums)][1]
 
-      if (is.na(country) || is.na(yield)) {
-        return(NULL)
-      }
+      if (is.na(country) || is.na(yield)) return(NULL)
 
-      # Skip header-like rows
+      # Skip section headers
       if (country %in% c("Major10Y", "Europe", "America", "Asia", "Africa")) {
         return(NULL)
       }
@@ -294,23 +338,12 @@ scrape_te_bonds <- function() {
     distinct(country, .keep_all = TRUE)
 }
 
-# Mapping: Trading Economics name -> your cbrates.com name
-te_to_cbrates <- tribble(
-  ~te_name         , ~country               ,
-  "United States"  , "USA (Fed)"            ,
-  "United Kingdom" , "United Kingdom (BoE)" ,
-  "Germany"        , "Eurozone (ECB)"       ,
-  "Canada"         , "Canada (BoC)"         ,
-  "Iceland"        , "Iceland"              ,
-  "Poland"         , "Poland"               ,
-  "Sweden"         , "Sweden"               ,
-  "Switzerland"    , "Switzerland (SNB)"    ,
-  "New Zealand"    , "New Zealand"          ,
-  "Norway"         , "Norway"
-)
+# Run (reuse same chromote session)
+all_bonds <- scrape_te_bonds(te_session)
 
-# Run
-all_bonds <- scrape_te_bonds()
+# Clean up headless Chrome
+try(te_session$close(), silent = TRUE)
+try(te_chrome$close(), silent = TRUE)
 
 # Mapping: Trading Economics name -> your cbrates.com name
 te_to_cbrates <- tribble(
