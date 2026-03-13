@@ -1314,45 +1314,6 @@ fc_diff <- fc_ls$verdbolguspa |>
 fc_1m_diff <- parse_number(fc_ls$verdbolguspa_valuebox$spa_1m) / 100
 ```
 
-```{r, fc_valuebox_next_month}
-#| content: valuebox
-#| title: "Verðbólguspá næsta mánaðar"
-list(
-    icon = case_when(
-        fc_diff > 0 ~ "arrow-up",
-        fc_diff == 0 ~ "dash",
-        TRUE ~ "arrow-down"
-        ),
-    color = 
-        case_when(
-        fc_diff > 0 ~ valuebox_litir[2],
-        fc_diff == 0 ~ valuebox_litir[3],
-        TRUE ~ valuebox_litir[1]
-        ),
-    value = fc_ls$verdbolguspa_valuebox$spa_12m
-)
-```
-
-```{r, fc_valuebox}
-#| content: valuebox
-#| title: "Verðbólguspá - Breyting milli mánaða"
-list(
-    icon = case_when(
-        fc_1m_diff > 0 ~ "arrow-up",
-        fc_1m_diff == 0 ~ "dash",
-        TRUE ~ "arrow-down"
-        ),
-    color = 
-        case_when(
-        fc_1m_diff > 0 ~ valuebox_litir[2],
-        fc_1m_diff == 0 ~ valuebox_litir[3],
-        TRUE ~ valuebox_litir[1]
-        ),
-    value = fc_ls$verdbolguspa_valuebox$spa_1m
-)
-```
-
-## Row
 
 ```{r verðbólguspá}
 fc_litir <- c(

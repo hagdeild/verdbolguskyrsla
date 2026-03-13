@@ -1992,7 +1992,7 @@ short_1m <- fc_medium_tbl |>
 
 # 3.5.0 Valuebox --------------.--------------------------------------------
 fc_valuebox_tbl <- tibble(
-  spa_12m = percent(short_forecast_12m_tbl$value[1], accuracy = 0.01),
+  #spa_12m = percent(short_forecast_12m_tbl$value[1], accuracy = 0.01),
   spa_1m = percent(short_1m, accuracy = 0.01)
 )
 
