@@ -1371,9 +1371,9 @@ vr_layout(p18)
 #### Column {width="25%"}
 
 ::: {.card}
-Olíuverð hefur hækkað skarpt frá 26. febrúar. Tunnan af brent olíu var um 71 dollari en er nú um 83 sem er hækkun uppá tæp 15%. Enn er óljóst um framhaldið. Verður hækkunin tímabundin eða mun hún vara í lengri tíma.
+Olíuverð hefur hækkað skarpt frá 26. febrúar. Tunnan af brent olíu var um 71 dollari en er nú um 103 sem er hækkun uppá tæp 45%. Enn er óljóst um framhaldið. Verður hækkunin tímabundin eða mun hún vara í lengri tíma.
 
-Í greiningunni er stuðst við tölfræðilíkan sérhannað til að svara því hvernig verðbólga á Íslandi gæti þróast m.v. ólíkar forsendur olíuverðs á heimsmarkaði. Líkanði tekur tillit til annarra þátta á borð við gengi krónunnar og atvinnuleysi.
+Í greiningunni er stuðst við tölfræðilíkan sérhannað til að svara því hvernig verðbólga á Íslandi gæti þróast m.v. ólíkar forsendur olíuverðs á heimsmarkaði. Líkanði tekur tillit til annarra þátta á borð við gengi krónunnar, atvinnuleysi og verðbólgu erlendis.
 
 Greiningin sýnir mismunandi sviðsmyndir eftir því hve lengi hækkunin varir auk þess hve mikil hækkunin er. Gert er ráð fyrir að öll hækkunin komi fram í mars.
 
