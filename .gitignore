@@ -14,3 +14,6 @@ Thumbs.db
 /.quarto/
 
 *.log
+**/*.quarto_ipynb
+
+index_files
