@@ -1457,7 +1457,7 @@ p_greining_oliuverd <- spar_udpate_tbl |>
             "Tímabundin hækkun í 3 mánuði", "Hækkun varir næstu 6 mánuði")
             )
   ) |> 
-  filter(date >= "2024-01-01") |>
+  #filter(date >= "2024-01-01") |>
   ggplot(aes(date, svidsmyndir, col = shock_pct, linetype = shock_pct)) +
   geom_line() +
   scale_linetype_manual(values = c("Grunnspá" = "dashed", "Söguleg" = "solid", "+10%" = "solid", "+15%" = "solid", "+20%" = "solid", "+30%" = "solid")) +
