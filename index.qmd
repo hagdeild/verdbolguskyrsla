@@ -130,8 +130,8 @@ waterfall_plot <- function(
   category_col = undirflokkur,    
   title = "Framlag undirliða seinustu 12 mánuði",
   total_bar_title = "Verðbólga",
-  color_pos = vr_litir[4],
-  color_neg = vr_litir[5],
+  color_pos = vr_litir[7],
+  color_neg = vr_litir[3],
   color_total = vr_litir[1],
   label_digits = 1,
   bar_width = 0.6,
@@ -351,15 +351,35 @@ vr_layout(p1, tooltip_percent = TRUE)
 ```
 
 ```{r, verðbólga-mom}
+
+manudur_mom_tbl <- fc_ls$verdbolguspa |> 
+  filter(name %in% c("Söguleg", "VR")) |> 
+  mutate(
+    mom = fc_vnv / lag(fc_vnv) - 1,
+    manudur = month(date)
+    ) |> 
+  filter(name == "VR") |> 
+  select(manudur, mom)
+
+
 p2 <- data_ls$pbi_inflation_verdbolga |> 
     filter(
         flokkur == "Verðbólga",
         date >= date_back_year
         ) |> 
-    mutate(merking = percent(milli_manada, accuracy = 0.01)) |>
+    mutate(
+      merking = percent(milli_manada, accuracy = 0.01),
+      manudur = month(date)
+      ) |>
+    left_join(manudur_mom_tbl) |>
+    mutate(merking_mom = percent(mom, accuracy = 0.01)) |>
+
     ggplot(aes(date, milli_manada, label = merking,
                text = paste0("date: ", date, "\nmerking: ", merking))) +
     geom_col(fill = vr_litir[1]) +
+    geom_point(aes(date, mom, colour = "Spá VR fyrir viðkomandi mánuði á þessu ári", text = paste0("date: ", date, "\nspá: ", merking_mom)),
+               shape = 17, size = 4) +
+    scale_colour_manual(values = setNames(vr_litir[3], "Spá VR fyrir viðkomandi mánuði á þessu ári")) +
     labs(
         x = NULL,
         y = NULL,
@@ -367,6 +387,7 @@ p2 <- data_ls$pbi_inflation_verdbolga |>
     ) +
     theme_minimal() +
     theme(text = element_text(size = text_size)) +
+    scale_x_date(date_labels = "%b %Y", date_breaks = "1 month") +
     scale_y_continuous(labels = percent)
 
 p2_plotly <- plotly::ggplotly(p2, tooltip = "text")
@@ -374,13 +395,23 @@ p2_plotly <- plotly::ggplotly(p2, tooltip = "text")
 for (i in seq_along(p2_plotly$x$data)) {
   tr <- p2_plotly$x$data[[i]]
   if (!is.null(tr$type) && tr$type == "bar") {
-    p2_plotly$x$data[[i]]$text <- p2$data$merking
+    # Match labels to this trace's x values (plotly splits pos/neg bars)
+    trace_dates <- as.Date(tr$x)
+    idx <- match(trace_dates, p2$data$date)
+    p2_plotly$x$data[[i]]$text <- p2$data$merking[idx]
     p2_plotly$x$data[[i]]$textposition <- "outside"
-    p2_plotly$x$data[[i]]$textfont <- list(color = vr_litir[1])
+    p2_plotly$x$data[[i]]$textfont <- list(color = vr_litir[1], size = text_size)
+  }
+  if (!is.null(tr$mode) && grepl("markers", tr$mode)) {
+    p2_plotly$x$data[[i]]$text <- p2$data$merking_mom
+    p2_plotly$x$data[[i]]$textposition <- "top center"
+    p2_plotly$x$data[[i]]$textfont <- list(color = vr_litir[3], size = text_size)
+    p2_plotly$x$data[[i]]$mode <- "markers+text"
   }
 }
 p2_plotly |>
   plotly::layout(
+    uniformtext = list(minsize = text_size, mode = "show"),
     legend = list(
       title = list(text = ""),
       orientation = "h",
@@ -683,8 +714,7 @@ p_top10_1m <- data_ls$top_1m |>
         y = NULL,
         title = "Mestu hækkanir milli mánaða"
     ) +
-    scale_y_continuous(labels = percent) + 
-    coord_flip(ylim = c(NA_real_, 0.4))
+    scale_y_continuous(labels = percent)
 
 vr_layout(p_top10_1m, title_x = 0, tooltip_percent = TRUE)
 
@@ -719,7 +749,7 @@ vr_layout(p_botn_1m, title_x = 0, tooltip_percent = TRUE)
 
 ```{r, samræmd data prep}
 hicp_diff_tbl <- data_ls$pbi_inflation_hicp |> 
-    filter(flokkur == "CP00") |> 
+    filter(flokkur == "TOTAL") |> 
     arrange(date, country) |> 
     group_by(country) |> 
     mutate(infl_diff = infl - lag(infl)) |> 
@@ -1271,11 +1301,11 @@ p17_plotly |>
 ```{r, verðbólguspá_valuebox_prep}
 # 12 mánaða spá
 fc_diff <- fc_ls$verdbolguspa |> 
-    filter(name %in% c("Söguleg", "Skammtíma")) |> 
+    filter(name %in% c("Söguleg", "VR")) |> 
     arrange(date, name) |> 
     mutate(diff = value - lag(value)) |> 
     drop_na() |>
-    filter(name == "Skammtíma") |> 
+    filter(name == "VR") |> 
     filter(date == min(date)) |> 
     pull(diff)
 
@@ -1284,49 +1314,10 @@ fc_diff <- fc_ls$verdbolguspa |>
 fc_1m_diff <- parse_number(fc_ls$verdbolguspa_valuebox$spa_1m) / 100
 ```
 
-```{r, fc_valuebox_next_month}
-#| content: valuebox
-#| title: "Verðbólguspá næsta mánaðar"
-list(
-    icon = case_when(
-        fc_diff > 0 ~ "arrow-up",
-        fc_diff == 0 ~ "dash",
-        TRUE ~ "arrow-down"
-        ),
-    color = 
-        case_when(
-        fc_diff > 0 ~ valuebox_litir[2],
-        fc_diff == 0 ~ valuebox_litir[3],
-        TRUE ~ valuebox_litir[1]
-        ),
-    value = fc_ls$verdbolguspa_valuebox$spa_12m
-)
-```
-
-```{r, fc_valuebox}
-#| content: valuebox
-#| title: "Verðbólguspá - Breyting milli mánaða"
-list(
-    icon = case_when(
-        fc_1m_diff > 0 ~ "arrow-up",
-        fc_1m_diff == 0 ~ "dash",
-        TRUE ~ "arrow-down"
-        ),
-    color = 
-        case_when(
-        fc_1m_diff > 0 ~ valuebox_litir[2],
-        fc_1m_diff == 0 ~ valuebox_litir[3],
-        TRUE ~ valuebox_litir[1]
-        ),
-    value = fc_ls$verdbolguspa_valuebox$spa_1m
-)
-```
-
-## Row
 
 ```{r verðbólguspá}
 fc_litir <- c(
-    vr_litir[2:4],
+    vr_litir[2:3],
     # Landsbankinn
     "#00436c",
     # Íslandsbanki
@@ -1380,9 +1371,9 @@ vr_layout(p18)
 #### Column {width="25%"}
 
 ::: {.card}
-Olíuverð hefur hækkað skarpt frá 26. febrúar. Tunnan af brent olíu var um 71 dollari en er nú um 83 sem er hækkun uppá tæp 15%. Enn er óljóst um framhaldið. Verður hækkunin tímabundin eða mun hún vara í lengri tíma.
+Olíuverð hefur hækkað skarpt frá 26. febrúar. Tunnan af brent olíu var um 71 dollari en er nú um 103 sem er hækkun uppá tæp 45%. Enn er óljóst um framhaldið. Verður hækkunin tímabundin eða mun hún vara í lengri tíma.
 
-Í greiningunni er stuðst við tölfræðilíkan sérhannað til að svara því hvernig verðbólga á Íslandi gæti þróast m.v. ólíkar forsendur olíuverðs á heimsmarkaði. Líkanði tekur tillit til annarra þátta á borð við gengi krónunnar og atvinnuleysi.
+Í greiningunni er stuðst við tölfræðilíkan sérhannað til að svara því hvernig verðbólga á Íslandi gæti þróast m.v. ólíkar forsendur olíuverðs á heimsmarkaði. Líkanði tekur tillit til annarra þátta á borð við gengi krónunnar, atvinnuleysi og verðbólgu erlendis.
 
 Greiningin sýnir mismunandi sviðsmyndir eftir því hve lengi hækkunin varir auk þess hve mikil hækkunin er. Gert er ráð fyrir að öll hækkunin komi fram í mars.
 
@@ -1418,7 +1409,7 @@ blue_palette <- c("#c6dbef", "#9ecae1", "#6baed6", "#3182bd", "#08519c")
 verdbolguspar_tbl <- fc_ls |>
   pluck("verdbolguspa") |> 
   select(-c(fc_vnv, Seðlabankinn)) |> 
-  filter(name %in% c("Söguleg", "Skammtíma"))
+  filter(name %in% c("Söguleg", "VR"))
 
 
 # sviðsmyndir
@@ -1435,12 +1426,12 @@ soguleg_tbl <- verdbolguspar_tbl |>
   mutate(shock_pct = "Söguleg", svidsmyndir = value)
 
 baseline_tbl <- verdbolguspar_tbl |>
-  filter(name == "Skammtíma") |>
+  filter(name == "VR") |>
   cross_join(distinct(svidsmyndir_tbl, duration)) |>
   mutate(shock_pct = "Grunnspá", svidsmyndir = value)
 
 skammtima_tbl <- verdbolguspar_tbl |>
-  filter(name == "Skammtíma") |>
+  filter(name == "VR") |>
   mutate(month = row_number() - 1L) |>
   left_join(svidsmyndir_tbl, by = "month") |>
   mutate(svidsmyndir = value + cum_cpi)

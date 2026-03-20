@@ -1925,37 +1925,35 @@ fc_medium_tbl <- fc_medium_tbl %>%
     fc_1m = fc_vnv / lag(fc_vnv) - 1
   )
 
-short_forecast_12m_tbl <- fc_medium_tbl %>%
-  filter(.key != "actual") %>%
-  select(date, .value, fc_vnv) %>%
-  set_names("date", "value", "fc_vnv") %>%
-  mutate(name = "Skammtíma")
-
+# short_forecast_12m_tbl <- fc_medium_tbl %>%
+#   filter(.key != "actual") %>%
+#   select(date, .value, fc_vnv) %>%
+#   set_names("date", "value", "fc_vnv") %>%
+#   mutate(name = "Skammtíma")
 
 # 2.2.0 Long term forecast ----
 
-long_term_data_tbl <- data_raw_tbl %>%
-  mutate(vnv = vnv / lag(vnv, 12) - 1) %>%
-  drop_na()
+# long_term_data_tbl <- data_raw_tbl %>%
+#   mutate(vnv = vnv / lag(vnv, 12) - 1) %>%
+#   drop_na()
 
-fc_long_tbl <- arima_reg() %>%
-  set_engine("auto_arima") %>%
-  fit(vnv ~ date, data = long_term_data_tbl) %>%
-  modeltime_table() %>%
-  modeltime_forecast(
-    h = 12,
-    actual_data = long_term_data_tbl,
-    keep_data = TRUE
-  )
+# fc_long_tbl <- arima_reg() %>%
+#   set_engine("auto_arima") %>%
+#   fit(vnv ~ date, data = long_term_data_tbl) %>%
+#   modeltime_table() %>%
+#   modeltime_forecast(
+#     h = 12,
+#     actual_data = long_term_data_tbl,
+#     keep_data = TRUE
+#   )
 
-fc_long_tbl <- fc_long_tbl %>%
-  select(date, .key, .value) %>%
-  left_join(data_raw_tbl %>% select(date, vnv)) %>%
-  mutate(
-    fc_vnv = lag(vnv, 12) * (1 + .value),
-    fc_1m = fc_vnv / lag(fc_vnv) - 1
-  )
-
+# fc_long_tbl <- fc_long_tbl %>%
+#   select(date, .key, .value) %>%
+#   left_join(data_raw_tbl %>% select(date, vnv)) %>%
+#   mutate(
+#     fc_vnv = lag(vnv, 12) * (1 + .value),
+#     fc_1m = fc_vnv / lag(fc_vnv) - 1
+#   )
 
 # 3.0.0 Valuebox ----------------------------------------------------------
 
@@ -1994,7 +1992,7 @@ short_1m <- fc_medium_tbl |>
 
 # 3.5.0 Valuebox --------------.--------------------------------------------
 fc_valuebox_tbl <- tibble(
-  spa_12m = percent(short_forecast_12m_tbl$value[1], accuracy = 0.01),
+  #spa_12m = percent(short_forecast_12m_tbl$value[1], accuracy = 0.01),
   spa_1m = percent(short_1m, accuracy = 0.01)
 )
 
@@ -2002,12 +2000,12 @@ fc_valuebox_tbl <- tibble(
 # 4.0.0 SAVE --------------------------------------------------------------
 
 # Bæti skammtímaspá við
-fc_tbl <- fc_long_tbl %>%
-  mutate(name = if_else(.key == "actual", "Söguleg", "Langtíma")) %>%
+fc_tbl <- fc_medium_tbl %>%
+  mutate(name = if_else(.key == "actual", "Söguleg", "VR")) %>%
   select(date, .value, name, fc_vnv) %>%
   rename("value" = ".value") %>%
-  bind_rows(short_forecast_12m_tbl) %>%
-  as_tibble() |>
+  # bind_rows(short_forecast_12m_tbl) %>%
+  # as_tibble() |>
   filter(date >= date_from)
 
 
