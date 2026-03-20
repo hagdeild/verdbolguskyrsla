@@ -1462,7 +1462,7 @@ p_greining_oliuverd <- spar_udpate_tbl |>
   geom_line() +
   scale_linetype_manual(values = c("Grunnspá" = "dashed", "Söguleg" = "solid", "+10%" = "solid", "+15%" = "solid", "+20%" = "solid", "+30%" = "solid")) +
   scale_color_manual(values = c("Söguleg" = "black", "Grunnspá" = "black", setNames(blue_palette[2:5], c("+10%", "+15%", "+20%", "+30%")))) +
-  facet_wrap(~duration) +
+  facet_wrap(~duration, ncol = 1) +
   #theme_minimal() +
   theme(
     legend.title = element_blank(),
