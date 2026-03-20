@@ -1413,7 +1413,7 @@ verdbolguspar_tbl <- fc_ls |>
 
 
 # sviðsmyndir
-svidsmyndir_tbl <- read_csv("data/greiningar/oliuverd_scenarios_var.csv") |>
+svidsmyndir_tbl <- read_csv("data/greiningar/oliuverd_scenarios_varx.csv") |>
   select(month, cum_cpi, shock_label, duration) |> 
   rename("shock_pct" = "shock_label") |> 
   mutate(cum_cpi = cum_cpi / 100)
