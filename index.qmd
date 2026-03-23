@@ -1413,7 +1413,7 @@ verdbolguspar_tbl <- fc_ls |>
 
 
 # sviðsmyndir
-svidsmyndir_tbl <- read_csv("data/greiningar/oliuverd_scenarios_var.csv") |>
+svidsmyndir_tbl <- read_csv("data/greiningar/oliuverd_scenarios_varx.csv") |>
   select(month, cum_cpi, shock_label, duration) |> 
   rename("shock_pct" = "shock_label") |> 
   mutate(cum_cpi = cum_cpi / 100)
@@ -1440,7 +1440,6 @@ spar_udpate_tbl <- bind_rows(soguleg_tbl, baseline_tbl, skammtima_tbl)
 
 
 p_greining_oliuverd <- spar_udpate_tbl |>
-  filter(!duration == "Permanent") |> 
   mutate(
     duration = 
       case_when(
@@ -1457,11 +1456,11 @@ p_greining_oliuverd <- spar_udpate_tbl |>
             "Tímabundin hækkun í 3 mánuði", "Hækkun varir næstu 6 mánuði")
             )
   ) |> 
-  filter(date >= "2024-01-01") |>
+  #filter(date >= "2024-01-01") |>
   ggplot(aes(date, svidsmyndir, col = shock_pct, linetype = shock_pct)) +
   geom_line() +
-  scale_linetype_manual(values = c("Grunnspá" = "dashed", "Söguleg" = "solid", "+10%" = "solid", "+15%" = "solid", "+20%" = "solid", "+30%" = "solid")) +
-  scale_color_manual(values = c("Söguleg" = "black", "Grunnspá" = "black", setNames(blue_palette[2:5], c("+10%", "+15%", "+20%", "+30%")))) +
+  scale_linetype_manual(values = c("Grunnspá" = "dashed", "Söguleg" = "solid", "+10%" = "solid", "+30%" = "solid", "+50%" = "solid", "+70%" = "solid")) +
+  scale_color_manual(values = c("Söguleg" = "black", "Grunnspá" = "black", setNames(blue_palette[2:5], c("+10%", "+30%", "+50%", "+70%")))) +
   facet_wrap(~duration) +
   #theme_minimal() +
   theme(
