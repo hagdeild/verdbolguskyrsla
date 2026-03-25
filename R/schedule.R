@@ -1,21 +1,22 @@
 # Schedule R code
 
-
-library(vr)
+library(taskscheduleR)
 
 
 # Update bonds
-schedule_r_script(
-  rscript = "R/althjodleg_data.R",
-  taskname =  "verdbolgu_update_althjodleg",
+taskscheduler_create(
+  taskname = "verdbolgu_update_althjodleg",
+  rscript = "c:/Users/vidar/Documents/Rwd/verdbolguskyrsla/R/althjodleg_data.R",
   schedule = "DAILY",
-  starttime = "16:00"
+  starttime = "16:00",
+  startdate = format(Sys.Date(), "%d.%m.%Y")
 )
 
 # data preparation
-schedule_r_script(
-  rscript = "R/data_preparation.R",
-  taskname =  "verdbolguskyrsla_data_preparation.R",
+taskscheduler_create(
+  taskname = "verdb_data_prep",
+  rscript = "c:/Users/vidar/Documents/Rwd/verdbolguskyrsla/R/data_preparation.R",
   schedule = "DAILY",
-  starttime = "09:01"
+  starttime = "09:01",
+  startdate = format(Sys.Date(), "%d.%m.%Y")
 )
