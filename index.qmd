@@ -387,7 +387,7 @@ p2 <- data_ls$pbi_inflation_verdbolga |>
     ) +
     theme_minimal() +
     theme(text = element_text(size = text_size)) +
-    scale_x_date(date_labels = "%b %Y", date_breaks = "1 month") +
+    scale_x_date(date_labels = "%b", date_breaks = "1 month") +
     scale_y_continuous(labels = percent)
 
 p2_plotly <- plotly::ggplotly(p2, tooltip = "text")
@@ -427,10 +427,18 @@ p2_plotly |>
 ## Row
 
 ```{r, undirliggjandi-verðbólga}
-p3 <- data_ls$pbi_inflation_undirliggjandi |> 
-    ungroup() |> 
-    filter(!name == "Kjarnavísitala 3") |> 
-    ggplot(aes(date, value, col = name)) + 
+kjarna_lysing <- c(
+  "Kjarnavísitala 1" = "VNV án búvöru, grænmetis, ávaxta og bensíns",
+  "Kjarnavísitala 2" = "Kjarnavísitala 1 án opinberrar þjónustu",
+  "Kjarnavísitala 4" = "Kjarnavísitala 2 án reiknaðrar húsaleigu",
+  "Kjarnavísitala 5" = "VNV án orku og matvöru"
+)
+
+p3 <- data_ls$pbi_inflation_undirliggjandi |>
+    ungroup() |>
+    filter(!name == "Kjarnavísitala 3") |>
+    ggplot(aes(date, value, col = name, group = name,
+               text = paste0(name, "\n", kjarna_lysing[as.character(name)], "\n", format(date, "%b %Y"), "\n", scales::percent(value, accuracy = 0.01)))) +
     geom_line() +
     labs(
         x = NULL,
@@ -442,7 +450,7 @@ p3 <- data_ls$pbi_inflation_undirliggjandi |>
     scale_color_manual(values = vr_litir) +
     scale_y_continuous(labels = percent)
 
-vr_layout(p3, tooltip_percent = TRUE)
+vr_layout(p3, tooltip = "text")
 ```
 
 ```{r, verðbólga eftir uppruna}
@@ -465,15 +473,39 @@ vr_layout(p4, tooltip_percent = TRUE)
 
 ## Row
 
-::: callout-note
-## Liðir undirliggjandi verðbólgu
+```{r, matarverd_thriggja}
+p_matur1 <- data_ls$matur_thriggja |> 
+  ggplot(aes(date, value, col = flokkur)) +
+  geom_line() +
+  theme_minimal() +
+  theme(text = element_text(size = text_size)) +
+  # scale_color_manual(values = vr_litir) +
+  scale_y_continuous(labels = percent) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Matarverðbólga"
+  )
 
--   **Kjarna­vísitala 1**: VNV án búvöru, grænmetis, ávaxta og bensíns\
--   **Kjarna­vísitala 2**: Kjarna­vísitala 1 án opinberrar þjónustu\
--   **Kjarna­vísitala 3**: Kjarna­vísitala 2 án áhrifa vaxtabreytinga á húsnæðisliði *(ekki reiknuð lengur)*\
--   **Kjarna­vísitala 4**: Kjarna­vísitala 2 án reiknaðrar húsaleigu*\
--   **Kjarna­vísitala 5**: VNV án orku og matvöru
-:::
+vr_layout(p_matur1, tooltip_percent = TRUE)
+```
+
+```{r, matur_uppruni}
+p_matur2 <- data_ls$matur_uppruni |> 
+  ggplot(aes(date, value, col = flokkur)) +
+  geom_line() +
+  theme_minimal() +
+  theme(text = element_text(size = text_size)) +
+  # scale_color_manual(values = vr_litir) +
+  scale_y_continuous(labels = percent) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Matarverðbólga - Innflutt og innlend"
+  )
+
+vr_layout(p_matur2, tooltip_percent = TRUE)
+```
 
 ```{r, froop}
 froop_tbl <- data_ls$pbi_inflation_froop |>

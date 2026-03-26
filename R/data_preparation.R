@@ -1807,7 +1807,41 @@ infl_umfang_tbl <- infl_umfang_tbl |>
 # 14.0.0 ALÞJÓÐLEGUR SAMANBURÐUR ----
 altjodlegar_upplysingar_tbl <- read_csv("data/altjodlegar.csv")
 
-# 15.0.0 Vista ----
+
+# 15.0.0 MATARVERÐ ----
+matur_3ja_stafa_tbl <-
+  read_csv2(
+    "https://px.hagstofa.is:443/pxis/sq/36cff335-f9d0-46aa-a071-5be6c560e704"
+  ) |>
+  set_names("date", "flokkur", "value") |>
+  mutate(
+    date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7)),
+    flokkur = str_remove(flokkur, "^\\d+\\s+")
+  ) |>
+  group_by(flokkur) |>
+  mutate(value = value / lag(value, 12) - 1) |>
+  drop_na() |>
+  ungroup()
+
+matur_uppruni_tbl <-
+  read_csv2(
+    "https://px.hagstofa.is:443/pxis/sq/4e0b2f5f-f967-4097-9456-1900e315d0de",
+    na = "."
+  ) |>
+  set_names("date", "flokkur", "value") |>
+  mutate(
+    date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7)),
+    flokkur = str_remove(flokkur, "^[^ ]+\\s+")
+  )
+
+matur_uppruni_tbl <- matur_uppruni_tbl |>
+  group_by(flokkur) |>
+  mutate(value = value / lag(value, 12) - 1) |>
+  ungroup() |>
+  drop_na()
+
+
+# 16.0.0 Vista ----
 
 list(
   # Verðbólga
@@ -1855,7 +1889,11 @@ list(
   hitakort = infl_umfang_tbl,
 
   # Alþjóðlegur samanburður
-  althjodlegur = altjodlegar_upplysingar_tbl
+  althjodlegur = altjodlegar_upplysingar_tbl,
+
+  # Matur
+  matur_thriggja = matur_3ja_stafa_tbl,
+  matur_uppruni = matur_uppruni_tbl
 ) |>
 
   write_rds("data/final_data.rds")
