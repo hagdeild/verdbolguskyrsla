@@ -13,6 +13,7 @@ library(fredr)
 library(modeltime)
 library(tidymodels)
 library(httr2)
+library(hicp)
 
 lond_tbl <- read_csv("data/lond.csv") |>
   select(iso_3, land)
@@ -292,7 +293,7 @@ undirliggjandi_old_tbl <- read_csv2(
 print("Undirliggjandi verðbólga - ný útgáfa")
 
 undirliggjandi_new_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/f039c5d1-fd5b-4a39-b7d8-d9766d6c4333"
+  "https://px.hagstofa.is:443/pxis/sq/09238158-eb02-47c2-a560-60c52341bcb4"
 ) |>
   drop_na() |>
   set_names(
@@ -322,7 +323,7 @@ undirliggjandi_tbl <-
   )
 
 
-# 3.0.0 - WATERFALL - ----
+# 3.0.0 WATERFALL - ----
 
 # Based on this: https://www.r-bloggers.com/2019/05/basic-waterfall-graphs-in-r/
 # https://rpubs.com/techanswers88/waterfall-chart-ggplot
@@ -553,8 +554,14 @@ undirflokkar_1m_tbl <- undirflokkar_tbl %>%
 # 5.0.0 FROOP ----
 print("Froop")
 
-froop_flokkar_tbl <- read_excel(data_path, sheet = "froop") %>%
-  janitor::clean_names()
+# FROOPP codes from hicp package
+options(hicp.coicop.prefix = "CP")
+
+options(hicp.coicop.version = "ecoicop1.hicp")
+froopp_old <- str_remove(spec.agg("FROOPP")$FROOPP, "CP")
+
+options(hicp.coicop.version = "ecoicop2.hicp")
+froopp_new <- str_remove(spec.agg("FROOPP")$FROOPP, "CP")
 
 # 5.1.0 Eldri flokkun ----
 
@@ -607,7 +614,7 @@ froop_old_tbl <- vnv_vogir_old_tbl %>%
       TRUE ~ as.character(numer_flokks)
     )
   ) %>%
-  filter(numer_flokks %in% froop_flokkar_tbl$froop) %>%
+  filter(numer_flokks %in% froopp_old) %>%
   # Vogir
   group_by(date) %>%
   mutate(vog = vog / sum(vog)) %>%
@@ -638,7 +645,7 @@ non_froop_old_tbl <- vnv_vogir_old_tbl %>%
       TRUE ~ as.character(numer_flokks)
     )
   ) %>%
-  filter(!numer_flokks %in% froop_flokkar_tbl$froop) %>%
+  filter(!numer_flokks %in% froopp_old) %>%
   # Vogir
   group_by(date) %>%
   mutate(vog = vog / sum(vog)) %>%
@@ -692,7 +699,7 @@ froop_tbl <- vnv_vogir_tbl %>%
       TRUE ~ as.character(numer_flokks)
     )
   ) %>%
-  filter(numer_flokks %in% froop_flokkar_tbl$froop) %>%
+  filter(numer_flokks %in% froopp_new) %>%
   # Vogir
   group_by(date) %>%
   mutate(vog = vog / sum(vog)) %>%
@@ -723,7 +730,7 @@ non_froop_tbl <- vnv_vogir_tbl %>%
       TRUE ~ as.character(numer_flokks)
     )
   ) %>%
-  filter(!numer_flokks %in% froop_flokkar_tbl$froop) %>%
+  filter(!numer_flokks %in% froopp_new) %>%
   # Vogir
   group_by(date) %>%
   mutate(vog = vog / sum(vog)) %>%
@@ -937,9 +944,8 @@ hus_unnid_eldri_tbl <- hus_eldri_tbl %>%
 print("Húsnæðisverð - nýrri gögn")
 
 hus_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/81e52150-17d5-45a9-9d1d-7f6735b00ef6"
-) |>
-  select(-2)
+  "https://px.hagstofa.is:443/pxis/sq/09e58ece-b724-4cde-be33-54a71e248a1b"
+)
 
 hus_unnid_tbl <- hus_tbl %>%
   mutate(Undirvísitala = str_remove(Undirvísitala, "^\\d+\\s*")) %>%
@@ -1518,10 +1524,9 @@ infl_exp_breakeven_tbl <- read_excel(
 print("Top 10 listinn")
 
 vnv_allir_flokkar_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/aa943ac2-3b2f-46e8-8e57-99d3517cf4db",
+  "https://px.hagstofa.is:443/pxis/sq/b961dcbd-a662-4de1-a821-ff51e0844d60",
   na = "."
 ) |>
-  select(-2) |>
   set_names("date", "flokkur", "visitala") |>
   drop_na()
 
@@ -1595,7 +1600,7 @@ top_12m_tbl <- infl_allir_flokkar_tbl |>
   select(flokkur, infl_12m)
 
 
-# 13.0.0 Umfang verðhækkana ----
+# 13.0.0 UMFANG VERÐHÆKKANA ----
 
 print("Umfang verðhækkana - heatmap")
 
@@ -1799,7 +1804,7 @@ infl_umfang_tbl <- infl_umfang_tbl |>
 infl_umfang_tbl <- infl_umfang_tbl |>
   bind_rows(infl_umfang_old_tbl)
 
-# 14.0.0 Alþjóðlegur samanburður ----
+# 14.0.0 ALÞJÓÐLEGUR SAMANBURÐUR ----
 altjodlegar_upplysingar_tbl <- read_csv("data/altjodlegar.csv")
 
 # 15.0.0 Vista ----
@@ -1955,9 +1960,9 @@ fc_medium_tbl <- fc_medium_tbl %>%
 #     fc_1m = fc_vnv / lag(fc_vnv) - 1
 #   )
 
-# 3.0.0 Valuebox ----------------------------------------------------------
+# 3.0.0 Valuebox ----
 
-# 3.1.0 12 mánaða spá -----------------------------------------------------
+# 3.1.0 12 mánaða spá ----
 # spa_12m <- fc_long_tbl %>%
 #   filter(.key == "prediction") %>%
 #   filter(date == min(date)) %>%
@@ -1973,7 +1978,7 @@ fc_medium_tbl <- fc_medium_tbl %>%
 #   paste0(percent(spa_12m, 0.1), " - ", percent(short_12m, 0.1))
 # )
 
-# 3.2.0 Spá næsta mánaðar -------------------------------------------------
+# 3.2.0 Spá næsta mánaðar ----
 # spa_1m <- fc_tbl %>%
 #   filter(.key == "prediction") %>%
 #   filter(date == min(date)) %>%
@@ -1990,14 +1995,14 @@ short_1m <- fc_medium_tbl |>
 #   paste0(percent(spa_1m, 0.01), " - ", percent(short_1m, 0.01))
 # )
 
-# 3.5.0 Valuebox --------------.--------------------------------------------
+# 3.5.0 Valuebox --------------.----
 fc_valuebox_tbl <- tibble(
   #spa_12m = percent(short_forecast_12m_tbl$value[1], accuracy = 0.01),
   spa_1m = percent(short_1m, accuracy = 0.01)
 )
 
 
-# 4.0.0 SAVE --------------------------------------------------------------
+# 4.0.0 SAVE ----
 
 # Bæti skammtímaspá við
 fc_tbl <- fc_medium_tbl %>%
@@ -2023,7 +2028,9 @@ list(
 
 
 # 17.0.0 GIT PUSH ----
+system("git stash")
 system("git pull --rebase origin main")
-system("git add data/")
+system("git stash pop")
+system("git add .")
 system('git commit -m "Auto update data"')
 system("git push origin main")
