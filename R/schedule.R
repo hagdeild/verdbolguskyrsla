@@ -2,7 +2,7 @@
 
 library(taskscheduleR)
 
-rexe <- "C:/PROGRA~1/R/R-4.3.1/bin/x64/Rscript.exe"
+rexe <- "C:/PROGRA~1/R/R-4.5.0/bin/x64/Rscript.exe"
 
 # Update bonds
 taskscheduler_create(
