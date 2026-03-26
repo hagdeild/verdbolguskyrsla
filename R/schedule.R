@@ -2,6 +2,7 @@
 
 library(taskscheduleR)
 
+rexe <- "C:/PROGRA~1/R/R-4.3.1/bin/x64/Rscript.exe"
 
 # Update bonds
 taskscheduler_create(
@@ -9,7 +10,8 @@ taskscheduler_create(
   rscript = "c:/Users/vidar/Documents/Rwd/verdbolguskyrsla/R/althjodleg_data.R",
   schedule = "DAILY",
   starttime = "16:00",
-  startdate = format(Sys.Date(), "%d.%m.%Y")
+  startdate = format(Sys.Date(), "%d.%m.%Y"),
+  Rexe = rexe
 )
 
 # data preparation
@@ -18,5 +20,7 @@ taskscheduler_create(
   rscript = "c:/Users/vidar/Documents/Rwd/verdbolguskyrsla/R/data_preparation.R",
   schedule = "DAILY",
   starttime = "09:01",
-  startdate = format(Sys.Date(), "%d.%m.%Y")
+  startdate = format(Sys.Date(), "%d.%m.%Y"),
+  Rexe = rexe
 )
+
