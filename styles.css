@@ -34,3 +34,30 @@
 .quarto-dashboard .bslib-value-box .card-body {
   padding-block: 0.6rem;
 }
+
+/* ── Tabset styling ── */
+.nav-tabs {
+  border-bottom: 2px solid #0072b1;
+}
+
+.nav-tabs .nav-link {
+  color: #0072b1;
+  background-color: #e8f4fb;
+  border: 1px solid #b8ddf0;
+  border-bottom: none;
+  margin-right: 3px;
+  border-radius: 6px 6px 0 0;
+  transition: background-color 0.15s, color 0.15s;
+}
+
+.nav-tabs .nav-link:hover {
+  background-color: #54b6e9;
+  color: #fff;
+  border-color: #54b6e9;
+}
+
+.nav-tabs .nav-link.active {
+  background-color: #0072b1;
+  color: #fff;
+  border-color: #0072b1;
+}

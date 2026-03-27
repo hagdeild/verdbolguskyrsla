@@ -334,13 +334,12 @@ print("waterfall - vísitölugildi")
 
 
 undirflokkar_raw_new_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/70a2529f-327f-485e-9264-12977837bbae",
-  # "https://px.hagstofa.is:443/pxis/sq/810ad986-60c1-471e-8f52-18f467e25ea2",
+  "https://px.hagstofa.is:443/pxis/sq/4635986b-ad3b-4cff-98ff-957ee8d2c4c8",
   na = "."
 ) |>
   janitor::clean_names() %>%
   fix_date() %>%
-  select(-c(manudur, lidur)) %>%
+  select(-c(manudur)) %>%
   set_names("undirflokkur", "visitala", "date")
 
 
@@ -493,10 +492,10 @@ print("waterfall - final útreikningar")
 
 # Verð að splitta þeim upp og sameina aftur til að fá final verðbólgu neðst
 undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>%
-  filter(date == max(date)) %>%
-  select(undirflokkur, ahrif, ahrif_1m) %>%
+  filter(date %in% tail(sort(unique(date)), 3)) %>%
+  select(date, undirflokkur, ahrif, ahrif_1m) %>%
   filter(!undirflokkur == "Vísitala neysluverðs") %>%
-  arrange(desc(ahrif))
+  arrange(date, desc(ahrif))
 
 
 # 3.5.0 Milli mánaða - tilbúin gögn frá Hagstofu ----
@@ -510,7 +509,7 @@ ahrif_a_visitolu_1m_tbl <-
     value = as.numeric(value),
     date = make_date(str_sub(date, 1, 4), str_sub(date, 6, 7))
   ) |>
-  filter(date == max(date)) |>
+  filter(date %in% tail(sort(unique(date)), 4)) |>
   filter(str_detect(name, "^\\d{3}\\s")) |>
   mutate(name = str_remove(name, "^\\d+\\s+"))
 

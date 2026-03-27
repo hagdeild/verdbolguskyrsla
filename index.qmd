@@ -26,10 +26,14 @@ text_size <- 16
 
 # Litir
 #vr_litir <- c("#00305c", "#028fbc", "#eec215", "#d64550", "#4fb94f", "#7d5ba6", "#e07b39", "#3a8e8e")
-vr_litir <- c("#0072b1", "#54b6e9", "#00a073", "#f0e142", "#e59e23", "#d65e18", "#D64550")
+vr_litir <- c(
+  "#0072b1", "#54b6e9", "#00a073", "#f0e142",
+  "#e59e23", "#d65e18", "#D64550",
+  "#6a3d9a",  # deep purple
+  "#333333"   # dark grey (almost black)
+)
 
-valuebox_litir <- c("#00B894", "#FF6B6B", "#FDCB6E") #c("#2E7D6E", "#E57373", "#F9A825")
-
+valuebox_litir <- c("#00B894", "#FF6B6B", "#FDCB6E")
 
 # Date
 date_back_year <- floor_date(today(), "year") - months(12)
@@ -379,7 +383,7 @@ p2 <- data_ls$pbi_inflation_verdbolga |>
     geom_col(fill = vr_litir[1]) +
     geom_point(aes(date, mom, colour = "Spá VR fyrir viðkomandi mánuði á þessu ári", text = paste0("date: ", date, "\nspá: ", merking_mom)),
                shape = 17, size = 4) +
-    scale_colour_manual(values = setNames(vr_litir[3], "Spá VR fyrir viðkomandi mánuði á þessu ári")) +
+    scale_colour_manual(values = setNames(vr_litir[4], "Spá VR fyrir viðkomandi mánuði á þessu ári")) +
     labs(
         x = NULL,
         y = NULL,
@@ -405,7 +409,7 @@ for (i in seq_along(p2_plotly$x$data)) {
   if (!is.null(tr$mode) && grepl("markers", tr$mode)) {
     p2_plotly$x$data[[i]]$text <- p2$data$merking_mom
     p2_plotly$x$data[[i]]$textposition <- "top center"
-    p2_plotly$x$data[[i]]$textfont <- list(color = vr_litir[3], size = text_size)
+    p2_plotly$x$data[[i]]$textfont <- list(color = vr_litir[4], size = text_size)
     p2_plotly$x$data[[i]]$mode <- "markers+text"
   }
 }
@@ -479,7 +483,7 @@ p_matur1 <- data_ls$matur_thriggja |>
   geom_line() +
   theme_minimal() +
   theme(text = element_text(size = text_size)) +
-  # scale_color_manual(values = vr_litir) +
+  scale_color_manual(values = vr_litir) +
   scale_y_continuous(labels = percent) +
   labs(
     x = NULL,
@@ -496,7 +500,7 @@ p_matur2 <- data_ls$matur_uppruni |>
   geom_line() +
   theme_minimal() +
   theme(text = element_text(size = text_size)) +
-  # scale_color_manual(values = vr_litir) +
+  scale_color_manual(values = vr_litir) +
   scale_y_continuous(labels = percent) +
   labs(
     x = NULL,
@@ -548,36 +552,132 @@ vr_layout(p5, tooltip_percent = TRUE)
 
 # Framlag undirliða 12m
 
-```{r waterfall_12m, fig.width = 16, fig.height = 8}
+```{r waterfall_12m_setup}
+isl_manudur <- c("janúar", "febrúar", "mars", "apríl", "maí", "júní",
+                  "júlí", "ágúst", "september", "október", "nóvember", "desember")
 
+wf_12m_dates <- sort(unique(data_ls$pbi_inflation_waterfall$date), decreasing = TRUE)[1:3]
+wf_12m_labels <- paste0(isl_manudur[month(wf_12m_dates)], " ", year(wf_12m_dates))
+# Pad to 3 if fewer dates available
+if (length(wf_12m_dates) < 3) {
+  wf_12m_dates  <- c(wf_12m_dates, rep(NA_Date_, 3 - length(wf_12m_dates)))
+  wf_12m_labels <- c(wf_12m_labels, rep("Engin gögn", 3 - length(wf_12m_labels)))
+}
+wf_12m_has <- !is.na(wf_12m_dates)
+```
+
+## Row {.tabset}
+
+### `r wf_12m_labels[1]`
+
+```{r waterfall_12m_1, fig.width = 16, fig.height = 8}
+d <- wf_12m_dates[1]
+wf_data <- data_ls$pbi_inflation_waterfall |> filter(date == d) |> drop_na()
 waterfall_plot(
-  data_ls$pbi_inflation_waterfall |> drop_na(),
+  wf_data,
   ahrif,
-  title = "Framlag undirliða seinustu 12 mánuði",
+  title = paste("Framlag undirliða seinustu 12 mánuði -", wf_12m_labels[1]),
   flip = TRUE,
-  total_value = verdbolga_total_value,
+  total_value = sum(wf_data$ahrif),
   label_digits = 2
 ) +
     scale_y_continuous(labels = percent)
+```
 
+### `r wf_12m_labels[2]`
+
+```{r waterfall_12m_2, fig.width = 16, fig.height = 8}
+#| eval: !expr wf_12m_has[2]
+d <- wf_12m_dates[2]
+wf_data <- data_ls$pbi_inflation_waterfall |> filter(date == d) |> drop_na()
+waterfall_plot(
+  wf_data,
+  ahrif,
+  title = paste("Framlag undirliða seinustu 12 mánuði -", wf_12m_labels[2]),
+  flip = TRUE,
+  total_value = sum(wf_data$ahrif),
+  label_digits = 2
+) +
+    scale_y_continuous(labels = percent)
+```
+
+### `r wf_12m_labels[3]`
+
+```{r waterfall_12m_3, fig.width = 16, fig.height = 8}
+#| eval: !expr wf_12m_has[3]
+d <- wf_12m_dates[3]
+wf_data <- data_ls$pbi_inflation_waterfall |> filter(date == d) |> drop_na()
+waterfall_plot(
+  wf_data,
+  ahrif,
+  title = paste("Framlag undirliða seinustu 12 mánuði -", wf_12m_labels[3]),
+  flip = TRUE,
+  total_value = sum(wf_data$ahrif),
+  label_digits = 2
+) +
+    scale_y_continuous(labels = percent)
 ```
 
 # Framlag undirliða 1m
 
-```{r, waterfal_1m, fig.width = 16, fig.height = 8}
-waterfall_plot(
-  data_ls$phi_inflation_undirflokkar_1m |> set_names("date", "undirflokkur", "ahrif_1m") |> mutate(ahrif_1m = ahrif_1m/100),
-  ahrif_1m,
-  title = "Framlag undirliða seinasta mánuð",
-  flip = TRUE,
-  label_digits = 2,
-  total_value = verdbolga_milli_manada
-) +
-    scale_y_continuous(labels = percent)
-
+```{r waterfall_1m_setup}
+wf_1m_data <- data_ls$pbi_inflation_waterfall |> drop_na(ahrif_1m)
+wf_1m_dates <- wf_12m_dates
+wf_1m_labels <- wf_12m_labels
+wf_1m_has <- wf_12m_has
 ```
 
+## Row {.tabset}
 
+### `r wf_1m_labels[1]`
+
+```{r waterfall_1m_1, fig.width = 16, fig.height = 8}
+d <- wf_1m_dates[1]
+wf_d <- wf_1m_data |> filter(date == d) |> drop_na()
+waterfall_plot(
+  wf_d,
+  ahrif_1m,
+  title = paste("Framlag undirliða seinasta mánuð -", wf_1m_labels[1]),
+  flip = TRUE,
+  label_digits = 2,
+  total_value = sum(wf_d$ahrif_1m, na.rm = TRUE)
+) +
+    scale_y_continuous(labels = percent)
+```
+
+### `r wf_1m_labels[2]`
+
+```{r waterfall_1m_2, fig.width = 16, fig.height = 8}
+#| eval: !expr wf_1m_has[2]
+d <- wf_1m_dates[2]
+wf_d <- wf_1m_data |> filter(date == d) |> drop_na()
+waterfall_plot(
+  wf_d,
+  ahrif_1m,
+  title = paste("Framlag undirliða seinasta mánuð -", wf_1m_labels[2]),
+  flip = TRUE,
+  label_digits = 2,
+  total_value = sum(wf_d$ahrif_1m, na.rm = TRUE)
+) +
+    scale_y_continuous(labels = percent)
+```
+
+### `r wf_1m_labels[3]`
+
+```{r waterfall_1m_3, fig.width = 16, fig.height = 8}
+#| eval: !expr wf_1m_has[3]
+d <- wf_1m_dates[3]
+wf_d <- wf_1m_data |> filter(date == d) |> drop_na()
+waterfall_plot(
+  wf_d,
+  ahrif_1m,
+  title = paste("Framlag undirliða seinasta mánuð -", wf_1m_labels[3]),
+  flip = TRUE,
+  label_digits = 2,
+  total_value = sum(wf_d$ahrif_1m, na.rm = TRUE)
+) +
+    scale_y_continuous(labels = percent)
+```
 
 # Hitakort
 
