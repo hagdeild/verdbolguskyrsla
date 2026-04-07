@@ -198,6 +198,7 @@ scrape_te_inflation <- function(b) {
   page <- scrape_te_page(b, "https://tradingeconomics.com/country-list/inflation-rate-")
 
   # Debug: save HTML to inspect if table is missing
+  dir.create("data", showWarnings = FALSE)
   writeLines(as.character(page), "data/debug_te_inflation.html")
 
   tbl <- page |>
@@ -306,6 +307,7 @@ scrape_te_bonds <- function(b) {
   page <- scrape_te_page(b, "https://tradingeconomics.com/bonds")
 
   # Debug: save HTML to inspect if table is missing
+  dir.create("data", showWarnings = FALSE)
   writeLines(as.character(page), "data/debug_te_bonds.html")
 
   tables <- page |> html_elements("table")
