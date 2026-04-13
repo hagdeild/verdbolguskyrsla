@@ -1545,11 +1545,33 @@ verdbolguspar_tbl <- fc_ls |>
   filter(name %in% c("Söguleg", "VR"))
 
 
-# sviðsmyndir
+# sviðsmyndir — IRF was estimated with data through Feb, month 0 = March
 svidsmyndir_tbl <- read_csv("data/greiningar/oliuverd_scenarios_varx.csv") |>
-  select(month, cum_cpi, shock_label, duration) |> 
-  rename("shock_pct" = "shock_label") |> 
+  select(month, cum_cpi, shock_label, duration) |>
+  rename("shock_pct" = "shock_label") |>
   mutate(cum_cpi = cum_cpi / 100)
+
+# How many months of the IRF are already in the THIEF baseline?
+# IRF month 0 = March 2026 (when the oil shock hit).
+# n_absorbed adjusts dynamically based on how far THIEF data extends.
+irf_start <- as.Date("2026-03-01")
+thief_start <- verdbolguspar_tbl |> filter(name == "VR") |> pull(date) |> min()
+n_absorbed <- interval(irf_start, thief_start) %/% months(1)
+
+# Subtract the already-absorbed cumulative effect and drop absorbed months
+# Also subtract kolefnisgjald effect (0.3 pp) from forecast months
+absorbed_effect <- svidsmyndir_tbl |>
+  filter(month == n_absorbed - 1) |>
+  select(shock_pct, duration, absorbed_cpi = cum_cpi)
+
+svidsmyndir_tbl <- svidsmyndir_tbl |>
+  filter(month >= n_absorbed) |>
+  left_join(absorbed_effect, by = c("shock_pct", "duration")) |>
+  mutate(
+    addon = cum_cpi - absorbed_cpi,
+    month = month - n_absorbed
+  ) |>
+  select(-absorbed_cpi)
 
 # 2.0.0 GREINING ----
 
@@ -1567,7 +1589,7 @@ skammtima_tbl <- verdbolguspar_tbl |>
   filter(name == "VR") |>
   mutate(month = row_number() - 1L) |>
   left_join(svidsmyndir_tbl, by = "month") |>
-  mutate(svidsmyndir = value + cum_cpi)
+  mutate(svidsmyndir = value + addon)
 
 spar_udpate_tbl <- bind_rows(soguleg_tbl, baseline_tbl, skammtima_tbl)
 
