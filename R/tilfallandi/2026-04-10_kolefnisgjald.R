@@ -1,4 +1,4 @@
-# Lækkun kolefnisgjalds eftir hækkun olíuverðs
+# Lækkun VSK eftir hækkun olíuverðs
 # AHT! SAMA GREINING VIRKAR FYRIR 24% -> 11% VSK BREYTINGU
 
 # 1.0.0 SETUP ----
@@ -31,7 +31,7 @@ thief_start <- verdbolguspar_tbl |> filter(name == "VR") |> pull(date) |> min()
 n_absorbed <- interval(irf_start, thief_start) %/% months(1)
 
 # Subtract the already-absorbed cumulative effect and drop absorbed months
-# Also subtract kolefnisgjald effect (0.3 pp) from forecast months
+# Also subtract VSK effect from forecast months
 absorbed_effect <- svidsmyndir_tbl |>
   filter(month == n_absorbed - 1) |>
   select(shock_pct, duration, absorbed_cpi = cum_cpi)
@@ -65,43 +65,59 @@ skammtima_tbl <- verdbolguspar_tbl |>
   left_join(svidsmyndir_tbl, by = "month") |>
   mutate(
     svidsmyndir = value + addon,
+    shock_pct = "+30%"
   )
 
 
-# 2.2.0 Kolefnisgjald ----
-kolefnisgjald_bensin <- 24.25
-kolefnisgjald_diesel <- 28.3
+# 2.2.0 VSK ----
+# kolefnisgjald_bensin <- 24.25
+# kolefnisgjald_diesel <- 28.3
 
-bensin_verd <- 246
-diesel_verd <- 279.6
+# bensin_verd <- 246
+# diesel_verd <- 279.6
 
 bensin_vog <- 249 / 10000
 diesel_vog <- 108 / 10000
 total_vog <- bensin_vog + diesel_vog
 
-bensin_laekkun <- kolefnisgjald_bensin / bensin_verd
-diesel_laekkun <- kolefnisgjald_diesel / diesel_verd
+# bensin_laekkun <- kolefnisgjald_bensin / bensin_verd
+# diesel_laekkun <- kolefnisgjald_diesel / diesel_verd
 
-avg_laekkun <- mean(bensin_laekkun, diesel_laekkun)
+# avg_laekkun <- mean(bensin_laekkun, diesel_laekkun)
+
+avg_laekkun <- abs(1.11 / 1.24 - 1)
 
 bein_ahrif <- total_vog * avg_laekkun
 
-# Olíuverðsáhrif + lækkun kolefnisgjalds
-skammtima_kolefni_tbl <- skammtima_tbl |>
+# Olíuverðsáhrif + lækkun VSK
+skammtima_vsk_tbl <- skammtima_tbl |>
   mutate(
     svidsmyndir = svidsmyndir - bein_ahrif,
-    shock_pct %in% c("+30% og kolefnisgjald")
+    shock_pct = "+30% + VSK lækkun"
   )
 
 spar_udpate_tbl <- bind_rows(
   soguleg_tbl,
   baseline_tbl,
   skammtima_tbl,
-  skammtima_kolefni_tbl
+  skammtima_vsk_tbl
 )
 
 
 # 3.0.0 PLOT ----
+
+blue_palette <- c(
+  "#0072b1",
+  "#54b6e9",
+  "#00a073",
+  "#f0e142",
+  "#e59e23",
+  "#d65e18",
+  "#D64550",
+  "#6a3d9a", # deep purple
+  "#333333" # dark grey (almost black)
+)
+
 p_svidsmyndir <- spar_udpate_tbl |>
   mutate(
     duration = case_when(
@@ -127,29 +143,91 @@ p_svidsmyndir <- spar_udpate_tbl |>
     values = c(
       "Grunnspá" = "dashed",
       "Söguleg" = "solid",
-      "+10%" = "solid",
       "+30%" = "solid",
-      "+50%" = "solid",
-      "+70%" = "solid",
-      "+30% og kolefnisgjald" = "dashed"
+      "+30% + VSK lækkun" = "dashed"
     )
   ) +
   scale_color_manual(
     values = c(
       "Söguleg" = "black",
       "Grunnspá" = "black",
-      setNames(blue_palette[2:5], c("+10%", "+30%", "+50%", "+70%")),
-      "+30% og kolefnisgjald" = blue_palette[3]
+      "+30%" = blue_palette[2],
+      "+30% + VSK lækkun" = blue_palette[3]
     )
   ) +
   facet_wrap(~duration) +
   #theme_minimal() +
   theme(
     legend.title = element_blank(),
-    text = element_text(size = text_size)
+    text = element_text(size = 16)
   ) +
   labs(x = NULL, y = NULL) +
-  scale_y_continuous(labels = percent)
+  scale_y_continuous(labels = scales::percent)
 
+p_svidsmyndir
 
-plotly::ggplotly(p_svidsmyndir)
+# plotly::ggplotly(p_svidsmyndir)
+
+# 3.1.0 Single plot ----
+
+title_text <- c(
+  "Grunnspáin er univariate líkan á vísitölu neysluverðs. 30% hækkun brent olíu er metin með IRF út frá VARX líkani.
+Fyrstu gráðu áhrifin eru að einhverju leyti komin fram í mars tölunum og sýnir því grafið hér annarrar gráðu áhrifin.
+Síðan er bætt við 0,3% lækkun vegna útspils ríkisstjórnarinnar."
+)
+
+spar_udpate_tbl |>
+  filter(
+    duration == "2 months",
+    shock_pct %in% c("Söguleg", "Grunnspá", "+30%", "+30% + VSK lækkun")
+  ) |>
+  ggplot(aes(date, svidsmyndir, col = shock_pct, linetype = shock_pct)) +
+  geom_line() +
+  annotate(
+    "point",
+    x = as.Date("2026-08-01"),
+    y = 0.047,
+    shape = 15,
+    size = 3,
+    color = "#dc1e35"
+  ) +
+  annotate(
+    "text",
+    x = as.Date("2026-08-01"),
+    y = 0.041,
+    label = "Kjarasamningar 4,7%",
+    vjust = -1,
+    size = 4,
+    color = "#dc1e35"
+  ) +
+  scale_linetype_manual(
+    values = c(
+      "Grunnspá" = "dashed",
+      "Söguleg" = "solid",
+      "+30%" = "solid",
+      "+30% + VSK lækkun" = "dashed"
+    )
+  ) +
+  scale_color_manual(
+    values = c(
+      "Söguleg" = "black",
+      "Grunnspá" = "black",
+      "+30%" = blue_palette[2],
+      "+30% + VSK lækkun" = blue_palette[3]
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Verðbólguspá með sviðsmyndagreiningu",
+    subtitle = str_wrap(title_text, width = 120)
+  ) +
+  theme_minimal() +
+  theme(
+    legend.title = element_blank(),
+    text = element_text(size = 16),
+    plot.subtitle = element_text(color = "grey30", size = 14),
+    legend.position = "bottom",
+    legend.direction = "vertical"
+  ) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 0.11))
