@@ -5,6 +5,7 @@ library(tidyverse)
 library(rvest)
 library(chromote)
 
+setwd("c:/Users/vidar/Documents/Rwd/verdbolguskyrsla")
 
 # 2.0.0 STÝRIVEXTIR ----
 # Scrape central bank rates from cbrates.com
