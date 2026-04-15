@@ -1432,21 +1432,26 @@ p17_plotly |>
 ## Row
 
 ```{r, verðbólguspá_valuebox_prep}
-# 12 mánaða spá
-fc_diff <- fc_ls$verdbolguspa |> 
-    filter(name %in% c("Söguleg", "VR")) |> 
-    arrange(date, name) |> 
-    mutate(diff = value - lag(value)) |> 
-    drop_na() |>
-    filter(name == "VR") |> 
-    filter(date == min(date)) |> 
-    pull(diff)
+fc_1m  <- fc_ls$verdbolguspa_valuebox$spa_1m
+
+# ágúst 2026
+fc_6m  <- fc_ls$verdbolguspa_valuebox$fc_6m
+fc_12m <- fc_ls$verdbolguspa_valuebox$fc_12m
 
 
-# 1 mánaða spá
-fc_1m_diff <- parse_number(fc_ls$verdbolguspa_valuebox$spa_1m) / 100
 ```
 
+::: {.valuebox icon="graph-up" color="primary"}
+[Verðbólguspá fyrir ágúst 2026: `{r} fc_12m`]{style="display: block; font-size: 1.5rem; line-height: 1.5;"}
+[Forsenduákvæði kjarasamninga: 4.7%]{style="display: block; font-size: 1.5rem; line-height: 1.5;"}
+:::
+
+::: {.valuebox icon="graph-up" color="primary"}
+[Verðbólguhraðinn febrúar til ágúst: `{r} fc_6m`]{style="display: block; font-size: 1.5rem; line-height: 1.5;"}
+[Forsenduákvæði kjarasamninga: 4.4%]{style="display: block; font-size: 1.5rem; line-height: 1.5;"}
+:::
+
+## Row
 
 ```{r verðbólguspá}
 fc_litir <- c(
@@ -1486,7 +1491,7 @@ p18 <- fc_ls$verdbolguspa |>
     na.rm = TRUE
   ) +
   labs(x = NULL, y = NULL, title = "Verðbólguspá", color = "Uppruni") +
-  scale_y_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 0.11)) +
   theme_minimal() +
   theme(text = element_text(size = text_size)) +
   scale_color_manual(values = cols_all, breaks = breaks_all, drop = FALSE)
@@ -1504,7 +1509,7 @@ vr_layout(p18)
 #### Column {width="25%"}
 
 ::: {.card}
-Olíuverð hefur hækkað skarpt frá 26. febrúar. Tunnan af brent olíu var um 71 dollari en er nú um 103 sem er hækkun uppá tæp 45%. Enn er óljóst um framhaldið. Verður hækkunin tímabundin eða mun hún vara í lengri tíma.
+Olíuverð hefur hækkað skarpt frá 26. febrúar. Tunnan af brent olíu var um 71 dollari en er nú, 15. apríl 2026, í um 98 dollurum sem er hækkun uppá tæp 40%. Enn er óljóst um framhaldið. Verður hækkunin tímabundin eða mun hún vara í lengri tíma.
 
 Í greiningunni er stuðst við tölfræðilíkan sérhannað til að svara því hvernig verðbólga á Íslandi gæti þróast m.v. ólíkar forsendur olíuverðs á heimsmarkaði. Líkanði tekur tillit til annarra þátta á borð við gengi krónunnar, atvinnuleysi og verðbólgu erlendis.
 
@@ -1545,11 +1550,33 @@ verdbolguspar_tbl <- fc_ls |>
   filter(name %in% c("Söguleg", "VR"))
 
 
-# sviðsmyndir
+# sviðsmyndir — IRF was estimated with data through Feb, month 0 = March
 svidsmyndir_tbl <- read_csv("data/greiningar/oliuverd_scenarios_varx.csv") |>
-  select(month, cum_cpi, shock_label, duration) |> 
-  rename("shock_pct" = "shock_label") |> 
+  select(month, cum_cpi, shock_label, duration) |>
+  rename("shock_pct" = "shock_label") |>
   mutate(cum_cpi = cum_cpi / 100)
+
+# How many months of the IRF are already in the THIEF baseline?
+# IRF month 0 = March 2026 (when the oil shock hit).
+# n_absorbed adjusts dynamically based on how far THIEF data extends.
+irf_start <- as.Date("2026-03-01")
+thief_start <- verdbolguspar_tbl |> filter(name == "VR") |> pull(date) |> min()
+n_absorbed <- interval(irf_start, thief_start) %/% months(1)
+
+# Subtract the already-absorbed cumulative effect and drop absorbed months
+# Also subtract kolefnisgjald effect (0.3 pp) from forecast months
+absorbed_effect <- svidsmyndir_tbl |>
+  filter(month == n_absorbed - 1) |>
+  select(shock_pct, duration, absorbed_cpi = cum_cpi)
+
+svidsmyndir_tbl <- svidsmyndir_tbl |>
+  filter(month >= n_absorbed) |>
+  left_join(absorbed_effect, by = c("shock_pct", "duration")) |>
+  mutate(
+    addon = cum_cpi - absorbed_cpi,
+    month = month - n_absorbed
+  ) |>
+  select(-absorbed_cpi)
 
 # 2.0.0 GREINING ----
 
@@ -1567,7 +1594,7 @@ skammtima_tbl <- verdbolguspar_tbl |>
   filter(name == "VR") |>
   mutate(month = row_number() - 1L) |>
   left_join(svidsmyndir_tbl, by = "month") |>
-  mutate(svidsmyndir = value + cum_cpi)
+  mutate(svidsmyndir = value + addon)
 
 spar_udpate_tbl <- bind_rows(soguleg_tbl, baseline_tbl, skammtima_tbl)
 
@@ -1607,3 +1634,182 @@ p_greining_oliuverd <- spar_udpate_tbl |>
 vr_layout(p_greining_oliuverd, tooltip_percent = TRUE)
 ```
 
+
+### Hækkun olíuverðs, verðbólga og lækkun VSK
+
+
+```{r, greining_vsk-og-olia}
+
+verdbolguspar_tbl <- fc_ls |>
+  pluck("verdbolguspa") |>
+  select(-c(fc_vnv, Seðlabankinn)) |>
+  filter(name %in% c("Söguleg", "VR"))
+
+
+# sviðsmyndir — IRF was estimated with data through Feb, month 0 = March
+svidsmyndir_tbl <- read_csv("data/greiningar/oliuverd_scenarios_varx.csv") |>
+  select(month, cum_cpi, shock_label, duration) |>
+  rename("shock_pct" = "shock_label") |>
+  mutate(cum_cpi = cum_cpi / 100) |>
+
+  filter(shock_pct == "+30%")
+
+# How many months of the IRF are already in the THIEF baseline?
+# IRF month 0 = March 2026 (when the oil shock hit).
+# n_absorbed adjusts dynamically based on how far THIEF data extends.
+irf_start <- as.Date("2026-03-01")
+thief_start <- verdbolguspar_tbl |> filter(name == "VR") |> pull(date) |> min()
+n_absorbed <- interval(irf_start, thief_start) %/% months(1)
+
+# Subtract the already-absorbed cumulative effect and drop absorbed months
+# Also subtract VSK effect from forecast months
+absorbed_effect <- svidsmyndir_tbl |>
+  filter(month == n_absorbed - 1) |>
+  select(shock_pct, duration, absorbed_cpi = cum_cpi)
+
+svidsmyndir_tbl <- svidsmyndir_tbl |>
+  filter(month >= n_absorbed) |>
+  left_join(absorbed_effect, by = c("shock_pct", "duration")) |>
+  mutate(
+    addon = cum_cpi - absorbed_cpi,
+    month = month - n_absorbed
+  ) |>
+  select(-absorbed_cpi)
+
+
+# 2.0.0 GREINING ----
+
+# 2.1.0 Olíuverð ----
+soguleg_tbl <- verdbolguspar_tbl |>
+  filter(name == "Söguleg") |>
+  cross_join(distinct(svidsmyndir_tbl, duration)) |>
+  mutate(shock_pct = "Söguleg", svidsmyndir = value)
+
+baseline_tbl <- verdbolguspar_tbl |>
+  filter(name == "VR") |>
+  cross_join(distinct(svidsmyndir_tbl, duration)) |>
+  mutate(shock_pct = "Grunnspá", svidsmyndir = value)
+
+skammtima_tbl <- verdbolguspar_tbl |>
+  filter(name == "VR") |>
+  mutate(month = row_number() - 1L) |>
+  left_join(svidsmyndir_tbl, by = "month") |>
+  mutate(
+    svidsmyndir = value + addon,
+    shock_pct = "+30%"
+  )
+
+
+# 2.2.0 VSK ----
+# kolefnisgjald_bensin <- 24.25
+# kolefnisgjald_diesel <- 28.3
+
+# bensin_verd <- 246
+# diesel_verd <- 279.6
+
+bensin_vog <- 249 / 10000
+diesel_vog <- 108 / 10000
+total_vog <- bensin_vog + diesel_vog
+
+# bensin_laekkun <- kolefnisgjald_bensin / bensin_verd
+# diesel_laekkun <- kolefnisgjald_diesel / diesel_verd
+
+# avg_laekkun <- mean(bensin_laekkun, diesel_laekkun)
+
+avg_laekkun <- abs(1.11 / 1.24 - 1)
+
+bein_ahrif <- total_vog * avg_laekkun
+
+# Olíuverðsáhrif + lækkun VSK
+skammtima_vsk_tbl <- skammtima_tbl |>
+  mutate(
+    svidsmyndir = svidsmyndir - bein_ahrif,
+    shock_pct = "+30% + VSK lækkun"
+  )
+
+spar_udpate_tbl <- bind_rows(
+  soguleg_tbl,
+  baseline_tbl,
+  skammtima_tbl,
+  skammtima_vsk_tbl
+)
+
+
+# 3.0.0 PLOT ----
+
+blue_palette <- c(
+  "#0072b1",
+  "#54b6e9",
+  "#00a073",
+  "#f0e142",
+  "#e59e23",
+  "#d65e18",
+  "#D64550",
+  "#6a3d9a", # deep purple
+  "#333333" # dark grey (almost black)
+)
+
+title_text <- c(
+  "Grunnspáin byggir á spálíkani VR. 30% hækkun brent olíu er metin með tölfræðilíkani.
+Fyrstu gráðu áhrifin eru að einhverju leyti komin fram í mars tölunum og sýnir því grafið hér annarrar gráðu áhrifin.
+Síðan er bætt við 0,3% lækkun vegna útspils ríkisstjórnarinnar."
+)
+
+p_greining_vsk <- spar_udpate_tbl |>
+  filter(
+    duration == "2 months",
+    shock_pct %in% c("Söguleg", "Grunnspá", "+30%", "+30% + VSK lækkun")
+  ) |>
+  ggplot(aes(date, svidsmyndir, col = shock_pct, linetype = shock_pct)) +
+  geom_line() +
+  annotate(
+    "point",
+    x = as.Date("2026-08-01"),
+    y = 0.047,
+    shape = 15,
+    size = 3,
+    color = "#dc1e35"
+  ) +
+  annotate(
+    "text",
+    x = as.Date("2026-08-01"),
+    y = 0.041,
+    label = "Kjarasamningar 4,7%",
+    vjust = -1,
+    size = 4,
+    color = "#dc1e35"
+  ) +
+  scale_linetype_manual(
+    values = c(
+      "Grunnspá" = "dashed",
+      "Söguleg" = "solid",
+      "+30%" = "solid",
+      "+30% + VSK lækkun" = "dashed"
+    )
+  ) +
+  scale_color_manual(
+    values = c(
+      "Söguleg" = "black",
+      "Grunnspá" = "black",
+      "+30%" = blue_palette[2],
+      "+30% + VSK lækkun" = blue_palette[3]
+    )
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Grunnspá VR með 30% hækkun olíuverðs sem varir í tvo mánuði auk lækkun VSK á dæluverði",
+    subtitle = str_wrap(title_text, width = 120)
+  ) +
+  theme_minimal() +
+  theme(
+    legend.title = element_blank(),
+    text = element_text(size = 16),
+    plot.subtitle = element_text(color = "grey30", size = 14),
+    legend.position = "bottom",
+    legend.direction = "vertical"
+  ) +
+  scale_y_continuous(labels = scales::percent, limits = c(0, 0.11))
+
+vr_layout(p_greining_vsk, tooltip_percent = TRUE)
+```

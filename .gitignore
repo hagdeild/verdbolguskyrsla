@@ -1,5 +1,4 @@
 # Quarto build output
-_site/
 .quarto/
 
 # R session files
@@ -17,3 +16,4 @@ Thumbs.db
 **/*.quarto_ipynb
 
 index_files
+_site/
