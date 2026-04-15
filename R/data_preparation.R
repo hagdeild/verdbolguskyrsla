@@ -1928,7 +1928,7 @@ spar_annarra_tbl <- readxl::read_excel(data_path, "spar") |>
   mutate(date = date(date))
 
 spar_bankar_tbl <- spar_annarra_tbl |>
-  select(-Seðlabankinn) |>
+  select(-c(Seðlabankinn, creation_date)) |>
   pivot_longer(cols = -c(date)) |>
   drop_na()
 
@@ -1940,7 +1940,7 @@ spar_si_tbl <- spar_annarra_tbl |>
 
 # 2.1.0 Medium term forecast ----
 medium_data_tbl <- data_raw_tbl %>%
-  mutate(vnv = vnv / lag(vnv, 12) - 1) %>%
+  mutate(infl = vnv / lag(vnv, 12) - 1) %>%
   drop_na()
 
 medium_mtbl <- temporal_hierarchy(
@@ -1948,7 +1948,7 @@ medium_mtbl <- temporal_hierarchy(
   combination_method = "struc"
 ) %>%
   set_engine("thief") %>%
-  fit(vnv ~ date, data = medium_data_tbl) %>%
+  fit(infl ~ date, data = medium_data_tbl) %>%
   modeltime_table()
 
 fc_medium_tbl <- medium_mtbl %>%
@@ -1967,75 +1967,34 @@ fc_medium_tbl <- fc_medium_tbl %>%
     fc_1m = fc_vnv / lag(fc_vnv) - 1
   )
 
-# short_forecast_12m_tbl <- fc_medium_tbl %>%
-#   filter(.key != "actual") %>%
-#   select(date, .value, fc_vnv) %>%
-#   set_names("date", "value", "fc_vnv") %>%
-#   mutate(name = "Skammtíma")
 
-# 2.2.0 Long term forecast ----
-
-# long_term_data_tbl <- data_raw_tbl %>%
-#   mutate(vnv = vnv / lag(vnv, 12) - 1) %>%
-#   drop_na()
-
-# fc_long_tbl <- arima_reg() %>%
-#   set_engine("auto_arima") %>%
-#   fit(vnv ~ date, data = long_term_data_tbl) %>%
-#   modeltime_table() %>%
-#   modeltime_forecast(
-#     h = 12,
-#     actual_data = long_term_data_tbl,
-#     keep_data = TRUE
-#   )
-
-# fc_long_tbl <- fc_long_tbl %>%
-#   select(date, .key, .value) %>%
-#   left_join(data_raw_tbl %>% select(date, vnv)) %>%
-#   mutate(
-#     fc_vnv = lag(vnv, 12) * (1 + .value),
-#     fc_1m = fc_vnv / lag(fc_vnv) - 1
-#   )
-
-# 3.0.0 Valuebox ----
-
-# 3.1.0 12 mánaða spá ----
-# spa_12m <- fc_long_tbl %>%
-#   filter(.key == "prediction") %>%
-#   filter(date == min(date)) %>%
-#   pull(.value)
-
-# short_12m <- short_forecast_12m_tbl %>%
-#   filter(date == min(date)) %>%
-#   pull(value)
-
-# spa_naesta_manadar <- if_else(
-#   short_12m < spa_12m,
-#   paste0(percent(short_12m, 0.1), " - ", percent(spa_12m, 0.1)),
-#   paste0(percent(spa_12m, 0.1), " - ", percent(short_12m, 0.1))
-# )
-
-# 3.2.0 Spá næsta mánaðar ----
-# spa_1m <- fc_tbl %>%
-#   filter(.key == "prediction") %>%
-#   filter(date == min(date)) %>%
-#   pull(fc_1m)
-
+# Eins mánaða spá
 short_1m <- fc_medium_tbl |>
   filter(.key != "actual") %>%
   slice_head(n = 1) %>%
   pull(fc_1m)
 
-# spa_naesta_manadar_1m <- if_else(
-#   short_1m < spa_1m,
-#   paste0(percent(short_1m, 0.01), " - ", percent(spa_1m, 0.01)),
-#   paste0(percent(spa_1m, 0.01), " - ", percent(short_1m, 0.01))
-# )
+# 6 mánaða spá í ágúst
+fc_6m_aug <- fc_medium_tbl |>
+  mutate(vnv_calc = if_else(is.na(vnv), lag(vnv, 12) * (1 + .value), vnv)) |>
+  filter(date %in% c("2026-02-01", "2026-08-01")) |>
+  mutate(
+    fc_6m = ((vnv_calc / lag(vnv_calc))^(1 / 6))^12 - 1
+  ) |>
+  drop_na(fc_6m) |>
+  pull(fc_6m)
+
+# 12 mánaða spá í ágúst
+fc_12m_august <- fc_medium_tbl |>
+  filter(date == "2026-08-01") |>
+  pull(.value)
 
 # 3.5.0 Valuebox --------------.----
 fc_valuebox_tbl <- tibble(
   #spa_12m = percent(short_forecast_12m_tbl$value[1], accuracy = 0.01),
-  spa_1m = percent(short_1m, accuracy = 0.01)
+  spa_1m = percent(short_1m, accuracy = 0.01),
+  fc_6m = percent(fc_6m_aug, accuracy = 0.01),
+  fc_12m = percent(fc_12m_august, accuracy = 0.01)
 )
 
 
@@ -2055,6 +2014,23 @@ fc_tbl <- fc_medium_tbl %>%
 fc_tbl <- fc_tbl |>
   bind_rows(spar_bankar_tbl) |>
   left_join(spar_si_tbl)
+
+
+# TÍMABUNDIÐ MODIFICATION Á SPÁ VEGNA 24% -> 11% VSK Á BENSÍN.
+date_range <- seq.Date(
+  from = as.Date("2026-05-01"),
+  to = as.Date("2026-08-01"),
+  by = "month"
+)
+
+if (month(today()) == 4) {
+  fc_tbl <- fc_tbl |>
+    mutate(
+      value = if_else(name == "VR" & date %in% date_range, value - 0.003, value)
+    )
+} else {
+  "Spá VR mun aðlaga sig út frá 0.3% lækkun í "
+}
 
 
 list(

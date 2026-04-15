@@ -15,7 +15,8 @@
       "Bash(grep -h \"^library\\\\|^require\" /c/Users/vidar/Documents/Rwd/verdbolguskyrsla/R/*.R)",
       "WebFetch(domain:www.worldgovernmentbonds.com)",
       "WebFetch(domain:www.investing.com)",
-      "WebFetch(domain:fred.stlouisfed.org)"
+      "WebFetch(domain:fred.stlouisfed.org)",
+      "Bash(quarto --version)"
     ]
   }
 }
