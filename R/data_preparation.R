@@ -15,6 +15,8 @@ library(tidymodels)
 library(httr2)
 library(hicp)
 
+setwd("c:/Users/vidar/Documents/Rwd/verdbolguskyrsla")
+
 lond_tbl <- read_csv("data/lond.csv") |>
   select(iso_3, land)
 
