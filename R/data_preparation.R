@@ -1960,7 +1960,6 @@ fc_medium_tbl <- medium_mtbl %>%
     keep_data = TRUE
   )
 
-
 fc_medium_tbl <- fc_medium_tbl %>%
   select(date, .key, .value) %>%
   left_join(data_raw_tbl %>% select(date, vnv)) %>%
@@ -1969,6 +1968,8 @@ fc_medium_tbl <- fc_medium_tbl %>%
     fc_1m = fc_vnv / lag(fc_vnv) - 1
   )
 
+
+# 2.2.0 Búa til nokkrar spár ----
 
 # Eins mánaða spá
 short_1m <- fc_medium_tbl |>
@@ -1991,16 +1992,6 @@ fc_12m_august <- fc_medium_tbl |>
   filter(date == "2026-08-01") |>
   pull(.value)
 
-# 3.5.0 Valuebox --------------.----
-fc_valuebox_tbl <- tibble(
-  #spa_12m = percent(short_forecast_12m_tbl$value[1], accuracy = 0.01),
-  spa_1m = percent(short_1m, accuracy = 0.01),
-  fc_6m = percent(fc_6m_aug, accuracy = 0.01),
-  fc_12m = percent(fc_12m_august, accuracy = 0.01)
-)
-
-
-# 4.0.0 SAVE ----
 
 # Bæti skammtímaspá við
 fc_tbl <- fc_medium_tbl %>%
@@ -2011,14 +2002,15 @@ fc_tbl <- fc_medium_tbl %>%
   # as_tibble() |>
   filter(date >= date_from)
 
-
 # Bæti við spám annarra greiningaraðila
 fc_tbl <- fc_tbl |>
   bind_rows(spar_bankar_tbl) |>
   left_join(spar_si_tbl)
 
+# 2.2.1 TÍMABUNDIÐ MODIFICATION Á SPÁ VEGNA 24% -> 11% VSK Á BENSÍN ----
 
-# TÍMABUNDIÐ MODIFICATION Á SPÁ VEGNA 24% -> 11% VSK Á BENSÍN.
+bein_ahrif <- 0.003742742
+
 date_range <- seq.Date(
   from = as.Date("2026-05-01"),
   to = as.Date("2026-08-01"),
@@ -2028,12 +2020,46 @@ date_range <- seq.Date(
 if (month(today()) == 4) {
   fc_tbl <- fc_tbl |>
     mutate(
-      value = if_else(name == "VR" & date %in% date_range, value - 0.003, value)
+      value = if_else(
+        name == "VR" & date %in% date_range,
+        value - bein_ahrif,
+        value
+      )
     )
+
+  short_1m <- short_1m - bein_ahrif
+
+  # sex mánaða verðbólgan
+  fc_6m_aug <- fc_medium_tbl |>
+    mutate(vnv_calc = if_else(is.na(vnv), lag(vnv, 12) * (1 + .value), vnv)) |>
+    filter(date %in% c("2026-02-01", "2026-08-01")) |>
+    mutate(
+      vnv_calc = if_else(
+        date == max(date),
+        vnv_calc * (1 - bein_ahrif),
+        vnv_calc
+      ),
+      fc_6m = ((vnv_calc / lag(vnv_calc))^(1 / 6))^12 - 1
+    ) |>
+    drop_na(fc_6m) |>
+    pull(fc_6m)
+
+  fc_12m_august <- fc_12m_august - bein_ahrif
 } else {
   "Spá VR mun aðlaga sig út frá 0.3% lækkun í "
 }
 
+
+# 3.5.0 Valuebox ----
+fc_valuebox_tbl <- tibble(
+  #spa_12m = percent(short_forecast_12m_tbl$value[1], accuracy = 0.01),
+  spa_1m = percent(short_1m, accuracy = 0.01),
+  fc_6m = percent(fc_6m_aug, accuracy = 0.01),
+  fc_12m = percent(fc_12m_august, accuracy = 0.01)
+)
+
+
+# 4.0.0 SAVE ----
 
 list(
   "verdbolguspa" = fc_tbl,
