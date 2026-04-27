@@ -29,8 +29,8 @@ fix_date <- function(data) {
 # 1.2.0 Other ----
 
 date_from <- floor_date(today() - years(5), "month")
-data_path <- here("data/verdbolguskyrsla_data.xlsx")
-exp_path <- here("data/Verdbolguvaentingar-a-mismunandi-maelikvarda.xlsx")
+data_path <- "data/verdbolguskyrsla_data.xlsx"
+exp_path <- "data/Verdbolguvaentingar-a-mismunandi-maelikvarda.xlsx"
 
 new_coicop_date_from <- "2026-01-01"
 
@@ -1925,7 +1925,7 @@ level_roc1_max <- data_raw_tbl %>%
   filter(date == max(date)) %>%
   pull(vnv)
 
-data_path <- here("data/verdbolguskyrsla_data.xlsx")
+data_path <- "data/verdbolguskyrsla_data.xlsx"
 spar_annarra_tbl <- readxl::read_excel(data_path, "spar") |>
   mutate(date = date(date))
 

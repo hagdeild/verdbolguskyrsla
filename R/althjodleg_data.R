@@ -400,3 +400,6 @@ altjodlegar_upplysingar_tbl <- altjodlegar_upplysingar_tbl |>
 
 altjodlegar_upplysingar_tbl |>
   write_csv("data/altjodlegar.csv")
+
+
+print("Uppfærslu lokið")
