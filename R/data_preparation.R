@@ -2075,3 +2075,6 @@ system("git stash pop")
 system("git add .")
 system('git commit -m "Auto update data"')
 system("git push origin main")
+
+
+print(paste0("Uppfærslu lokið - ", today()))
