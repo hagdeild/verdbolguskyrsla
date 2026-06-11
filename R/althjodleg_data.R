@@ -402,4 +402,4 @@ altjodlegar_upplysingar_tbl |>
   write_csv("data/altjodlegar.csv")
 
 
-print("Uppfærslu lokið")
+print(paste0("Uppfærslu lokið - ", today()))
