@@ -945,7 +945,7 @@ hus_unnid_eldri_tbl <- hus_eldri_tbl %>%
 print("Húsnæðisverð - nýrri gögn")
 
 hus_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/09e58ece-b724-4cde-be33-54a71e248a1b"
+  "https://px.hagstofa.is:443/pxis/sq/db123706-67a6-495f-9030-2d619dfe7ba3"
 )
 
 hus_unnid_tbl <- hus_tbl %>%
