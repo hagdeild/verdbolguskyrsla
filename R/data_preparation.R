@@ -2069,12 +2069,13 @@ list(
 
 
 # 17.0.0 GIT PUSH ----
-system("git stash")
-system("git pull --rebase origin main")
-system("git stash pop")
 system("git add .")
 system('git commit -m "Auto update data"')
-system("git push origin main")
+
+if (system("git push origin main") != 0) {
+  system("git pull --rebase origin main")
+  system("git push origin main")
+}
 
 
 print(paste0("Uppfærslu lokið - ", today()))
