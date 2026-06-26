@@ -185,7 +185,7 @@ edli_og_uppruna_old_tbl <- edli_og_uppruna_old_raw_tbl %>%
 print("Verðbólga eftir eðli og uppruna - ný útgáfa")
 
 edli_og_uppruna_new_raw_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/d6e828c2-eafb-45b4-b5ce-73e7c5f0c32d",
+  "https://px.hagstofa.is:443/pxis/sq/53b28474-c147-41d6-b16e-a46605ac8626",
   na = "."
 ) |>
   drop_na() |>
@@ -945,7 +945,7 @@ hus_unnid_eldri_tbl <- hus_eldri_tbl %>%
 print("Húsnæðisverð - nýrri gögn")
 
 hus_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/db123706-67a6-495f-9030-2d619dfe7ba3"
+  "https://px.hagstofa.is:443/pxis/sq/629d82e1-97f9-48ee-8432-1c4644462186"
 )
 
 hus_unnid_tbl <- hus_tbl %>%
@@ -1525,7 +1525,7 @@ infl_exp_breakeven_tbl <- read_excel(
 print("Top 10 listinn")
 
 vnv_allir_flokkar_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/b961dcbd-a662-4de1-a821-ff51e0844d60",
+  "https://px.hagstofa.is:443/pxis/sq/e4d89d5c-d295-41bd-8d17-0f2b22944d02",
   na = "."
 ) |>
   set_names("date", "flokkur", "visitala") |>
@@ -1812,7 +1812,7 @@ altjodlegar_upplysingar_tbl <- read_csv("data/altjodlegar.csv")
 # 15.0.0 MATARVERÐ ----
 matur_3ja_stafa_tbl <-
   read_csv2(
-    "https://px.hagstofa.is:443/pxis/sq/36cff335-f9d0-46aa-a071-5be6c560e704"
+    "https://px.hagstofa.is:443/pxis/sq/68f399fb-89b2-4322-a7a7-7578e786e30c"
   ) |>
   set_names("date", "flokkur", "value") |>
   mutate(
@@ -1826,7 +1826,7 @@ matur_3ja_stafa_tbl <-
 
 matur_uppruni_tbl <-
   read_csv2(
-    "https://px.hagstofa.is:443/pxis/sq/4e0b2f5f-f967-4097-9456-1900e315d0de",
+    "https://px.hagstofa.is:443/pxis/sq/e0e6a6af-0f1f-487e-9a7e-69c8c5a52ce6",
     na = "."
   ) |>
   set_names("date", "flokkur", "value") |>
@@ -2009,7 +2009,7 @@ fc_tbl <- fc_tbl |>
 
 # 2.2.1 TÍMABUNDIÐ MODIFICATION Á SPÁ VEGNA 24% -> 11% VSK Á BENSÍN ----
 
-bein_ahrif <- 0.003742742
+#bein_ahrif <- 0.003742742
 
 date_range <- seq.Date(
   from = as.Date("2026-05-01"),
