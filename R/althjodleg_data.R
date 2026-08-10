@@ -196,27 +196,53 @@ scrape_te_page <- function(b, url) {
 }
 
 scrape_te_inflation <- function(b) {
-  page <- scrape_te_page(b, "https://tradingeconomics.com/country-list/inflation-rate-")
+  # NOTE: the old "/inflation-rate-" URL (trailing hyphen) now redirects to the
+  # TE homepage, and the plain "/inflation-rate" page only lists G20 countries
+  # (no Iceland/Nordics). "?continent=world" returns the full ~190-country list.
+  page <- scrape_te_page(
+    b,
+    "https://tradingeconomics.com/country-list/inflation-rate?continent=world"
+  )
 
   # Debug: save HTML to inspect if table is missing
   dir.create("data", showWarnings = FALSE)
   writeLines(as.character(page), "data/debug_te_inflation.html")
 
-  tbl <- page |>
-    html_element("table") |>
-    html_table()
+  # TE splits the header and body into two separate <table> elements, so
+  # html_element("table") only sees the header (zero rows). Parse the cells
+  # directly instead and keep rows that look like real data.
+  rows <- page |>
+    html_elements("table tr") |>
+    map(\(row) html_elements(row, "td, th") |> html_text2() |> str_squish())
 
-  if (is.null(tbl) || inherits(tbl, "xml_missing")) {
-    stop("No <table> found on inflation page. Check data/debug_te_inflation.html")
+  tbl <- map_dfr(rows, function(cells) {
+    if (length(cells) < 5) {
+      return(NULL)
+    }
+
+    country <- cells[1]
+    last <- suppressWarnings(as.numeric(cells[2]))
+    previous <- suppressWarnings(as.numeric(cells[3]))
+
+    # Skip the header row and anything without a numeric reading
+    if (country == "" || is.na(last)) {
+      return(NULL)
+    }
+
+    tibble(
+      country = country,
+      last = last,
+      previous = previous,
+      reference = cells[4],
+      unit = cells[5]
+    )
+  })
+
+  if (nrow(tbl) == 0) {
+    stop("No inflation rows parsed. Check data/debug_te_inflation.html")
   }
 
-  tbl |>
-    as_tibble() |>
-    janitor::clean_names() |>
-    mutate(
-      last = as.numeric(last),
-      previous = as.numeric(previous)
-    )
+  tbl
 }
 
 # Your countries of interest (matched to Trading Economics names)
