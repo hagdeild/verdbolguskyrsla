@@ -492,11 +492,37 @@ undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>%
 
 print("waterfall - final útreikningar")
 
+# Opinber verðbólga (12m og 1m) fyrir hvern mánuð - úr vísitölu neysluverðs sjálfri.
+# Notað til að þvinga framlög undirliða til að leggja saman í rétta verðbólgu.
+verdbolga_opinber_tbl <- undirflokkar_og_vogir_tbl %>%
+  filter(undirflokkur == "Vísitala neysluverðs") %>%
+  select(date, verdbolga_alls = verdbolga, verdbolga_1m_alls = verdbolga_1m)
+
 # Verð að splitta þeim upp og sameina aftur til að fá final verðbólgu neðst
 undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>%
   filter(date %in% tail(sort(unique(date)), 3)) %>%
   select(date, undirflokkur, ahrif, ahrif_1m) %>%
   filter(!undirflokkur == "Vísitala neysluverðs") %>%
+  # Vogir eru endurmetnar í janúar sem veldur því að summa framlaga hittir ekki
+  # nákvæmlega á opinberu verðbólguna. Skölum framlögin hlutfallslega svo þau standist.
+  left_join(verdbolga_opinber_tbl, by = "date") %>%
+  group_by(date) %>%
+  mutate(
+    ahrif = if (is.na(first(verdbolga_alls)) || sum(ahrif, na.rm = TRUE) == 0) {
+      ahrif
+    } else {
+      ahrif * first(verdbolga_alls) / sum(ahrif, na.rm = TRUE)
+    },
+    ahrif_1m = if (
+      is.na(first(verdbolga_1m_alls)) || sum(ahrif_1m, na.rm = TRUE) == 0
+    ) {
+      ahrif_1m
+    } else {
+      ahrif_1m * first(verdbolga_1m_alls) / sum(ahrif_1m, na.rm = TRUE)
+    }
+  ) %>%
+  ungroup() %>%
+  select(date, undirflokkur, ahrif, ahrif_1m) %>%
   arrange(date, desc(ahrif))
 
 
