@@ -492,11 +492,17 @@ undirflokkar_og_vogir_tbl <- undirflokkar_tbl %>%
 
 print("waterfall - final útreikningar")
 
-# Opinber verðbólga (12m og 1m) fyrir hvern mánuð - úr vísitölu neysluverðs sjálfri.
+# Opinber verðbólga (12m og 1m) fyrir hvern mánuð - úr vnv_tbl (vísitala neysluverðs).
 # Notað til að þvinga framlög undirliða til að leggja saman í rétta verðbólgu.
-verdbolga_opinber_tbl <- undirflokkar_og_vogir_tbl %>%
-  filter(undirflokkur == "Vísitala neysluverðs") %>%
-  select(date, verdbolga_alls = verdbolga, verdbolga_1m_alls = verdbolga_1m)
+# Ath. undirflokka-gagnasettið sjálft er með NA á "Vísitala neysluverðs" línunni
+# fyrir nýjustu mánuði og er því ekki nothæft sem uppspretta hér.
+verdbolga_opinber_tbl <- vnv_tbl %>%
+  filter(flokkur == "Verðbólga") %>%
+  select(
+    date,
+    verdbolga_alls = verdbolga,
+    verdbolga_1m_alls = milli_manada
+  )
 
 # Verð að splitta þeim upp og sameina aftur til að fá final verðbólgu neðst
 undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>%
