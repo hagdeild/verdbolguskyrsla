@@ -1,4 +1,4 @@
-﻿# Gotchas & maintenance
+# Gotchas & maintenance
 
 The fragile bits, the manual steps, the things that go stale on a calendar, and how to fix the
 common breakages. Read this before you touch anything. For how the pipeline fits together, see

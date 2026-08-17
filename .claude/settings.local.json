@@ -1,4 +1,4 @@
-﻿{
+{
   "permissions": {
     "allow": [
       "WebFetch(domain:www.cbrates.com)",

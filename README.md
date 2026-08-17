@@ -1,4 +1,4 @@
-﻿# Verðbólguskýrsla VR — inflation monitoring dashboard
+# Verðbólguskýrsla VR — inflation monitoring dashboard
 
 A daily inflation-monitoring dashboard for **VR** (Iceland's largest trade union). It collects
 official Icelandic and international price and interest-rate data, computes inflation breakdowns

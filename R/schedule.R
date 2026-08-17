@@ -15,7 +15,14 @@ find_newest_rscript <- function() {
   newest <- dirs[order(ver, decreasing = TRUE)][1]
   rscript <- file.path(newest, "bin", "x64", "Rscript.exe")
   if (!file.exists(rscript)) stop("Rscript.exe not found at ", rscript)
-  rscript
+  # Return the 8.3 SHORT path (C:/PROGRA~1/...). This is essential, not
+  # cosmetic. taskscheduleR interpolates this path *unquoted* into the string it
+  # hands to `schtasks /TR`, so a long path containing "Program Files" splits on
+  # the space and schtasks fails with a misleading "ERROR: Access is denied."
+  # The registration scripts this replaced hardcoded "C:/PROGRA~1/..." for
+  # exactly this reason; shortPathName() keeps that property while still
+  # auto-detecting the version.
+  gsub("\\\\", "/", utils::shortPathName(rscript))
 }
 
 rexe <- find_newest_rscript()
@@ -36,6 +43,10 @@ taskscheduler_create(
   schedule = "DAILY",
   starttime = "16:00",
   startdate = startdate,
+  # /F overwrites an existing task of the same name. Without it schtasks asks
+  # "already exists, replace? (Y/N)", which nothing can answer under Rscript,
+  # so re-registration silently fails.
+  schtasks_extra = "/F",
   Rexe = rexe
 )
 
@@ -46,5 +57,9 @@ taskscheduler_create(
   schedule = "DAILY",
   starttime = "09:01",
   startdate = startdate,
+  # /F overwrites an existing task of the same name. Without it schtasks asks
+  # "already exists, replace? (Y/N)", which nothing can answer under Rscript,
+  # so re-registration silently fails.
+  schtasks_extra = "/F",
   Rexe = rexe
 )
