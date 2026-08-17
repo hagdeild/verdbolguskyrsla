@@ -507,7 +507,9 @@ verdbolga_opinber_tbl <- vnv_tbl %>%
 # Verð að splitta þeim upp og sameina aftur til að fá final verðbólgu neðst
 undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>%
   filter(date %in% tail(sort(unique(date)), 3)) %>%
-  select(date, undirflokkur, ahrif, ahrif_1m) %>%
+  # verdbolga/verdbolga_1m eru verðbreytingar undirliðarins sjálfs (ekki framlag) og
+  # eru notaðar sem viðbótarmerking á framlagsmyndunum.
+  select(date, undirflokkur, ahrif, ahrif_1m, verdbolga, verdbolga_1m) %>%
   filter(!undirflokkur == "Vísitala neysluverðs") %>%
   # Vogir eru endurmetnar í janúar sem veldur því að summa framlaga hittir ekki
   # nákvæmlega á opinberu verðbólguna. Skölum framlögin hlutfallslega svo þau standist.
@@ -528,7 +530,7 @@ undirflokkar_latest_tbl <- undirflokkar_og_vogir_tbl %>%
     }
   ) %>%
   ungroup() %>%
-  select(date, undirflokkur, ahrif, ahrif_1m) %>%
+  select(date, undirflokkur, ahrif, ahrif_1m, verdbolga, verdbolga_1m) %>%
   arrange(date, desc(ahrif))
 
 
