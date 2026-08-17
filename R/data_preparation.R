@@ -1,5 +1,11 @@
 # 1.0.0 SETUP ----
 
+# Must come before any library() call: points .libPaths() at the machine-wide
+# package library and loads credentials (DB plus FRED_API_KEY, used by fredr
+# below) from a real local file rather than through HOME/~. See
+# C:/R/rwd_setup.R.
+source("C:/R/rwd_setup.R")
+
 library(tidyverse)
 library(eurostat)
 library(XML)
@@ -15,7 +21,7 @@ library(tidymodels)
 library(httr2)
 library(hicp)
 
-setwd("c:/Users/vidar/Documents/Rwd/verdbolguskyrsla")
+setwd("c:/Users/hd/Rwd/verdbolguskyrsla")
 
 lond_tbl <- read_csv("data/lond.csv") |>
   select(iso_3, land)

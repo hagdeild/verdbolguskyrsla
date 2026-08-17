@@ -1,4 +1,4 @@
-# Verðbólguskýrsla VR — inflation monitoring dashboard
+﻿# Verðbólguskýrsla VR — inflation monitoring dashboard
 
 A daily inflation-monitoring dashboard for **VR** (Iceland's largest trade union). It collects
 official Icelandic and international price and interest-rate data, computes inflation breakdowns
@@ -52,7 +52,7 @@ The output is consumed by VR's economists and, via the portal, more broadly with
 1. **Clone the repo** to a working directory.
 2. **Fix the hardcoded paths.** Two scripts hardcode an absolute path. Open
    [R/data_preparation.R](R/data_preparation.R) and [R/althjodleg_data.R](R/althjodleg_data.R)
-   and change the `setwd("c:/Users/vidar/Documents/Rwd/verdbolguskyrsla")` line near the top to
+   and change the `setwd("c:/Users/hd/Rwd/verdbolguskyrsla")` line near the top to
    your checkout path. Open [R/schedule.R](R/schedule.R) and fix both the script paths and the
    `rexe` Rscript path. *(This is the #1 thing that breaks on a new machine — see
    [gotchas §1](docs/gotchas.md#1-hardcoded-absolute-paths-breaks-on-any-other-machine).)*

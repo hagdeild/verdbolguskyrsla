@@ -1,4 +1,4 @@
-{
+﻿{
   "permissions": {
     "allow": [
       "WebFetch(domain:www.cbrates.com)",
@@ -10,9 +10,9 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:api.tradingeconomics.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(grep -r \"key\\\\|KEY\\\\|secret\\\\|SECRET\\\\|api\\\\|API\\\\|token\\\\|TOKEN\" /c/Users/vidar/Documents/Rwd/verdbolguskyrsla/R/*.R)",
-      "Bash(grep -r \"fredr\" /c/Users/vidar/Documents/Rwd/verdbolguskyrsla/R/*.R)",
-      "Bash(grep -h \"^library\\\\|^require\" /c/Users/vidar/Documents/Rwd/verdbolguskyrsla/R/*.R)",
+      "Bash(grep -r \"key\\\\|KEY\\\\|secret\\\\|SECRET\\\\|api\\\\|API\\\\|token\\\\|TOKEN\" /c/Users/hd/Rwd/verdbolguskyrsla/R/*.R)",
+      "Bash(grep -r \"fredr\" /c/Users/hd/Rwd/verdbolguskyrsla/R/*.R)",
+      "Bash(grep -h \"^library\\\\|^require\" /c/Users/hd/Rwd/verdbolguskyrsla/R/*.R)",
       "WebFetch(domain:www.worldgovernmentbonds.com)",
       "WebFetch(domain:www.investing.com)",
       "WebFetch(domain:fred.stlouisfed.org)",

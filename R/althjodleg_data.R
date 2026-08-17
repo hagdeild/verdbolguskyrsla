@@ -1,11 +1,17 @@
 # Scrape cbrates, trading economics for policy rates and 10 year yield
 
 # 1.0.0 SETUP ----
+
+# Must come before any library() call: points .libPaths() at the machine-wide
+# package library and loads credentials from a real local file rather than
+# through HOME/~. See C:/R/rwd_setup.R.
+source("C:/R/rwd_setup.R")
+
 library(tidyverse)
 library(rvest)
 library(chromote)
 
-setwd("c:/Users/vidar/Documents/Rwd/verdbolguskyrsla")
+setwd("c:/Users/hd/Rwd/verdbolguskyrsla")
 
 # 2.0.0 STÝRIVEXTIR ----
 # Scrape central bank rates from cbrates.com

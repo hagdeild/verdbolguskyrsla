@@ -1,4 +1,4 @@
-# Gotchas & maintenance
+﻿# Gotchas & maintenance
 
 The fragile bits, the manual steps, the things that go stale on a calendar, and how to fix the
 common breakages. Read this before you touch anything. For how the pipeline fits together, see
@@ -30,8 +30,8 @@ Both entry-point scripts start by setting the working directory to the repo's sp
 the VM:
 
 ```r
-setwd("c:/Users/vidar/Documents/Rwd/verdbolguskyrsla")   # data_preparation.R line ~18
-setwd("c:/Users/vidar/Documents/Rwd/verdbolguskyrsla")   # althjodleg_data.R   line ~8
+setwd("c:/Users/hd/Rwd/verdbolguskyrsla")   # data_preparation.R line ~18
+setwd("c:/Users/hd/Rwd/verdbolguskyrsla")   # althjodleg_data.R   line ~8
 ```
 
 `R/schedule.R` also hardcodes this path and the R executable path
