@@ -61,3 +61,76 @@
   color: #fff;
   border-color: #0072b1;
 }
+
+/* ── Vatnsfallsmyndir: hnappur sem víxlar verðbreytingu í sviga ── */
+.wf-variant img {
+  width: 100%;
+  height: auto;
+}
+
+/* Quarto setur myndirnar tvær í tveggja dálka grid (ein sella á hverja
+   útkomu úr kubbnum). Þar sem aðeins önnur myndin sést í einu viljum við
+   einn dálk svo myndin nýti fulla breidd. */
+.bslib-grid:has(> .wf-variant),
+.wf-grid {
+  display: block !important;
+}
+
+/* Sjálfgefið: sýnum myndina MEÐ verðbreytingu. Notum !important og hendum
+   ekki display-gildinu frá Quarto (html-fill-container) heldur felum með
+   attribute-inu hidden-ígildi svo flex-uppsetningin haldist. */
+.wf-variant.wf-without { display: none !important; }
+
+body.wf-hide-change .wf-variant.wf-with    { display: none !important; }
+body.wf-hide-change .wf-variant.wf-without { display: flex !important; }
+
+.wf-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+  margin: 0 0 0.5rem 0;
+  padding: 0.3rem 0.7rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #0072b1;
+  background-color: #e8f4fb;
+  border: 1px solid #b8ddf0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s;
+
+  /* Kortið er flex/grid-ílát (html-fill-container) sem teygir börnin sín
+     yfir alla breiddina. Þessar reglur halda hnappinum litlum og vinstra
+     megin, óháð því hvort foreldrið er flex eða grid. */
+  align-self: flex-start;
+  justify-self: start;
+  width: auto;
+  max-width: max-content;
+  flex: 0 0 auto;
+}
+
+.wf-toggle-btn:hover {
+  background-color: #54b6e9;
+  color: #fff;
+  border-color: #54b6e9;
+}
+
+body.wf-hide-change .wf-toggle-btn {
+  background-color: #0072b1;
+  color: #fff;
+  border-color: #0072b1;
+}
+
+/* Lítill litaður punktur sem sýnir stöðuna */
+.wf-toggle-btn::before {
+  content: "";
+  width: 0.55em;
+  height: 0.55em;
+  border-radius: 50%;
+  background-color: currentColor;
+  opacity: 0.85;
+}
+
+body.wf-hide-change .wf-toggle-btn::before {
+  opacity: 0.35;
+}

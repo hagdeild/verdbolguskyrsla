@@ -1,0 +1,89 @@
+<script>
+// Hnappur sem víxlar hvort verðbreyting undirliðar birtist í sviga á
+// vatnsfallsmyndunum. Myndirnar eru gerðar í tvennu lagi við render (sjá
+// wf_toggle_pair í index.qmd); hnappurinn skiptir bara um hvor sést.
+(function () {
+  var STORAGE_KEY = "wf-hide-change";
+  var LABEL_ON = "Sýna 12 mánaða hækkun";
+  var LABEL_OFF = "Fela 12 mánaða hækkun";
+
+  function isHidden() {
+    try {
+      return window.localStorage.getItem(STORAGE_KEY) === "1";
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function persist(hidden) {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, hidden ? "1" : "0");
+    } catch (e) {
+      /* localStorage getur verið lokað - stillingin gildir þá bara í þessari heimsókn */
+    }
+  }
+
+  function syncLabels() {
+    var hidden = document.body.classList.contains("wf-hide-change");
+    var btns = document.querySelectorAll(".wf-toggle-btn");
+    for (var i = 0; i < btns.length; i++) {
+      btns[i].textContent = hidden ? LABEL_ON : LABEL_OFF;
+      btns[i].setAttribute("aria-pressed", hidden ? "false" : "true");
+    }
+  }
+
+  function toggle() {
+    var hidden = document.body.classList.toggle("wf-hide-change");
+    persist(hidden);
+    syncLabels();
+  }
+
+  function makeButton() {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "wf-toggle-btn";
+    btn.addEventListener("click", toggle);
+    return btn;
+  }
+
+  // Setur hnapp efst í hvert kort sem inniheldur vatnsfallsmynd og merkir
+  // grid-ið sem myndirnar lenda í svo það verði einn dálkur (sjá styles.css).
+  function injectButtons() {
+    var variants = document.querySelectorAll(".wf-variant");
+    for (var i = 0; i < variants.length; i++) {
+      var parent = variants[i].parentNode;
+      if (parent && parent.classList) parent.classList.add("wf-grid");
+
+      var host = variants[i].closest(".card-body") || parent;
+      if (!host || host.querySelector(":scope > .wf-toggle-btn")) continue;
+      host.insertBefore(makeButton(), host.firstChild);
+    }
+    syncLabels();
+  }
+
+  function init() {
+    if (isHidden()) document.body.classList.add("wf-hide-change");
+    injectButtons();
+
+    // Quarto-mælaborðið býr til flipa/síður eftir á, svo við fylgjumst með
+    // breytingum og bætum hnappi við nýjar myndir sem birtast.
+    if (window.MutationObserver) {
+      var pending = false;
+      new MutationObserver(function () {
+        if (pending) return;
+        pending = true;
+        window.setTimeout(function () {
+          pending = false;
+          injectButtons();
+        }, 100);
+      }).observe(document.body, { childList: true, subtree: true });
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+</script>
