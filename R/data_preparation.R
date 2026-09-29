@@ -77,7 +77,7 @@
 # package library and loads credentials (DB plus FRED_API_KEY, used by fredr
 # below) from a real local file rather than through HOME/~. See
 # C:/R/rwd_setup.R.
-source("C:/R/rwd_setup.R")
+# source("C:/R/rwd_setup.R")
 
 library(tidyverse)
 library(eurostat)
@@ -97,7 +97,7 @@ library(hicp)
 # VARÚÐ: harðkóðuð slóð bundin við eina vél/notanda ("hd"). Allar skráaslóðir
 # neðar (data/...) eru afstæðar við þetta. Á annarri vél þarf að breyta þessu
 # (eða athugasemda það út og treysta á here::here() / RStudio-verkefnisrótina).
-setwd("c:/Users/hd/Rwd/verdbolguskyrsla")
+# setwd("c:/Users/hd/Rwd/verdbolguskyrsla")
 
 # data/lond.csv: iso_3, land (+ fleiri stuðlar sem eru ekki notaðir hér)
 lond_tbl <- read_csv("data/lond.csv") |>
