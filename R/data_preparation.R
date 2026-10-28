@@ -543,26 +543,39 @@ undirliggjandi_old_tbl <- read_csv2(
 print("Undirliggjandi verðbólga - ný útgáfa")
 
 # PX-tafla: VIS01101 "Vísitala neysluverðs eftir eðli og uppruna" (NÝ flokkun,
-# hefst 2025M04 í þessari fyrirspurn). Sama tafla og 2.3.2 en breitt form.
+# hefst 2024M12). Sama tafla og 2.3.2 en breitt form.
 # Vefviðmót:
 # https://px.hagstofa.is/pxis/pxweb/is/Efnahagur/Efnahagur__visitolur__1_vnv__3_greiningarvisitolur/VIS01101.px
 #
-# Stuðlar sem fyrirspurnin skilar (5 talsins, í þessari röð):
-#   1 "Mánuður"                                                        -> date
-#   2 "Vísitala Kjarnavisitala_1 (VNV án búvöru, grænmetis,
-#      ávaxta og bensíns)"                                             -> "Kjarnavísitala 1"
-#   3 "Vísitala Kjarnavisitala_2  (Kjarnavísitala 1 án
-#      opinberrar þjónustu)"                                           -> "Kjarnavísitala 2"
-#   4 "Vísitala Kjarnavisitala_4 (kjarnavísitala 2 án
-#      reiknaðrar húsaleigu)"                                          -> "Kjarnavísitala 4"
-#   5 "Vísitala Kjarnavisitala_5 (VNV án orku og matvöru)"             -> "Kjarnavísitala 5"
+# ATH. hér er notað PxWeb API-ið (POST) en EKKI vistuð fyrirspurn: vistaða
+# fyrirspurnin (sq/09238158-...) skilaði aðeins mánuðum frá 2025M06, svo 12
+# mánaða breytingin byrjaði ekki fyrr en 2026M06 og jan-maí 2026 vantaði í
+# myndina. Hér er enginn mánuður valinn, sem þýðir ALLIR mánuðir.
 #
-# ATH. FIMM stuðlar hér en FJÓRIR í eldri röðinni (kjarnavísitala 5 er ný).
-# Vísitalan er á réttum kvarða (ekki tífölduð) og engin "." gildi - þess vegna
-# ekkert na = "." hér.
-undirliggjandi_new_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/09238158-eb02-47c2-a560-60c52341bcb4"
+# Kóðar í "Útgjaldaflokkur" (Liður = "index", þ.e. vísitala, 2025M12 = 100):
+#   CI_1 Kjarnavísitala 1 (VNV án búvöru, grænmetis, ávaxta og bensíns)
+#   CI_2 Kjarnavísitala 2 (kjarnavísitala 1 án opinberrar þjónustu)
+#   CI_4 Kjarnavísitala 4 (kjarnavísitala 2 án reiknaðrar húsaleigu)
+#   CI_5 Kjarnavísitala 5 (VNV án orku og matvöru) - ný, ekki í eldri röðinni
+# Svarið er CSV með PUNKTI sem tugabroti (þess vegna read_csv, ekki read_csv2)
+# og stuðlum í þessari röð: Mánuður | CI_1 | CI_2 | CI_4 | CI_5.
+undirliggjandi_new_tbl <- request(
+  "https://px.hagstofa.is/pxis/api/v1/is/Efnahagur/visitolur/1_vnv/3_greiningarvisitolur/VIS01101.px"
 ) |>
+  req_body_json(list(
+    query = list(
+      list(code = "Liður", selection = list(filter = "item", values = list("index"))),
+      list(
+        code = "Útgjaldaflokkur",
+        selection = list(filter = "item", values = list("CI_1", "CI_2", "CI_4", "CI_5"))
+      )
+    ),
+    response = list(format = "csv")
+  )) |>
+  req_perform() |>
+  resp_body_string(encoding = "UTF-8") |>
+  I() |>
+  read_csv(na = ".", show_col_types = FALSE) |>
   drop_na() |>
   set_names(
     "date",
@@ -584,13 +597,12 @@ undirliggjandi_new_tbl <- read_csv2(
 # 2.4.3 sameina ----
 print("Undirliggjandi verðbólga - sameina")
 
-# Skeytt saman. Ath. hér er skorið á max(nýja) - EKKI á min(nýja) eða
-# new_coicop_date_from - svo eldri röðin fyllir upp í allt fram að nýjasta
-# mánuði nýju raðarinnar. Þar sem raðirnar skarast verða því TVÖ gildi á sama
-# mánuði fyrir kjarnavísitölur 1, 2 og 4 (eitt úr hvorri flokkun).
+# Skeytt saman: eldri röðin fram að fyrsta mánuði nýju raðarinnar (12 mánaða
+# breyting nýju vísitölunnar byrjar 2025M12), nýja röðin þaðan í frá. Eitt
+# gildi á mánuð og lið.
 undirliggjandi_tbl <-
   bind_rows(
-    undirliggjandi_old_tbl |> filter(date < max(undirliggjandi_new_tbl$date)),
+    undirliggjandi_old_tbl |> filter(date < min(undirliggjandi_new_tbl$date)),
     undirliggjandi_new_tbl
   )
 
@@ -2005,20 +2017,43 @@ infl_exp_breakeven_tbl <- read_excel(
 print("Top 10 listinn")
 
 # PX-tafla: VIS01300 "Undirvísitölur, breytingar og áhrif" (NÝ flokkun, hefst
-# 2025M02). Sama tafla og 3.1.0 - en hér er hún notuð ÓSÍUÐ, þ.e. allt
-# COICOP-tréð niður í fínasta stig, til að finna hæstu og lægstu liði.
+# 2025M01). Sama tafla og 3.1.0 - en hér er hún notuð ÓSÍUÐ, þ.e. allt
+# COICOP-tréð niður í fínasta stig, til að finna hæstu og lægstu liði. Einnig
+# notuð í hitakortinu (kafli 13.2.0).
 # Vefviðmót:
 # https://px.hagstofa.is/pxis/pxweb/is/Efnahagur/Efnahagur__visitolur__1_vnv__2_undirvisitolur/VIS01300.px
 #
-# Stuðlar sem fyrirspurnin skilar (3 talsins, í þessari röð):
-#   1 "Mánuður"       -> date      t.d. "2025M02"
-#   2 "Undirvísitala" -> flokkur   COICOP-flokkur MEÐ númeri, öll stig
-#                                  (2, 3, 4, 5 og 6 stafa)
-#   3 "Vísitala"      -> visitala  tölugildi
-vnv_allir_flokkar_tbl <- read_csv2(
-  "https://px.hagstofa.is:443/pxis/sq/e4d89d5c-d295-41bd-8d17-0f2b22944d02",
-  na = "."
+# ATH. hér er notað PxWeb API-ið (POST) en EKKI vistuð fyrirspurn: vistaða
+# fyrirspurnin (sq/e4d89d5c-...) skilaði aðeins mánuðum frá 2025M04, svo 12
+# mánaða breytingin byrjaði ekki fyrr en 2026M04 og jan-mar 2026 vantaði í
+# hitakortið. Aðeins Liður = "index" (vísitala) er valinn; allir mánuðir og
+# allar undirvísitölur fylgja sjálfkrafa.
+#
+# Svarið er BREITT CSV með punkti sem tugabroti: "Mánuður" og síðan einn
+# stuðull á hverja undirvísitölu, nefndur "Vísitala <númer> <heiti>". Því er
+# snúið í langt form:
+#   date      t.d. "2025M02"
+#   flokkur   COICOP-flokkur MEÐ númeri, öll stig (2, 3, 4, 5 og 6 stafa)
+#   visitala  tölugildi
+vnv_allir_flokkar_tbl <- request(
+  "https://px.hagstofa.is/pxis/api/v1/is/Efnahagur/visitolur/1_vnv/2_undirvisitolur/VIS01300.px"
 ) |>
+  req_body_json(list(
+    query = list(
+      list(code = "Liður", selection = list(filter = "item", values = list("index")))
+    ),
+    response = list(format = "csv")
+  )) |>
+  req_perform() |>
+  resp_body_string(encoding = "UTF-8") |>
+  I() |>
+  read_csv(na = ".", show_col_types = FALSE) |>
+  pivot_longer(
+    cols = -1,
+    names_to = "flokkur",
+    names_prefix = "Vísitala ",
+    values_to = "visitala"
+  ) |>
   set_names("date", "flokkur", "visitala") |>
   drop_na()
 
@@ -2349,11 +2384,13 @@ infl_umfang_tbl <- infl_umfang_tbl |>
 
 
 # 13.3.0 Sameina umfang ----
-# ATH. bind_rows() án dagsetningarskurðar - eldri röðin (frá 2020) og sú nýrri
-# SKARAST því báðar ná yfir 2025. Þar sem bæði eldri og nýrri gögn eru til
-# fyrir sama mánuð koma tvær færslur á hvert (date, haekkanir) par.
+# Eldri röðin fram að fyrsta mánuði nýju raðarinnar (12 mánaða breyting nýju
+# flokkunarinnar byrjar 2026M01), nýja röðin þaðan í frá - ein færsla á hvert
+# (date, haekkanir) par.
 infl_umfang_tbl <- infl_umfang_tbl |>
-  bind_rows(infl_umfang_old_tbl)
+  bind_rows(
+    infl_umfang_old_tbl |> filter(date < min(infl_umfang_tbl$date))
+  )
 
 # 14.0.0 ALÞJÓÐLEGUR SAMANBURÐUR ----
 # EKKI Hagstofa - staðbundin CSV-skrá sem er búin til annars staðar
