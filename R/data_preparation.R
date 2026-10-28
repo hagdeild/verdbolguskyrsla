@@ -2532,15 +2532,16 @@ level_roc1_max <- data_raw_tbl %>%
 
 # EKKI Hagstofa - blað "spar" í data/verdbolguskyrsla_data.xlsx: spár annarra
 # greiningaraðila, uppfært handvirkt.
-# Stuðlar: date | creation_date | Seðlabankinn | <einn stuðull á hvern banka/
-# greiningaraðila>. Seðlabankinn er tekinn út sérstaklega því hann er sýndur
-# sem sérstök lína í skýrslunni; creation_date er ekki notað.
+# Stuðlar: date | Seðlabankinn | <einn stuðull á hvern banka/greiningaraðila>.
+# Seðlabankinn er tekinn út sérstaklega því hann er sýndur sem sérstök lína í
+# skýrslunni. Aðrir stuðlar (t.d. gamla creation_date) eru hunsaðir.
 data_path <- "data/verdbolguskyrsla_data.xlsx"
 spar_annarra_tbl <- readxl::read_excel(data_path, "spar") |>
-  mutate(date = date(date))
+  mutate(date = date(date)) |>
+  select(-any_of("creation_date"))
 
 spar_bankar_tbl <- spar_annarra_tbl |>
-  select(-c(Seðlabankinn, creation_date)) |>
+  select(-Seðlabankinn) |>
   pivot_longer(cols = -c(date)) |>
   drop_na()
 

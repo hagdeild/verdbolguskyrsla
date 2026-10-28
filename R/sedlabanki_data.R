@@ -179,7 +179,8 @@ si_read_wide <- function(xlsx, sheet = 1, rows) {
   find_row <- function(patterns, name) {
     at <- header_row
     for (p in patterns) {
-      hit <- which(seq_along(labels) > at & str_detect(labels, fixed(p)))
+      # stringr:: skýrt, því annar pakki í data_preparation.R skyggir á fixed().
+      hit <- which(seq_along(labels) > at & str_detect(labels, stringr::fixed(p)))
       if (length(hit) == 0) {
         stop("Röð fannst ekki í ", basename(xlsx), " (", name, "): '", p, "'")
       }
