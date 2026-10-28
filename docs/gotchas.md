@@ -46,58 +46,42 @@ in the scripts directly.
 
 ## 2. The manual workbook: `data/verdbolguskyrsla_data.xlsx`
 
-This is the **main human-maintained input**. `data_preparation.R` reads many sheets from it.
-Nothing in the repo updates it — **you update it by hand** before (or independent of) the daily
-run, and the daily run picks up whatever is in it.
+**Most of this workbook is no longer maintained by hand.** The Central Bank series that used to
+be copied into it are now fetched by [R/sedlabanki_data.R](../R/sedlabanki_data.R) (see the README,
+§3). What is left:
 
-Sheets the pipeline reads (sheet name → meaning):
+| Sheet | Status |
+|-------|--------|
+| `spar` | **Still manual.** Other analysts' (banks') and the Central Bank's inflation forecasts. The banks publish these only as prose articles/PDFs, so there is nothing machine-readable to pull. |
+| `vextir` | **Frozen history.** Read up to its last filled row; later months come from the CB's monthly notice. No need to add rows. |
+| all other sheets | Not read any more (kept only for reference). |
 
-| Sheet | Meaning |
-|-------|---------|
-| `vextir` | Bank lending interest rates |
-| `meginvextir` | Central Bank policy rate |
-| `bank_stabbi`, `lif_stabbi`, `lanasjodir_stabbi` | Loan **stocks** — banks, pension funds, government funds |
-| `bank_ny_utlan`, `lif_ny_utlan` | **New** loans — banks, pension funds |
-| `inngrip_si` | Central Bank FX-market interventions |
-| `spar` | Other analysts' (banks') and the Central Bank's inflation **forecasts** |
-
-The two other manual workbooks:
+The two other manual workbooks are unchanged:
 
 - `data/Verdbolguvaentingar-a-mismunandi-maelikvarda.xlsx` — inflation expectations (households,
   businesses, breakeven rates).
 - `data/Vaentingar_markadsadila.xlsx` — market participants' expectations.
 
-**Where the manual data comes from** (from the original README — these are the human download
-sources; cadence is whatever the source publishes, typically monthly/quarterly):
+### What can break in the automatic pulls
 
-- **Lending (Útlán):**
-  - <https://gagnabanki.is/report/pension> — pension-fund loans
-  - <https://gagnabanki.is/report/pensionloans> — new pension-fund loans
-  - <https://gagnabanki.is/report/monetary> — deposit-institution loans & new loans
-  - <https://gagnabanki.is/report/funds> — government-fund loans
-- **Policy & bank rates (Meginvextir / Vextir bankanna):** <https://sedlabanki.is/gagnatorg/vextir/>
-- **CB FX interventions (Inngrip SÍ á gjaldeyrismarkað):** <https://gagnabanki.is/report/fxturnover>
-- **Inflation expectations (Verðbólguvæntingar):**
-  <https://sedlabanki.is/peningastefna/verdbolguvaentingar-a-mismunandi-maelikvarda/>
+- **A label changes in a CB workbook.** Rows are found by label text (e.g. `"Með veð í íbúð"`
+  under `"Verðtryggð útlán / Indexed loans"`). If the CB rewords a label, the run stops with
+  `Röð fannst ekki í ...` naming the missing label: open the file and update the pattern in
+  `R/sedlabanki_data.R`.
+- **gagnabanki.is export (pension funds, government funds).** Uses headless Chrome to click the
+  portal's Excel button (same technique as `Vidaringa/macro_iceland`). If the portal UI changes,
+  you get `gagnabanki.is skilaði engri Excel-skrá`.
+- **Download failure.** Each pull falls back to the last good copy in `data/sedlabanki_cache/`
+  with a **warning**, so the dashboard still updates but that series stops advancing. Watch the
+  run log for `nota vistað afrit`.
+- **Interest-rate notices** (`vextir`): the article slug is sometimes `nr-07-2026`, sometimes
+  `nr-7-2025`; both are tried. A missing past month gives a warning `Fann ekki vaxtatilkynningu`.
 
-> ⚠️ **Open question for the successor:** the exact per-sheet update procedure (which columns,
-> which rows, what format) is not written down anywhere in code. The download URLs above are
-> known; the data-entry mechanics are institutional knowledge. **See [open question #1](#open-questions).**
+### Still position-based: the expectations workbooks
 
-### The brittle part: row/position-based reads
-
-Several workbook reads are tied to **exact spreadsheet layout**, not to labels:
-
-- **Dates are *generated*, not read.** For the lending tables, the code creates the date column
-  with `seq.Date(from = <hardcoded start>, length.out = nrow(.))` rather than reading dates from
-  the sheet. The hardcoded starts are: `1997-12-01` (bank_stabbi), `1997-01-01` (lif_stabbi),
-  `1992-03-01` (lanasjodir_stabbi), `2009-01-01` (lif_ny_utlan), `2013-01-01` (bank_ny_utlan).
-  **If you insert or delete a row, or a month is missing, every date silently shifts** and the
-  charts will be wrong without any error. When adding a new month, **append at the bottom and do
-  not leave gaps.**
-- **Hardcoded `slice()` row numbers** select specific rows: e.g. `slice(6, 9)`, `slice(16, 19)`,
-  `slice(72, 73, 110, 111)`, `slice(9)`, `slice(4:7)`. If the source sheets are re-laid-out (rows
-  reordered, header rows added), these grab the wrong rows. **Keep the sheet layout stable.**
+`get_infl_exp()` and the breakeven/market-participant reads still use hardcoded `slice()` row
+numbers (`slice(9)`, `slice(4:7)`). If those source sheets are re-laid-out, they grab the wrong
+rows. **Keep their layout stable.**
 
 ---
 

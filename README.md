@@ -122,25 +122,27 @@ published by Hagstofa once a month, typically late in the month).
 
 | File | What | Download source |
 |------|------|-----------------|
-| [data/verdbolguskyrsla_data.xlsx](data/verdbolguskyrsla_data.xlsx) | Policy & bank rates, loan stocks & new loans, FX interventions, **and other analysts' forecasts** (multiple sheets) | See below |
+| [data/verdbolguskyrsla_data.xlsx](data/verdbolguskyrsla_data.xlsx) | Only the **`spar`** sheet (other analysts' forecasts) is still maintained by hand. The `vextir` sheet is read as frozen history; every other sheet is no longer read. | Bank research pages / CB *Peningamál* |
 | [data/Verdbolguvaentingar-a-mismunandi-maelikvarda.xlsx](data/Verdbolguvaentingar-a-mismunandi-maelikvarda.xlsx) | Inflation expectations (households, businesses, breakeven) | Central Bank (link below) |
 | [data/Vaentingar_markadsadila.xlsx](data/Vaentingar_markadsadila.xlsx) | Market participants' expectations | Central Bank survey |
 
-**Manual download sources** (carried over from the original README — these are where the workbook
-data comes from; you copy figures into the sheets):
+**Central Bank data that used to be typed into the workbook is now fetched automatically** by
+[R/sedlabanki_data.R](R/sedlabanki_data.R) (sourced by `data_preparation.R`):
 
-- **Lending (Útlán):** pension funds <https://gagnabanki.is/report/pension> · new pension-fund
-  loans <https://gagnabanki.is/report/pensionloans> · deposit-institution loans
-  <https://gagnabanki.is/report/monetary> · government funds <https://gagnabanki.is/report/funds>
-- **Policy & bank rates:** <https://sedlabanki.is/gagnatorg/vextir/>
-- **CB FX interventions:** <https://gagnabanki.is/report/fxturnover>
+| Former sheet | Now from |
+|--------------|----------|
+| `meginvextir` | CB XML time series 17923 |
+| `vextir` | Monthly CB notice *Tilkynning um dráttarvexti og vexti af peningakröfum* (almennir vextir, lög 38/2001). History up to the sheet's last filled row is kept from the sheet. |
+| `inngrip_si` | CB XML time series 284 (turnover), 287 (CB buys), 285 (CB sells) |
+| `bank_stabbi`, `bank_ny_utlan` | CB Excel files on `sedlabanki.is/library` (URL looked up in gagnabanki.is's config) |
+| `lif_stabbi`, `lif_ny_utlan`, `lanasjodir_stabbi` | gagnabanki.is Excel export via headless Chrome (`chromote`) |
+
+Rows are located by **label**, not position, and dates are read from the files, so the old
+"append at the bottom, never leave gaps" rule no longer applies. If a download fails, the last
+successful pull is used from `data/sedlabanki_cache/` (git-ignored) with a warning.
+
 - **Inflation expectations:**
   <https://sedlabanki.is/peningastefna/verdbolguvaentingar-a-mismunandi-maelikvarda/>
-
-> ⚠️ The exact per-sheet data-entry procedure (which columns, appending new months, layout rules)
-> is **institutional knowledge not captured in code** — and the reads are sensitive to row order.
-> See [gotchas §2](docs/gotchas.md#2-the-manual-workbook-dataverdbolguskyrsla_dataxlsx) and
-> [open question #1](docs/gotchas.md#open-questions).
 
 ---
 

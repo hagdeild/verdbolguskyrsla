@@ -66,9 +66,11 @@
 # Aðrar gagnaheimildir en Hagstofan:
 #   * Eurostat HICP  - kafli 6.0.0 (REST API, sjá athugasemd þar)
 #   * Seðlabankinn   - gengi (kafli 9.0.0, XML tímaraðir)
-#   * Excel-skrár í data/ - vextir, útlán, inngrip, verðbólguvæntingar, spár
-#     (þessar eru uppfærðar handvirkt / af öðrum ferlum og eru viðkvæmar fyrir
-#     því að raðir færist til, því þær eru lesnar með slice() á raðnúmerum)
+#   * Seðlabankinn   - vextir, útlán og inngrip (kaflar 7.3-10.0, sótt með
+#     R/sedlabanki_data.R)
+#   * Excel-skrár í data/ - verðbólguvæntingar og spár annarra (þessar eru
+#     uppfærðar handvirkt og eru viðkvæmar fyrir því að raðir færist til, því
+#     þær eru lesnar með slice() á raðnúmerum)
 # ==============================================================================
 
 # 1.0.0 SETUP ----
@@ -122,8 +124,13 @@ fix_date <- function(data) {
 date_from <- floor_date(today() - years(5), "month")
 
 # Excel-skrár sem eru uppfærðar handvirkt (sjá athugasemdir í köflum 7-11)
+# ATH. úr verdbolguskyrsla_data.xlsx er nú aðeins blaðið "spar" uppfært
+# handvirkt; blaðið "vextir" er lesið sem frosin saga. Vextir, útlán og inngrip
+# eru sótt beint til Seðlabankans með föllum úr R/sedlabanki_data.R.
 data_path <- "data/verdbolguskyrsla_data.xlsx"
 exp_path <- "data/Verdbolguvaentingar-a-mismunandi-maelikvarda.xlsx"
+
+source("R/sedlabanki_data.R")
 
 # Hagstofan tók upp nýtt COICOP-flokkunarkerfi í janúar 2026. Eldri og nýrri
 # tímaraðir eru því sóttar úr sitt hvorri töflu og skeytt saman við þessa
@@ -1460,12 +1467,14 @@ hus_unnid_tbl <- bind_rows(
 # 7.3.0 Vextir ----
 print("Vextir bankanna")
 
-# EKKI Hagstofa - lesið úr data/verdbolguskyrsla_data.xlsx, blaði "vextir".
-# Stuðlar í blaðinu: date | Óverðtryggðir | Verðtryggðir (vextir í PRÓSENTUM,
-# þess vegna / 100 hér). Blaðið er uppfært handvirkt.
-vextir_tbl <- readxl::read_excel(data_path, sheet = "vextir") |>
+# EKKI Hagstofa - almennir vextir óverðtryggðra / verðtryggðra útlána úr
+# mánaðarlegum vaxtatilkynningum SÍ (sjá si_almennir_vextir() í
+# R/sedlabanki_data.R). Saga til og með síðustu útfylltu línu blaðsins "vextir"
+# í data/verdbolguskyrsla_data.xlsx, nýrri mánuðir sóttir sjálfvirkt.
+# Stuðlar: date | Óverðtryggðir | Verðtryggðir (vextir í PRÓSENTUM, þess
+# vegna / 100 hér).
+vextir_tbl <- si_almennir_vextir(data_path) |>
   mutate(
-    date = date(date),
     Óverðtryggðir = Óverðtryggðir / 100,
     Verðtryggðir = Verðtryggðir / 100
   ) |>
@@ -1475,21 +1484,9 @@ vextir_tbl <- readxl::read_excel(data_path, sheet = "vextir") |>
 # 7.3.1 Meginvextir ----
 print("Hleð inn meginvexti")
 
-# Blað "meginvextir": tveir stuðlar - dagsetning vaxtaákvörðunar (á forminu
-# d.m.á, þess vegna dmy()) og meginvextir Seðlabankans sem TEXTI með kommu
-# sem tugabroti ("8,25"). Ákvarðanir geta verið fleiri en ein í mánuði, svo
-# tekið er meðaltal innan mánaðar.
-meginvextir_tbl <- read_excel(data_path, sheet = "meginvextir") %>%
-  set_names("date", "Meginvextir")
-
-meginvextir_tbl <- meginvextir_tbl %>%
-  mutate(
-    date = dmy(date),
-    date = floor_date(date, "month"),
-    Meginvextir = as.numeric(str_replace(Meginvextir, ",", ".")) / 100
-  ) %>%
-  group_by(date) %>%
-  summarise(Meginvextir = mean(Meginvextir))
+# Meginvextir SÍ (XML tímaröð 17923), mánaðarmeðaltal daglegra gilda sem brot.
+# Stuðlar: date | Meginvextir.
+meginvextir_tbl <- si_meginvextir()
 
 
 vextir_tbl <- vextir_tbl %>%
@@ -1502,89 +1499,35 @@ vextir_tbl <- vextir_tbl %>%
 
 print("Útlán")
 
-# VARÚÐ - ALLUR ÞESSI KAFLI ER STÖÐUBUNDINN:
-# Útlánagögnin koma úr Seðlabanka-Excel-skjölum sem eru afrituð óbreytt inn í
-# data/verdbolguskyrsla_data.xlsx. Þau eru í BREIÐU formi (mánuðir sem dálkar,
-# tegundir lána sem raðir) og eru lesin með slice() á HÖRÐKÓÐUÐUM RAÐNÚMERUM.
-# Dagsetningarnar eru heldur ekki lesnar úr skjalinu heldur BÚNAR TIL með
-# seq.Date() frá föstum upphafsmánuði.
-# Þetta þýðir: ef Seðlabankinn bætir við röð, fjarlægir röð eða breytir
-# upphafsmánuði færist allt til og tölurnar verða rangar ÁN ÞESS AÐ KÓÐINN
-# GEFI VILLU. Ef útlánatölur líta undarlega út skaltu byrja á að opna
-# viðkomandi blað og staðfesta að raðnúmerin hér að neðan vísi enn á rétta liði.
+# Útlánagögnin eru sótt beint til Seðlabankans (R/sedlabanki_data.R). Raðir
+# eru fundnar eftir heiti og dagsetningar lesnar úr skjölunum, svo ef
+# Seðlabankinn breytir uppsetningu stöðvast keyrslan með villu frekar en að
+# skila röngum tölum. Allar fjárhæðir í M.kr.
 
 # 8.1.0 Útlánastabbi ----
 # "Stabbi" = staða útlána (útistandandi fjárhæð), ekki ný útlán.
 
 # Innlánsstofnanir
 print("Útlán innlánsstofnana")
-# Blað "bank_stabbi": raðir 6 og 9 = verðtryggð / óverðtryggð útlán
-# innlánsstofnana til heimila. Fyrstu tveir dálkarnir eru skýringartexti.
-# Tímaröðin hefst í desember 1997 (sjá seq.Date að neðan).
-bankakerfi_tbl <- read_xlsx(data_path, "bank_stabbi") %>%
-  slice(6, 9) %>%
-  select(-c(1, 2)) %>%
-  mutate(type = c("banki_vtr", "banki_ovtr")) %>%
-  pivot_longer(cols = -type) %>%
-  drop_na() %>%
-  select(-name) %>%
-  pivot_wider(names_from = type, values_from = value) %>%
-  unnest(everything()) %>%
-  mutate(
-    date = seq.Date(
-      from = as.Date("1997-12-01"),
-      length.out = nrow(.),
-      by = "month"
-    )
-  )
+# Verðtryggð / óverðtryggð íbúðalán innlánsstofnana til heimila.
+# Stuðlar: date | banki_vtr | banki_ovtr. Frá desember 1997.
+bankakerfi_tbl <- si_utlan_bankar()
 
 
 # Lífeyrissjóðir
 print("Útlán lífeyrissjóða")
 
-# Blað "lif_stabbi": raðir 16 og 19 = verðtryggð / óverðtryggð útlán
-# lífeyrissjóða. Einn skýringardálkur fremst. Tímaröðin hefst í janúar 1997.
-lifeyrissjodir_tbl <- read_xlsx(data_path, "lif_stabbi") %>%
-  slice(16, 19) %>%
-  select(-1) %>%
-  mutate(type = c("lif_vtr", "lif_ovtr")) %>%
-  pivot_longer(cols = -type) %>%
-  drop_na() %>%
-  select(-name) %>%
-  pivot_wider(names_from = type, values_from = value) %>%
-  unnest(everything()) %>%
-  mutate(across(everything(), as.numeric)) %>%
-  mutate(
-    date = seq.Date(
-      from = as.Date("1997-01-01"),
-      length.out = nrow(.),
-      by = "month"
-    )
-  )
+# Verðtryggð / óverðtryggð íbúðalán lífeyrissjóða til heimila.
+# Stuðlar: date | lif_vtr | lif_ovtr. Frá janúar 1997.
+lifeyrissjodir_tbl <- si_utlan_lif()
 
 
 # Lánasjóðir ríkisins
 print("Útlán lánasjóða ríkisins")
 
-# Blað "lanasjodir_stabbi": raðir 16 og 19 = verðtryggð / óverðtryggð útlán
-# lánasjóða ríkisins (m.a. ÍL-sjóður). Tímaröðin hefst í mars 1992.
-lsj_tbl <- read_xlsx(data_path, "lanasjodir_stabbi") %>%
-  slice(16, 19) %>%
-  select(-1) %>%
-  mutate(type = c("lanasjodir_vtr", "lanasjodir_ovtr")) %>%
-  pivot_longer(cols = -type) %>%
-  drop_na() %>%
-  select(-name) %>%
-  pivot_wider(names_from = type, values_from = value) %>%
-  unnest(everything()) %>%
-  mutate(across(everything(), as.numeric)) %>%
-  mutate(
-    date = seq.Date(
-      from = as.Date("1992-03-01"),
-      length.out = nrow(.),
-      by = "month"
-    )
-  )
+# Verðtryggð / óverðtryggð íbúðalán lánasjóða ríkisins (m.a. ÍL-sjóður).
+# Stuðlar: date | lanasjodir_vtr | lanasjodir_ovtr. Frá mars 1992.
+lsj_tbl <- si_utlan_lanasjodir()
 
 
 # sameina stabba
@@ -1615,52 +1558,20 @@ utlan_stada_tbl <- bankakerfi_tbl %>%
 # Lífeyrissjóðir
 print("Ný útlán lífeyrissjóða")
 
-# Blað "lif_ny_utlan": raðir 4 og 5 = verðtryggð / óverðtryggð NÝ útlán
-# lífeyrissjóða (flæði, ekki staða). Tímaröðin hefst í janúar 2009.
-lif_ny_utlan <- read_excel(data_path, "lif_ny_utlan") |>
-  slice(4, 5) |>
-  select(-c(1)) |>
-  mutate(key = c("vtr", "ovtr")) |>
-  pivot_longer(cols = -key) |>
-  select(-name) |>
-  pivot_wider(names_from = key, values_from = value) |>
-  unnest(everything()) %>%
-  mutate(across(everything(), as.numeric)) %>%
-  mutate(
-    date = seq.Date(
-      from = as.Date("2009-01-01"),
-      length.out = nrow(.),
-      by = "month"
-    )
-  )
+# Verðtryggð / óverðtryggð NÝ útlán lífeyrissjóða til heimila (flæði, ekki
+# staða). Stuðlar: date | vtr | ovtr. Frá janúar 2009.
+lif_ny_utlan <- si_ny_utlan_lif()
 
 
 # Innlánsstofnanir
 print("Ný útlán innlánsstofnana")
-# Blað "bank_ny_utlan": FJÓRAR raðir, í þessari röð:
-#   rað 72  -> br_ovt  = breytilegir vextir, óverðtryggt
-#   rað 73  -> fst_ovt = fastir vextir,      óverðtryggt
-#   rað 110 -> br_vt   = breytilegir vextir, verðtryggt
-#   rað 111 -> fst_vt  = fastir vextir,      verðtryggt
-# Ath. röðin á lyklunum í mutate(key = ...) verður að fylgja röðinni í slice().
-# Tímaröðin hefst í janúar 2013.
-banki_ny_utlan_tbl <- read_excel(data_path, "bank_ny_utlan") |>
-  slice(72, 73, 110, 111) |>
-  select(-c(1)) |>
-  mutate(across(is.character, as.numeric)) |>
-  mutate(key = c("br_ovt", "fst_ovt", "br_vt", "fst_vt")) |>
-  pivot_longer(cols = -key) |>
-  select(-name) |>
-  pivot_wider(names_from = key, values_from = value) |>
-  unnest(everything()) %>%
-  mutate(across(everything(), as.numeric)) %>%
-  mutate(
-    date = seq.Date(
-      from = as.Date("2013-01-01"),
-      length.out = nrow(.),
-      by = "month"
-    )
-  )
+# Ný íbúðalán innlánsstofnana til heimila. Stuðlar:
+#   br_ovt  = breytilegir vextir, óverðtryggt
+#   fst_ovt = fastir vextir,      óverðtryggt
+#   br_vt   = breytilegir vextir, verðtryggt
+#   fst_vt  = fastir vextir,      verðtryggt
+# Frá janúar 2013.
+banki_ny_utlan_tbl <- si_ny_utlan_bankar()
 
 
 # sameina ný útlán
@@ -1749,26 +1660,14 @@ gengi_tbl <- get_si_gengi("eur") %>%
 
 print("Inngrip seðlabankans")
 
-# EKKI Hagstofa - blað "inngrip_si" í data/verdbolguskyrsla_data.xlsx,
-# afritað úr gögnum Seðlabankans um inngrip á gjaldeyrismarkaði.
-# Stuðlar sem eru notaðir (eftir clean_names, valdir með NAFNI - ekki stöðu,
-# svo þetta þolir betur að dálkum sé bætt við en útlánablöðin að ofan):
-#   date_reverse  -> date   dagsetning á sniðinu d.m.á (dmy)
-#   velta_i_isk   -> velta  heildarvelta á millibankamarkaði, m.kr.
-#   fe_buy_m_kr   -> kaup   gjaldeyriskaup Seðlabankans, m.kr.
-#   fe_sell_m_kr  -> sala   gjaldeyrissala Seðlabankans, m.kr.
-# Tölurnar koma sem TEXTI með kommu sem tugabroti, þess vegna str_replace.
+# EKKI Hagstofa - XML tímaraðir Seðlabankans (si_inngrip() í
+# R/sedlabanki_data.R), dagleg gildi í m.kr.:
+#   velta  heildarvelta á millibankamarkaði með gjaldeyri
+#   kaup   gjaldeyriskaup Seðlabankans
+#   sala   gjaldeyrissala Seðlabankans
 # Dagleg gögn eru lögð saman upp í mánuði.
-inngrip_si_tbl <- read_xlsx(data_path, "inngrip_si") |>
-  janitor::clean_names() |>
-  select(date_reverse, velta_i_isk, fe_buy_m_kr, fe_sell_m_kr) |>
-  set_names("date", "velta", "kaup", "sala") |>
-  mutate(
-    date = floor_date(dmy(date), "month"),
-    velta = as.numeric(str_replace(velta, ",", ".")),
-    kaup = as.numeric(str_replace(kaup, ",", ".")),
-    sala = as.numeric(str_replace(sala, ",", "."))
-  ) |>
+inngrip_si_tbl <- si_inngrip() |>
+  mutate(date = floor_date(date, "month")) |>
   group_by(date) |>
   summarise(
     velta = sum(velta),

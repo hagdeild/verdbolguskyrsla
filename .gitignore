@@ -17,3 +17,5 @@ Thumbs.db
 
 index_files
 _site/
+# Local cache of Central Bank downloads (R/sedlabanki_data.R)
+data/sedlabanki_cache/
